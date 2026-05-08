@@ -8,3 +8,6 @@ passlib[bcrypt]
 python-jose
 apscheduler
 aiofiles
+gspread
+google-auth
+google-auth-oauthlib
