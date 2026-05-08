@@ -59,7 +59,7 @@ CREDS = Credentials.from_service_account_file(
 
 gc = gspread.authorize(CREDS)
 
-SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
+SPREADSHEET_ID = os.getenv("11bi2iI5oSZJ7TwGoBio4xLEC7MNOJ8qrDre9rt3iDeI")
 
 spreadsheet = gc.open_by_key(SPREADSHEET_ID)
 
