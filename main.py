@@ -17,10 +17,12 @@ from google.oauth2.service_account import Credentials
 
 google_creds = os.getenv("GOOGLE_CREDENTIALS_JSON")
 
-if google_creds:
-    with open("credentials.json", "w", encoding="utf-8") as f:
-        f.write(google_creds)
+creds_dict = json.loads(google_creds)
 
+CREDS = Credentials.from_service_account_info(
+    creds_dict,
+    scopes=SCOPES
+)
 
 # =========================================================
 # FastAPI
