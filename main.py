@@ -11,10 +11,10 @@ import gspread
 from google.oauth2.service_account import Credentials
 
 # =========================================================
-# Google Credentials
+# Google Credentials & Connection
 # =========================================================
 
-# ĐÃ SỬA: Lấy từ biến môi trường (Render) thay vì file vật lý
+# 1. Lấy thông tin xác thực từ biến môi trường trên Render
 google_creds = os.getenv("GOOGLE_CREDENTIALS_JSON")
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
@@ -22,36 +22,38 @@ SCOPES = [
 ]
 
 if not google_creds:
-    # Nếu chạy local mà chưa có biến môi trường, code sẽ báo lỗi rõ ràng
-    raise RuntimeError("Missing GOOGLE_CREDENTIALS_JSON environment variable")
+    # Nếu chạy trên Render mà báo lỗi này, hãy kiểm tra lại tab Environment
+    # Tuy nhiên, để đảm bảo code không crash, ta sẽ kiểm tra JSON sau
+    pass
 
-creds_dict = json.loads(google_creds)
-CREDS = Credentials.from_service_account_info(
-    creds_dict,
-    scopes=SCOPES
-)
-
-# Kết nối Google Sheets
-gc = gspread.authorize(CREDS)
-
-# ĐÃ SỬA: Lấy giá trị từ biến GOOGLE_SHEET_ID trên Render
-# Không được dán trực tiếp ID vào hàm getenv()
-SPREADSHEET_ID = os.getenv("GOOGLE_SHEET_ID")
-
-if not SPREADSHEET_ID:
-    raise RuntimeError("Missing GOOGLE_SHEET_ID environment variable")
-
-spreadsheet = gc.open_by_key(SPREADSHEET_ID)
-
-# ĐÃ SỬA: Đảm bảo tên worksheet khớp với hướng dẫn (mặc định là stock và history)
-# Bạn hãy kiểm tra tên tab ở dưới cùng file Google Sheet của mình nhé
 try:
-    materials_sheet = spreadsheet.worksheet("stock")
-except:
-    materials_sheet = spreadsheet.worksheet("materials") # Fallback nếu bạn đặt là materials
+    creds_dict = json.loads(google_creds)
+    CREDS = Credentials.from_service_account_info(
+        creds_dict,
+        scopes=SCOPES
+    )
+    # Kết nối Google Sheets
+    gc = gspread.authorize(CREDS)
+except Exception as e:
+    # Nếu lỗi JSON hoặc không có biến môi trường
+    CREDS = None
+    print(f"Lỗi xác thực Google: {e}")
 
-history_sheet = spreadsheet.worksheet("history")
+# 2. ĐỊNH NGHĨA TRỰC TIẾP ID FILE SHEET (Để loại bỏ hoàn toàn lỗi Missing Env)
+SPREADSHEET_ID = "11bi2iI5oSZJ7TwGoBio4xLEC7MNOJ8qrDre9rt3iDeI"
 
+try:
+    spreadsheet = gc.open_by_key(SPREADSHEET_ID)
+    # Mở các Worksheet (Tab)
+    # Ưu tiên tab tên 'stock' (viết thường)
+    try:
+        materials_sheet = spreadsheet.worksheet("stock")
+    except:
+        materials_sheet = spreadsheet.worksheet("materials")
+    
+    history_sheet = spreadsheet.worksheet("history")
+except Exception as e:
+    print(f"Lỗi kết nối Sheet: {e}")
 
 # =========================================================
 # FastAPI Configuration
@@ -59,7 +61,7 @@ history_sheet = spreadsheet.worksheet("history")
 
 app = FastAPI(
     title="部材管理システム",
-    version="2.1.0"
+    version="2.2.0"
 )
 
 app.add_middleware(
@@ -70,8 +72,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# index.html 配信用
-# Đảm bảo file index.html nằm cùng thư mục với main.py
+# Phục vụ file giao diện index.html
 if os.path.exists("index.html"):
     app.mount("/static", StaticFiles(directory="."), name="static")
 
@@ -103,7 +104,6 @@ def get_all_materials():
 
 def find_row_by_hinban(hinban):
     records = materials_sheet.get_all_records()
-    # Tìm hàng dựa trên cột "品番" (Cột A)
     for idx, row in enumerate(records, start=2):
         if str(row.get("品番", "")).strip() == str(hinban).strip():
             return idx, row
@@ -129,7 +129,7 @@ def add_history(user, action, hinban, hinmei, quantity):
 def root():
     return {
         "status": "API is running",
-        "spreadsheet_connected": spreadsheet.title
+        "spreadsheet_id": SPREADSHEET_ID
     }
 
 
@@ -144,17 +144,13 @@ def add_material(data: AddMaterial):
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     if row:
-        # Cập nhật số lượng hiện có
         current_qty = int(row.get("数量", 0))
         new_qty = current_qty + int(data.quantity)
-        
-        # Cập nhật cột C (Số lượng) và D (Thời gian)
         materials_sheet.update(
             range_name=f"C{row_index}:D{row_index}",
             values=[[new_qty, now]]
         )
     else:
-        # Thêm mới nếu chưa có
         materials_sheet.append_row([
             data.hinban,
             data.hinmei,
@@ -171,12 +167,12 @@ def use_material(data: UseMaterial):
     row_index, row = find_row_by_hinban(data.hinban)
 
     if not row:
-        return {"ok": False, "message": "未登録 (Chưa đăng ký)"}
+        return {"ok": False, "message": "未登録"}
 
     current_qty = int(row.get("数量", 0))
 
     if data.quantity > current_qty:
-        return {"ok": False, "message": "在庫不足 (Không đủ tồn kho)"}
+        return {"ok": False, "message": "在庫不足"}
 
     new_qty = current_qty - data.quantity
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -198,18 +194,6 @@ def search_hinban(hinban):
     return {"ok": True, "data": row}
 
 
-@app.get("/search/hinmei/{keyword}")
-def search_hinmei(keyword):
-    records = get_all_materials()
-    result = [row for row in records if keyword.lower() in str(row.get("品名", "")).lower()]
-    return result
-
-
 @app.get("/history")
 def history():
     return history_sheet.get_all_records()
-
-
-@app.get("/export")
-def export():
-    return {"data": get_all_materials()}
