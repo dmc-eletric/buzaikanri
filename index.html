@@ -1,0 +1,986 @@
+# 新版 `index.html`（在庫管理システム）
+
+```html
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
+<title>部材在庫管理システム</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:#f3f4f6;
+  color:#111827;
+}
+
+button,input,textarea,select{
+  font-family:inherit;
+}
+
+#app{
+  display:none;
+}
+
+.page{
+  padding:16px;
+  max-width:760px;
+  margin:0 auto;
+}
+
+.card{
+  background:#fff;
+  border-radius:16px;
+  padding:16px;
+  border:1px solid #e5e7eb;
+  margin-bottom:14px;
+}
+
+.title{
+  font-size:20px;
+  font-weight:700;
+  margin-bottom:16px;
+}
+
+.label{
+  font-size:12px;
+  color:#6b7280;
+  margin-bottom:5px;
+  display:block;
+  font-weight:600;
+}
+
+.input{
+  width:100%;
+  border:1px solid #d1d5db;
+  border-radius:12px;
+  padding:12px;
+  font-size:15px;
+  outline:none;
+}
+
+.input:focus{
+  border-color:#d97706;
+}
+
+.btn{
+  width:100%;
+  border:none;
+  border-radius:14px;
+  padding:14px;
+  font-size:15px;
+  font-weight:700;
+  cursor:pointer;
+}
+
+.btn-amber{
+  background:#d97706;
+  color:#fff;
+}
+
+.btn-green{
+  background:#059669;
+  color:#fff;
+}
+
+.btn-red{
+  background:#dc2626;
+  color:#fff;
+}
+
+.btn-outline{
+  background:#fff;
+  border:1px solid #d1d5db;
+}
+
+.grid2{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+
+.topbar{
+  position:sticky;
+  top:0;
+  background:#fff;
+  border-bottom:1px solid #e5e7eb;
+  height:56px;
+  display:flex;
+  align-items:center;
+  padding:0 14px;
+  z-index:50;
+}
+
+.top-title{
+  flex:1;
+  font-weight:700;
+}
+
+.sidebar{
+  display:flex;
+  gap:8px;
+  overflow:auto;
+  padding:10px;
+  background:#fff;
+  border-bottom:1px solid #e5e7eb;
+}
+
+.nav-btn{
+  white-space:nowrap;
+  padding:10px 14px;
+  border-radius:12px;
+  border:none;
+  background:#f3f4f6;
+  font-size:13px;
+  font-weight:700;
+}
+
+.nav-btn.active{
+  background:#f59e0b;
+  color:#fff;
+}
+
+.stock-row{
+  border:1px solid #e5e7eb;
+  border-radius:14px;
+  padding:12px;
+  margin-bottom:10px;
+  background:#fff;
+}
+
+.part-no{
+  font-size:14px;
+  font-weight:700;
+}
+
+.part-name{
+  font-size:13px;
+  color:#374151;
+  margin-top:3px;
+}
+
+.stock-meta{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-top:8px;
+}
+
+.stock-qty{
+  font-size:18px;
+  font-weight:700;
+  color:#059669;
+}
+
+.badge{
+  font-size:11px;
+  padding:4px 10px;
+  border-radius:999px;
+  font-weight:700;
+}
+
+.badge-ok{
+  background:#d1fae5;
+  color:#065f46;
+}
+
+.badge-ng{
+  background:#fee2e2;
+  color:#991b1b;
+}
+
+#toast{
+  position:fixed;
+  left:50%;
+  bottom:20px;
+  transform:translateX(-50%);
+  background:#111827;
+  color:#fff;
+  padding:12px 18px;
+  border-radius:12px;
+  font-size:13px;
+  display:none;
+  z-index:999;
+}
+
+.hidden{
+  display:none;
+}
+
+.tab-wrap{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin-bottom:14px;
+}
+
+.tab-btn{
+  border:none;
+  background:#f3f4f6;
+  border-radius:14px;
+  padding:14px 10px;
+  font-weight:700;
+  font-size:13px;
+}
+
+.tab-btn.active{
+  background:#d97706;
+  color:#fff;
+}
+
+.cam-box{
+  border:1px solid #e5e7eb;
+  border-radius:16px;
+  overflow:hidden;
+}
+
+textarea{
+  resize:none;
+}
+
+@media(max-width:640px){
+  .grid2{
+    grid-template-columns:1fr;
+  }
+}
+</style>
+</head>
+<body>
+
+<div id="login-page" class="page" style="max-width:420px;padding-top:80px;">
+  <div class="card">
+    <div style="text-align:center;margin-bottom:20px;">
+      <div style="font-size:24px;font-weight:700;">部材在庫管理システム</div>
+      <div style="font-size:13px;color:#6b7280;margin-top:4px;">ログインしてください</div>
+    </div>
+
+    <div style="margin-bottom:12px;">
+      <label class="label">ユーザーID</label>
+      <input id="login-id" class="input" type="text">
+    </div>
+
+    <div style="margin-bottom:16px;">
+      <label class="label">パスワード</label>
+      <input id="login-pass" class="input" type="password">
+    </div>
+
+    <button class="btn btn-amber" onclick="login()">ログイン</button>
+  </div>
+</div>
+
+<div id="app">
+
+  <div class="topbar">
+    <div class="top-title">部材在庫管理システム</div>
+    <div id="login-user" style="font-size:12px;color:#6b7280;"></div>
+  </div>
+
+  <div class="sidebar">
+    <button class="nav-btn active" id="nav-add" onclick="goPage('add')">部材追加</button>
+    <button class="nav-btn" id="nav-use" onclick="goPage('use')">部材使用</button>
+    <button class="nav-btn" id="nav-stock" onclick="goPage('stock')">在庫確認</button>
+    <button class="nav-btn" id="nav-history" onclick="goPage('history')">履歴確認</button>
+    <button class="nav-btn hidden" id="nav-admin" onclick="goPage('admin')">管理</button>
+  </div>
+
+  <!-- ADD PAGE -->
+  <div class="page" id="page-add">
+
+    <div class="title">部材追加</div>
+
+    <div class="card">
+      <div style="font-size:14px;font-weight:700;margin-bottom:10px;">
+        バーコード読取
+      </div>
+
+      <div id="add-camera" class="cam-box"></div>
+
+      <div id="add-result" class="hidden" style="margin-top:14px;">
+
+        <div style="margin-bottom:10px;">
+          <label class="label">品番</label>
+          <input id="add-part-no" class="input" readonly>
+        </div>
+
+        <div style="margin-bottom:10px;">
+          <label class="label">品名</label>
+          <input id="add-part-name" class="input" readonly>
+        </div>
+
+        <div style="margin-bottom:16px;">
+          <label class="label">数量</label>
+          <input id="add-qty" class="input" type="number" min="1" value="1">
+        </div>
+
+        <button class="btn btn-green" onclick="registerStock()">
+          在庫登録
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- USE PAGE -->
+  <div class="page hidden" id="page-use">
+
+    <div class="title">部材使用</div>
+
+    <div class="tab-wrap">
+      <button class="tab-btn active" onclick="switchUseTab('partno')" id="tab-partno">品番検索</button>
+      <button class="tab-btn" onclick="switchUseTab('name')" id="tab-name">品名検索</button>
+      <button class="tab-btn" onclick="switchUseTab('barcode')" id="tab-barcode">バーコード検索</button>
+      <button class="tab-btn" onclick="switchUseTab('multi')" id="tab-multi">複数品番検索</button>
+    </div>
+
+    <!-- 品番検索 -->
+    <div id="use-partno">
+      <div class="card">
+        <label class="label">品番入力</label>
+        <div class="grid2">
+          <input id="search-partno-input" class="input" placeholder="品番を入力">
+          <button class="btn btn-amber" onclick="searchByPartNo()">検索</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 品名検索 -->
+    <div id="use-name" class="hidden">
+      <div class="card">
+        <label class="label">品名入力</label>
+        <div class="grid2">
+          <input id="search-name-input" class="input" placeholder="品名を入力">
+          <button class="btn btn-amber" onclick="searchByName()">検索</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- barcode -->
+    <div id="use-barcode" class="hidden">
+      <div class="card">
+        <button class="btn btn-amber" onclick="startUseBarcode()">
+          カメラ起動
+        </button>
+
+        <div id="use-camera" class="cam-box hidden" style="margin-top:12px;"></div>
+      </div>
+    </div>
+
+    <!-- multi -->
+    <div id="use-multi" class="hidden">
+      <div class="card">
+        <label class="label">複数品番入力</label>
+        <textarea id="multi-input" class="input" rows="8" placeholder="ABC001\nABC002\nABC003"></textarea>
+
+        <button class="btn btn-amber" style="margin-top:12px;" onclick="multiSearch()">
+          一括検索
+        </button>
+      </div>
+    </div>
+
+    <div id="search-result"></div>
+  </div>
+
+  <!-- STOCK -->
+  <div class="page hidden" id="page-stock">
+
+    <div class="title">在庫確認</div>
+
+    <div class="card">
+      <input id="stock-search" class="input" placeholder="品番・品名検索" oninput="loadStock()">
+    </div>
+
+    <div id="stock-list"></div>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="page hidden" id="page-history">
+
+    <div class="title">履歴確認</div>
+
+    <div id="history-list"></div>
+  </div>
+
+  <!-- ADMIN -->
+  <div class="page hidden" id="page-admin">
+
+    <div class="title">管理者設定</div>
+
+    <div class="card">
+      <button class="btn btn-green" onclick="exportCSV()">
+        CSV EXPORT
+      </button>
+    </div>
+
+    <div id="admin-stock-list"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+
+const API = "https://YOUR-RENDER-URL.onrender.com";
+
+let token = localStorage.getItem("token") || "";
+let currentUser = localStorage.getItem("user") || "";
+let isAdmin = localStorage.getItem("admin") === "true";
+
+let addScanner = null;
+let useScanner = null;
+let scanLock = false;
+
+function toast(msg){
+  const t = document.getElementById("toast");
+  t.innerText = msg;
+  t.style.display = "block";
+
+  clearTimeout(t.timer);
+  t.timer = setTimeout(()=>{
+    t.style.display = "none";
+  },2200);
+}
+
+function api(path, options={}){
+
+  const headers = {
+    "Content-Type":"application/json"
+  };
+
+  if(token){
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  return fetch(API + path, {
+    ...options,
+    headers:{
+      ...headers,
+      ...(options.headers || {})
+    }
+  }).then(async r=>{
+
+    if(!r.ok){
+      throw new Error(await r.text());
+    }
+
+    return r.json();
+  });
+}
+
+async function login(){
+
+  const username = document.getElementById("login-id").value.trim();
+  const password = document.getElementById("login-pass").value;
+
+  try{
+
+    const res = await api("/auth/login",{
+      method:"POST",
+      body:JSON.stringify({
+        username,
+        password
+      })
+    });
+
+    token = res.access_token;
+    currentUser = res.display_name;
+    isAdmin = res.is_admin;
+
+    localStorage.setItem("token",token);
+    localStorage.setItem("user",currentUser);
+    localStorage.setItem("admin",isAdmin);
+
+    mountApp();
+
+  }catch(e){
+    toast("ログイン失敗");
+  }
+}
+
+function mountApp(){
+
+  document.getElementById("login-page").style.display = "none";
+  document.getElementById("app").style.display = "block";
+
+  document.getElementById("login-user").innerText = currentUser;
+
+  if(isAdmin){
+    document.getElementById("nav-admin").classList.remove("hidden");
+  }
+
+  goPage("add");
+}
+
+if(token){
+  mountApp();
+}
+
+function goPage(page){
+
+  stopScanner();
+
+  document.querySelectorAll(".page").forEach(el=>{
+    el.classList.add("hidden");
+  });
+
+  document.querySelectorAll(".nav-btn").forEach(el=>{
+    el.classList.remove("active");
+  });
+
+  document.getElementById("page-" + page).classList.remove("hidden");
+  document.getElementById("nav-" + page).classList.add("active");
+
+  if(page === "add"){
+    startAddScanner();
+  }
+
+  if(page === "stock"){
+    loadStock();
+  }
+
+  if(page === "history"){
+    loadHistory();
+  }
+
+  if(page === "admin"){
+    loadAdminStock();
+  }
+}
+
+function stopScanner(){
+
+  if(addScanner){
+    addScanner.stop().catch(()=>{});
+    addScanner = null;
+  }
+
+  if(useScanner){
+    useScanner.stop().catch(()=>{});
+    useScanner = null;
+  }
+
+  scanLock = false;
+}
+
+async function startAddScanner(){
+
+  stopScanner();
+
+  document.getElementById("add-camera").innerHTML = "";
+  document.getElementById("add-result").classList.add("hidden");
+
+  addScanner = new Html5Qrcode("add-camera");
+
+  try{
+
+    await addScanner.start(
+      {facingMode:"environment"},
+      {
+        fps:10,
+        qrbox:{width:240,height:240}
+      },
+      async(decoded)=>{
+
+        if(scanLock) return;
+
+        scanLock = true;
+
+        await addScanner.stop();
+
+        await lookupBarcode(decoded);
+      }
+    );
+
+  }catch(e){
+    toast("カメラ起動失敗");
+  }
+}
+
+async function lookupBarcode(code){
+
+  try{
+
+    const res = await api(`/master/by-barcode/${encodeURIComponent(code)}`);
+
+    document.getElementById("add-part-no").value = res.part_no;
+    document.getElementById("add-part-name").value = res.part_name;
+
+    document.getElementById("add-result").classList.remove("hidden");
+
+  }catch(e){
+    toast("品番データなし");
+    scanLock = false;
+    startAddScanner();
+  }
+}
+
+async function registerStock(){
+
+  const part_no = document.getElementById("add-part-no").value;
+  const part_name = document.getElementById("add-part-name").value;
+  const qty = parseInt(document.getElementById("add-qty").value || 0);
+
+  if(qty <= 0){
+    toast("数量エラー");
+    return;
+  }
+
+  try{
+
+    await api("/stock/add",{
+      method:"POST",
+      body:JSON.stringify({
+        part_no,
+        part_name,
+        qty,
+        operator:currentUser
+      })
+    });
+
+    toast("在庫追加完了");
+
+    document.getElementById("add-result").classList.add("hidden");
+
+    scanLock = false;
+
+    startAddScanner();
+
+  }catch(e){
+    toast("登録失敗");
+  }
+}
+
+function switchUseTab(tab){
+
+  ["partno","name","barcode","multi"].forEach(t=>{
+
+    document.getElementById("tab-" + t).classList.remove("active");
+
+    document.getElementById("use-" + t).classList.add("hidden");
+  });
+
+  document.getElementById("tab-" + tab).classList.add("active");
+  document.getElementById("use-" + tab).classList.remove("hidden");
+}
+
+async function searchByPartNo(){
+
+  const q = document.getElementById("search-partno-input").value.trim();
+
+  const res = await api(`/stock/search?part_no=${encodeURIComponent(q)}`);
+
+  renderSearchResult(res);
+}
+
+async function searchByName(){
+
+  const q = document.getElementById("search-name-input").value.trim();
+
+  const res = await api(`/stock/search?part_name=${encodeURIComponent(q)}`);
+
+  renderSearchResult(res);
+}
+
+async function startUseBarcode(){
+
+  stopScanner();
+
+  document.getElementById("use-camera").classList.remove("hidden");
+  document.getElementById("use-camera").innerHTML = "";
+
+  useScanner = new Html5Qrcode("use-camera");
+
+  await useScanner.start(
+    {facingMode:"environment"},
+    {
+      fps:10,
+      qrbox:{width:240,height:240}
+    },
+    async(decoded)=>{
+
+      if(scanLock) return;
+
+      scanLock = true;
+
+      await useScanner.stop();
+
+      const res = await api(`/stock/search?barcode=${encodeURIComponent(decoded)}`);
+
+      renderSearchResult(res);
+    }
+  );
+}
+
+async function multiSearch(){
+
+  const raw = document.getElementById("multi-input").value;
+
+  const arr = raw
+    .split(/\s|,|\n/)
+    .map(v=>v.trim())
+    .filter(Boolean);
+
+  const res = await api("/stock/multi-search",{
+    method:"POST",
+    body:JSON.stringify({
+      part_numbers:arr
+    })
+  });
+
+  renderMultiResult(res);
+}
+
+function renderSearchResult(items){
+
+  const el = document.getElementById("search-result");
+
+  if(!items.length){
+    el.innerHTML = `<div class="card">データなし</div>`;
+    return;
+  }
+
+  el.innerHTML = items.map(item=>`
+
+    <div class="stock-row">
+
+      <div class="part-no">${item.part_no}</div>
+      <div class="part-name">${item.part_name}</div>
+
+      <div class="stock-meta">
+        <div class="stock-qty">在庫: ${item.qty}</div>
+      </div>
+
+      <div class="grid2" style="margin-top:12px;">
+        <input id="qty-${item.id}" class="input" type="number" min="1" placeholder="使用数量">
+
+        <button class="btn btn-red" onclick="useStock(${item.id})">
+          使用
+        </button>
+      </div>
+    </div>
+
+  `).join("");
+}
+
+function renderMultiResult(items){
+
+  const el = document.getElementById("search-result");
+
+  el.innerHTML = items.map(item=>`
+
+    <div class="stock-row">
+
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+
+        <div>
+          <div class="part-no">${item.part_no}</div>
+          <div class="part-name">${item.part_name || "未登録"}</div>
+        </div>
+
+        ${item.exists
+          ? `<span class="badge badge-ok">登録済み</span>`
+          : `<span class="badge badge-ng">未登録</span>`
+        }
+      </div>
+
+      ${item.exists
+        ? `<div style="margin-top:10px;font-size:15px;font-weight:700;color:#059669;">在庫: ${item.qty}</div>`
+        : ``
+      }
+
+    </div>
+
+  `).join("");
+}
+
+async function useStock(id){
+
+  const qty = parseInt(document.getElementById(`qty-${id}`).value || 0);
+
+  if(qty <= 0){
+    toast("数量入力エラー");
+    return;
+  }
+
+  try{
+
+    await api("/stock/use",{
+      method:"PUT",
+      body:JSON.stringify({
+        id,
+        qty,
+        operator:currentUser
+      })
+    });
+
+    toast("在庫更新完了");
+
+    document.getElementById("search-result").innerHTML = "";
+
+  }catch(e){
+    toast("在庫不足または更新失敗");
+  }
+}
+
+async function loadStock(){
+
+  const q = document.getElementById("stock-search").value || "";
+
+  const items = await api(`/stock?q=${encodeURIComponent(q)}`);
+
+  const el = document.getElementById("stock-list");
+
+  el.innerHTML = items.map(item=>`
+
+    <div class="stock-row">
+
+      <div class="part-no">${item.part_no}</div>
+      <div class="part-name">${item.part_name}</div>
+
+      <div class="stock-meta">
+        <div style="font-size:12px;color:#6b7280;">
+          更新: ${item.updated_at}
+        </div>
+
+        <div class="stock-qty">
+          ${item.qty}
+        </div>
+      </div>
+
+    </div>
+
+  `).join("");
+}
+
+async function loadHistory(){
+
+  const items = await api("/history/");
+
+  const el = document.getElementById("history-list");
+
+  el.innerHTML = items.map(h=>`
+
+    <div class="card">
+
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+
+        <div>
+          <div style="font-size:14px;font-weight:700;">
+            ${h.action}
+          </div>
+
+          <div style="font-size:13px;margin-top:3px;">
+            ${h.part_no}
+          </div>
+
+          <div style="font-size:13px;color:#374151;margin-top:2px;">
+            ${h.part_name}
+          </div>
+        </div>
+
+        <div style="text-align:right;">
+          <div style="font-size:18px;font-weight:700;color:#d97706;">
+            ${h.qty}
+          </div>
+
+          <div style="font-size:11px;color:#6b7280;margin-top:3px;">
+            ${h.operator}
+          </div>
+        </div>
+      </div>
+
+      <div style="font-size:11px;color:#9ca3af;margin-top:10px;">
+        ${h.created_at}
+      </div>
+
+    </div>
+
+  `).join("");
+}
+
+async function loadAdminStock(){
+
+  const items = await api("/stock/");
+
+  const el = document.getElementById("admin-stock-list");
+
+  el.innerHTML = items.map(item=>`
+
+    <div class="stock-row">
+
+      <div class="part-no">${item.part_no}</div>
+      <div class="part-name">${item.part_name}</div>
+
+      <div style="margin-top:12px;" class="grid2">
+
+        <input id="admin-${item.id}" class="input" type="number" placeholder="新在庫数">
+
+        <button class="btn btn-green" onclick="adjustStock(${item.id})">
+          更新
+        </button>
+      </div>
+    </div>
+
+  `).join("");
+}
+
+async function adjustStock(id){
+
+  const qty = parseInt(document.getElementById(`admin-${id}`).value || 0);
+
+  try{
+
+    await api("/stock/adjust",{
+      method:"PUT",
+      body:JSON.stringify({
+        id,
+        qty,
+        operator:currentUser
+      })
+    });
+
+    toast("在庫更新完了");
+
+    loadAdminStock();
+
+  }catch(e){
+    toast("更新失敗");
+  }
+}
+
+function exportCSV(){
+  window.open(API + "/export/csv","_blank");
+}
+
+</script>
+</body>
+</html>
+```
+
+# バックエンドで必要なAPI
+
+```python
+POST   /auth/login
+GET    /master/by-barcode/{code}
+POST   /stock/add
+GET    /stock/
+GET    /stock/search
+POST   /stock/multi-search
+PUT    /stock/use
+PUT    /stock/adjust
+GET    /history/
+GET    /export/csv
+```
+
+# Google Sheets 推奨構成
+
+## stock sheet
+
+| 品番 | 品名 | 数量 | 更新日時 |
+
+## history sheet
+
+| 操作 | 品番 | 品名 | 数量 | 作業者 | 時間 |
