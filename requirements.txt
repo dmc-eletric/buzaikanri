@@ -1,13 +1,6 @@
 fastapi
 uvicorn
-sqlalchemy
-psycopg2-binary
-python-dotenv
-python-multipart
-passlib[bcrypt]
-python-jose
-apscheduler
-aiofiles
+pydantic
 gspread
 google-auth
-google-auth-oauthlib
+python-multipart
