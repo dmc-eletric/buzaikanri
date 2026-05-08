@@ -2,59 +2,92 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>部材在庫管理システム</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background: #f3f4f6; }
-        .page { display: none; padding: 20px; max-width: 600px; margin: auto; }
+        body { background-color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        .page { display: none; padding: 16px; max-width: 500px; margin: auto; }
         .active { display: block; }
+        .menu-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100px;
+            border-radius: 16px;
+            color: white;
+            font-size: 1.25rem;
+            font-weight: bold;
+            transition: transform 0.1s;
+        }
+        .menu-btn:active { transform: scale(0.95); }
     </style>
 </head>
 <body>
-    <!-- Login Page -->
+
     <div id="login-page" class="page active">
-        <div class="bg-white p-8 rounded-xl shadow-md mt-20 text-center">
-            <h1 class="text-2xl font-bold mb-6">在庫管理システム</h1>
-            <input id="user-name" type="text" placeholder="名前を入力" class="w-full border p-3 rounded-lg mb-4">
-            <button onclick="login()" class="w-full bg-blue-600 text-white p-3 rounded-lg font-bold">ログイン</button>
+        <div class="bg-white p-8 rounded-2xl shadow-lg mt-20 text-center">
+            <h1 class="text-2xl font-bold mb-6 text-gray-800">在庫管理システム</h1>
+            <input id="user-name" type="text" placeholder="名前を入力 (Nhập tên)" class="w-full border-2 border-gray-200 p-4 rounded-xl mb-4 focus:border-blue-500 outline-none">
+            <button onclick="login()" class="w-full bg-blue-600 text-white p-4 rounded-xl font-bold text-lg shadow-blue-200 shadow-lg">ログイン</button>
         </div>
     </div>
 
-    <!-- Main Menu -->
     <div id="menu-page" class="page">
-        <h2 class="text-xl font-bold mb-4">こんにちは、<span id="display-user"></span>さん</h2>
+        <div class="flex justify-between items-center mb-6 mt-4">
+            <h2 class="text-xl font-bold text-gray-700">こんにちは, <span id="display-user" class="text-blue-600"></span>さん</h2>
+            <button onclick="location.reload()" class="text-sm text-gray-400">ログアウト</button>
+        </div>
+        
         <div class="grid grid-cols-1 gap-4">
-            <button onclick="showPage('add-page')" class="bg-green-500 text-white p-4 rounded-xl font-bold">部材を追加 (Nhập kho)</button>
-            <button onclick="showPage('use-page')" class="bg-orange-500 text-white p-4 rounded-xl font-bold">部材を使用 (Xuất kho)</button>
-            <button onclick="showPage('history-page')" class="bg-gray-500 text-white p-4 rounded-xl font-bold">履歴を表示 (Lịch sử)</button>
+            <button onclick="showPage('add-page')" class="menu-btn bg-green-500 shadow-green-100 shadow-lg">
+                部材追加
+            </button>
+            <button onclick="showPage('use-page')" class="menu-btn bg-orange-500 shadow-orange-100 shadow-lg">
+                部材 sử dụng
+            </button>
+            <button onclick="showPage('stock-page')" class="menu-btn bg-blue-500 shadow-blue-100 shadow-lg">
+                在庫確認
+            </button>
+            <button onclick="showPage('history-page')" class="menu-btn bg-gray-500 shadow-gray-100 shadow-lg">
+                履歴を表示
+            </button>
         </div>
     </div>
 
-    <!-- Add Material -->
     <div id="add-page" class="page">
-        <h2 class="text-xl font-bold mb-4">部材追加</h2>
-        <input id="add-hinban" type="text" placeholder="品番 (Mã)" class="w-full border p-3 rounded mb-2">
-        <input id="add-hinmei" type="text" placeholder="品名 (Tên)" class="w-full border p-3 rounded mb-2">
-        <input id="add-qty" type="number" placeholder="数量 (Số lượng)" class="w-full border p-3 rounded mb-4">
-        <button onclick="addMaterial()" class="w-full bg-green-600 text-white p-3 rounded font-bold">登録</button>
-        <button onclick="showPage('menu-page')" class="w-full mt-2 text-gray-500">戻る</button>
+        <h2 class="text-xl font-bold mb-4 text-green-600">部材追加 (Nhập kho)</h2>
+        <div class="bg-white p-4 rounded-xl shadow-md">
+            <input id="add-hinban" type="text" placeholder="品番 (Mã bộ phận)" class="w-full border p-3 rounded-lg mb-3">
+            <input id="add-hinmei" type="text" placeholder="品名 (Tên bộ phận)" class="w-full border p-3 rounded-lg mb-3">
+            <input id="add-qty" type="number" placeholder="数量 (Số lượng)" class="w-full border p-3 rounded-lg mb-4">
+            <button onclick="addMaterial()" class="w-full bg-green-500 text-white p-4 rounded-lg font-bold">登録する</button>
+        </div>
+        <button onclick="showPage('menu-page')" class="w-full mt-4 text-gray-500 font-medium">← 戻る</button>
     </div>
 
-    <!-- Use Material -->
     <div id="use-page" class="page">
-        <h2 class="text-xl font-bold mb-4">部材 sử dụng</h2>
-        <input id="use-hinban" type="text" placeholder="品番 (Mã)" class="w-full border p-3 rounded mb-2">
-        <input id="use-qty" type="number" placeholder="数量 (Số lượng)" class="w-full border p-3 rounded mb-4">
-        <button onclick="useMaterial()" class="w-full bg-orange-600 text-white p-3 rounded font-bold">出庫</button>
-        <button onclick="showPage('menu-page')" class="w-full mt-2 text-gray-500">戻る</button>
+        <h2 class="text-xl font-bold mb-4 text-orange-600">部材 sử dụng (Xuất kho)</h2>
+        <div class="bg-white p-4 rounded-xl shadow-md">
+            <input id="use-hinban" type="text" placeholder="品番 (Mã bộ phận)" class="w-full border p-3 rounded-lg mb-3">
+            <input id="use-qty" type="number" placeholder="数量 (Số lượng)" class="w-full border p-3 rounded-lg mb-4">
+            <button onclick="useMaterial()" class="w-full bg-orange-500 text-white p-4 rounded-lg font-bold">出庫する</button>
+        </div>
+        <button onclick="showPage('menu-page')" class="w-full mt-4 text-gray-500 font-medium">← 戻る</button>
     </div>
 
-    <!-- History -->
+    <div id="stock-page" class="page">
+        <h2 class="text-xl font-bold mb-4 text-blue-600">在庫確認 (Tồn kho hiện tại)</h2>
+        <div id="stock-list" class="space-y-3">
+            </div>
+        <button onclick="showPage('menu-page')" class="w-full mt-6 bg-gray-200 p-3 rounded-lg">← 戻る</button>
+    </div>
+
     <div id="history-page" class="page">
-        <h2 class="text-xl font-bold mb-4">履歴</h2>
-        <div id="history-list" class="bg-white p-4 rounded shadow max-h-96 overflow-y-auto"></div>
-        <button onclick="showPage('menu-page')" class="w-full mt-4 bg-gray-200 p-2 rounded">戻る</button>
+        <h2 class="text-xl font-bold mb-4 text-gray-600">履歴 (Lịch sử thao tác)</h2>
+        <div id="history-list" class="bg-white rounded-xl shadow-md overflow-hidden">
+            </div>
+        <button onclick="showPage('menu-page')" class="w-full mt-6 bg-gray-200 p-3 rounded-lg">← 戻る</button>
     </div>
 
     <script>
@@ -64,6 +97,7 @@
         function showPage(id) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.getElementById(id).classList.add('active');
+            if(id === 'stock-page') loadStock();
             if(id === 'history-page') loadHistory();
         }
 
@@ -79,36 +113,59 @@
             const hinban = document.getElementById('add-hinban').value;
             const hinmei = document.getElementById('add-hinmei').value;
             const quantity = document.getElementById('add-qty').value;
-            
+            if(!hinban || !quantity) return alert("Điền đủ thông tin");
+
             const res = await fetch(`${API}/add`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({hinban, hinmei, quantity: parseInt(quantity), user: currentUser})
             });
-            if(res.ok) { alert("成功!"); showPage('menu-page'); }
+            if(res.ok) { alert("Thành công!"); showPage('menu-page'); }
         }
 
         async function useMaterial() {
             const hinban = document.getElementById('use-hinban').value;
             const quantity = document.getElementById('use-qty').value;
-            
+            if(!hinban || !quantity) return alert("Điền đủ thông tin");
+
             const res = await fetch(`${API}/use`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({hinban, quantity: parseInt(quantity), user: currentUser})
             });
             const data = await res.json();
-            if(data.ok) { alert("成功!"); showPage('menu-page'); } else { alert(data.message); }
+            if(data.ok) { alert("Thành công!"); showPage('menu-page'); } else { alert("Lỗi: " + data.message); }
+        }
+
+        async function loadStock() {
+            const list = document.getElementById('stock-list');
+            list.innerHTML = "<p class='text-center'>読み込み中...</p>";
+            const res = await fetch(`${API}/materials`);
+            const data = await res.json();
+            list.innerHTML = data.map(item => `
+                <div class="bg-white p-4 rounded-lg shadow-sm flex justify-between items-center border-l-4 border-blue-500">
+                    <div>
+                        <div class="font-bold text-gray-800">${item.品番}</div>
+                        <div class="text-sm text-gray-500">${item.品名 || ''}</div>
+                    </div>
+                    <div class="text-xl font-bold text-blue-600">${item.数量}</div>
+                </div>
+            `).join('');
         }
 
         async function loadHistory() {
+            const list = document.getElementById('history-list');
+            list.innerHTML = "<p class='text-center p-4'>読み込み中...</p>";
             const res = await fetch(`${API}/history`);
             const data = await res.json();
-            const list = document.getElementById('history-list');
-            list.innerHTML = data.reverse().map(h => `
-                <div class="border-b py-2 text-sm">
-                    <b>${h.操作}</b>: ${h.品番} (${h.数量}) - ${h.作業者}<br>
-                    <span class="text-xs text-gray-400">${h.時間}</span>
+            list.innerHTML = data.reverse().slice(0, 50).map(h => `
+                <div class="border-b p-3 text-sm">
+                    <div class="flex justify-between">
+                        <span class="font-bold ${h.操作 === '追加' ? 'text-green-600' : 'text-orange-600'}">${h.操作}</span>
+                        <span class="text-gray-400 text-xs">${h.時間}</span>
+                    </div>
+                    <div class="mt-1">${h.品番} - 数量: ${h.数量}</div>
+                    <div class="text-xs text-gray-500">担当者: ${h.作業者}</div>
                 </div>
             `).join('');
         }
