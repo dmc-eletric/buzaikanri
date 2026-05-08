@@ -1,251 +1,215 @@
 import os
 import json
 from datetime import datetime
-from typing import List, Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-import io
-import csv
 
 import gspread
 from google.oauth2.service_account import Credentials
 
 # =========================================================
-# Google Credentials Setup
+# Google Credentials
 # =========================================================
-google_creds = os.getenv("GOOGLE_CREDENTIALS_JSON")
-if not google_creds:
-    raise RuntimeError("Missing GOOGLE_CREDENTIALS_JSON environment variable")
 
-creds_dict = json.loads(google_creds)
+# ĐÃ SỬA: Lấy từ biến môi trường (Render) thay vì file vật lý
+google_creds = os.getenv("GOOGLE_CREDENTIALS_JSON")
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive"
 ]
-CREDS = Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
+
+if not google_creds:
+    # Nếu chạy local mà chưa có biến môi trường, code sẽ báo lỗi rõ ràng
+    raise RuntimeError("Missing GOOGLE_CREDENTIALS_JSON environment variable")
+
+creds_dict = json.loads(google_creds)
+CREDS = Credentials.from_service_account_info(
+    creds_dict,
+    scopes=SCOPES
+)
+
+# Kết nối Google Sheets
 gc = gspread.authorize(CREDS)
 
+# ĐÃ SỬA: Lấy giá trị từ biến GOOGLE_SHEET_ID trên Render
+# Không được dán trực tiếp ID vào hàm getenv()
 SPREADSHEET_ID = os.getenv("GOOGLE_SHEET_ID")
+
 if not SPREADSHEET_ID:
     raise RuntimeError("Missing GOOGLE_SHEET_ID environment variable")
 
 spreadsheet = gc.open_by_key(SPREADSHEET_ID)
+
+# ĐÃ SỬA: Đảm bảo tên worksheet khớp với hướng dẫn (mặc định là stock và history)
+# Bạn hãy kiểm tra tên tab ở dưới cùng file Google Sheet của mình nhé
 try:
-    stock_sheet = spreadsheet.worksheet("stock")
-    history_sheet = spreadsheet.worksheet("history")
-except gspread.exceptions.WorksheetNotFound:
-    raise RuntimeError("Hãy đảm bảo Google Sheets có 2 sheet tên là 'stock' và 'history'")
+    materials_sheet = spreadsheet.worksheet("stock")
+except:
+    materials_sheet = spreadsheet.worksheet("materials") # Fallback nếu bạn đặt là materials
+
+history_sheet = spreadsheet.worksheet("history")
+
 
 # =========================================================
-# FastAPI App
+# FastAPI Configuration
 # =========================================================
-app = FastAPI(title="部材管理システム API", version="2.0")
+
+app = FastAPI(
+    title="部材管理システム",
+    version="2.1.0"
+)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Có thể thay bằng ALLOWED_ORIGINS từ env để bảo mật hơn
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# index.html 配信用
+# Đảm bảo file index.html nằm cùng thư mục với main.py
+if os.path.exists("index.html"):
+    app.mount("/static", StaticFiles(directory="."), name="static")
+
+
 # =========================================================
 # Request Models
 # =========================================================
-class LoginReq(BaseModel):
-    username: str
-    password: str
 
-class AddStockReq(BaseModel):
-    part_no: str
-    part_name: str
-    qty: int
-    operator: str
+class AddMaterial(BaseModel):
+    hinban: str
+    hinmei: str
+    quantity: int
+    user: str
 
-class UseStockReq(BaseModel):
-    id: int  # Tương ứng với row_index trong G-Sheets
-    qty: int
-    operator: str
 
-class MultiSearchReq(BaseModel):
-    part_numbers: List[str]
+class UseMaterial(BaseModel):
+    hinban: str
+    quantity: int
+    user: str
+
 
 # =========================================================
-# Helpers
+# Helper Functions
 # =========================================================
-def get_stock_data():
-    records = stock_sheet.get_all_records()
-    for idx, row in enumerate(records):
-        row["id"] = idx + 2  # Dòng 1 là Header, nên data bắt đầu từ dòng 2
-        row["part_no"] = str(row.get("品番", ""))
-        row["part_name"] = str(row.get("品名", ""))
-        row["qty"] = int(row.get("数量", 0) if row.get("数量") else 0)
-        row["updated_at"] = str(row.get("更新日時", ""))
-    return records
 
-def find_row_by_part_no(part_no: str):
-    records = get_stock_data()
-    for row in records:
-        if row["part_no"].strip() == str(part_no).strip():
-            return row["id"], row
+def get_all_materials():
+    return materials_sheet.get_all_records()
+
+
+def find_row_by_hinban(hinban):
+    records = materials_sheet.get_all_records()
+    # Tìm hàng dựa trên cột "品番" (Cột A)
+    for idx, row in enumerate(records, start=2):
+        if str(row.get("品番", "")).strip() == str(hinban).strip():
+            return idx, row
     return None, None
 
-def log_history(operator, action, part_no, part_name, qty):
-    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    history_sheet.append_row([action, part_no, part_name, qty, operator, now])
+
+def add_history(user, action, hinban, hinmei, quantity):
+    history_sheet.append_row([
+        action,
+        hinban,
+        hinmei,
+        quantity,
+        user,
+        datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    ])
+
 
 # =========================================================
 # API Endpoints
 # =========================================================
-@app.post("/auth/login")
-def login(req: LoginReq):
-    # Mock login vì không dùng DB User. Admin nếu gõ ID là "admin"
-    is_admin = req.username.lower() == "admin"
+
+@app.get("/")
+def root():
     return {
-        "access_token": "dummy-token-123",
-        "display_name": req.username,
-        "is_admin": is_admin
+        "status": "API is running",
+        "spreadsheet_connected": spreadsheet.title
     }
 
-@app.get("/master/by-barcode/{code}")
-def get_by_barcode(code: str):
-    row_idx, row = find_row_by_part_no(code)
-    if row:
-        return row
-    raise HTTPException(status_code=404, detail="Không tìm thấy mã này")
 
-@app.post("/stock/add")
-def add_stock(req: AddStockReq):
-    row_idx, row = find_row_by_part_no(req.part_no)
+@app.get("/materials")
+def materials():
+    return get_all_materials()
+
+
+@app.post("/add")
+def add_material(data: AddMaterial):
+    row_index, row = find_row_by_hinban(data.hinban)
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    
+
     if row:
-        new_qty = row["qty"] + req.qty
-        stock_sheet.update(f"C{row_idx}:D{row_idx}", [[new_qty, now]])
+        # Cập nhật số lượng hiện có
+        current_qty = int(row.get("数量", 0))
+        new_qty = current_qty + int(data.quantity)
+        
+        # Cập nhật cột C (Số lượng) và D (Thời gian)
+        materials_sheet.update(
+            range_name=f"C{row_index}:D{row_index}",
+            values=[[new_qty, now]]
+        )
     else:
-        stock_sheet.append_row([req.part_no, req.part_name, req.qty, now])
-        
-    log_history(req.operator, "追加", req.part_no, req.part_name, req.qty)
-    return {"status": "success"}
+        # Thêm mới nếu chưa có
+        materials_sheet.append_row([
+            data.hinban,
+            data.hinmei,
+            data.quantity,
+            now
+        ])
 
-@app.get("/stock/")
-def get_all_stock(q: str = ""):
-    records = get_stock_data()
-    if q:
-        q = q.lower()
-        records = [r for r in records if q in r["part_no"].lower() or q in r["part_name"].lower()]
-    # Sắp xếp mới nhất lên đầu
-    return sorted(records, key=lambda x: str(x.get("updated_at", "")), reverse=True)
+    add_history(data.user, "追加", data.hinban, data.hinmei, data.quantity)
+    return {"ok": True}
 
-@app.get("/stock/search")
-def search_stock(part_no: str = "", part_name: str = "", barcode: str = ""):
-    records = get_stock_data()
-    result = []
-    for r in records:
-        if part_no and part_no.lower() in r["part_no"].lower():
-            result.append(r)
-        elif part_name and part_name.lower() in r["part_name"].lower():
-            result.append(r)
-        elif barcode and barcode.lower() == r["part_no"].lower():
-            result.append(r)
+
+@app.post("/use")
+def use_material(data: UseMaterial):
+    row_index, row = find_row_by_hinban(data.hinban)
+
+    if not row:
+        return {"ok": False, "message": "未登録 (Chưa đăng ký)"}
+
+    current_qty = int(row.get("数量", 0))
+
+    if data.quantity > current_qty:
+        return {"ok": False, "message": "在庫不足 (Không đủ tồn kho)"}
+
+    new_qty = current_qty - data.quantity
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    materials_sheet.update(
+        range_name=f"C{row_index}:D{row_index}",
+        values=[[new_qty, now]]
+    )
+
+    add_history(data.user, "使用", data.hinban, row.get("品名", ""), data.quantity)
+    return {"ok": True}
+
+
+@app.get("/search/hinban/{hinban}")
+def search_hinban(hinban):
+    row_index, row = find_row_by_hinban(hinban)
+    if not row:
+        return {"ok": False, "message": "未登録"}
+    return {"ok": True, "data": row}
+
+
+@app.get("/search/hinmei/{keyword}")
+def search_hinmei(keyword):
+    records = get_all_materials()
+    result = [row for row in records if keyword.lower() in str(row.get("品名", "")).lower()]
     return result
 
-@app.post("/stock/multi-search")
-def multi_search(req: MultiSearchReq):
-    records = get_stock_data()
-    # Tạo dictionary để tra cứu siêu nhanh
-    stock_dict = {r["part_no"]: r for r in records} 
-    
-    results = []
-    for pn in req.part_numbers:
-        if pn in stock_dict:
-            item = stock_dict[pn]
-            results.append({
-                "part_no": item["part_no"],
-                "part_name": item["part_name"],
-                "qty": item["qty"],
-                "exists": True
-            })
-        else:
-            results.append({
-                "part_no": pn,
-                "part_name": "",
-                "qty": 0,
-                "exists": False
-            })
-    return results
 
-@app.put("/stock/use")
-def use_stock(req: UseStockReq):
-    # Fetch lại để đảm bảo tính realtime chính xác nhất lúc trừ kho
-    records = get_stock_data()
-    row = next((r for r in records if r["id"] == req.id), None)
-    
-    if not row:
-        raise HTTPException(status_code=404, detail="Không tìm thấy dữ liệu")
-        
-    if req.qty > row["qty"]:
-        raise HTTPException(status_code=400, detail="Vượt quá số lượng tồn kho")
-        
-    new_qty = row["qty"] - req.qty
-    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    stock_sheet.update(f"C{req.id}:D{req.id}", [[new_qty, now]])
-    
-    log_history(req.operator, "使用", row["part_no"], row["part_name"], req.qty)
-    return {"status": "success", "new_qty": new_qty}
+@app.get("/history")
+def history():
+    return history_sheet.get_all_records()
 
-@app.put("/stock/adjust")
-def adjust_stock(req: UseStockReq):
-    # Admin set cứng tồn kho mới
-    records = get_stock_data()
-    row = next((r for r in records if r["id"] == req.id), None)
-    if not row:
-        raise HTTPException(status_code=404, detail="Không tìm thấy dữ liệu")
-        
-    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    stock_sheet.update(f"C{req.id}:D{req.id}", [[req.qty, now]])
-    log_history(req.operator, "管理者調整", row["part_no"], row["part_name"], req.qty)
-    return {"status": "success"}
 
-@app.get("/history/")
-def get_history():
-    records = history_sheet.get_all_records()
-    result = []
-    for r in reversed(records): # Đảo ngược để lịch sử mới nhất lên đầu
-        result.append({
-            "action": r.get("操作", ""),
-            "part_no": r.get("品番", ""),
-            "part_name": r.get("品名", ""),
-            "qty": r.get("数量", ""),
-            "operator": r.get("作業者", ""),
-            "created_at": r.get("時間", "")
-        })
-    return result
-
-@app.get("/export/csv")
-def export_csv():
-    records = stock_sheet.get_all_records()
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(["品番", "品名", "数量", "更新日時"])
-    for r in records:
-        writer.writerow([r.get("品番", ""), r.get("品名", ""), r.get("数量", 0), r.get("更新日時", "")])
-    
-    output.seek(0)
-    response = StreamingResponse(iter([output.getvalue()]), media_type="text/csv")
-    response.headers["Content-Disposition"] = "attachment; filename=stock_export.csv"
-    return response
-
-# =========================================================
-# Serve Frontend
-# =========================================================
-@app.get("/")
-def read_root():
-    # Tự động serve file index.html cùng thư mục
-    with open("index.html", "r", encoding="utf-8") as f:
-        html_content = f.read()
-    return HTMLResponse(content=html_content)
+@app.get("/export")
+def export():
+    return {"data": get_all_materials()}
