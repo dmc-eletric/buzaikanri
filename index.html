@@ -3,225 +3,148 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DMC 部材管理 - Photo Only</title>
-    <script src="https://unpkg.com/html5-qrcode"></script>
+    <title>DMC AI Scan - Full Info</title>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         #toast {
             position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
             padding: 12px 24px; border-radius: 12px; color: white; font-weight: bold;
-            opacity: 0; transition: opacity 0.3s; z-index: 9999; pointer-events: none;
+            opacity: 0; transition: opacity 0.3s; z-index: 9999;
         }
         #toast.show { opacity: 1; }
-        .page { display: block; }
-        .hidden { display: none; }
         .loading-spinner {
-            border: 3px solid #f3f3f3; border-top: 3px solid #6366f1;
-            border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite;
-            display: inline-block; vertical-align: middle;
+            border: 4px solid #f3f3f3; border-top: 4px solid #6366f1;
+            border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-800">
+<body class="bg-gray-100">
 
-    <div class="max-w-md mx-auto min-h-screen pb-24 relative shadow-2xl bg-white">
-        <div id="toast" class="shadow-xl"></div>
+    <div class="max-w-md mx-auto min-h-screen pb-24 bg-white shadow-xl relative">
+        <div id="toast"></div>
 
-        <script>
-            const API = "https://buzaikanri.onrender.com"; 
-            let token = localStorage.getItem("parts_token") || null;
-            let currentUser = localStorage.getItem("parts_username") || "";
-            let addScanCurrentData = null;
-
-            const api = async (path, opts={}) => {
-                const h = {"Content-Type":"application/json"};
-                if(token) h["Authorization"] = `Bearer ${token}`;
-                const baseUrl = API.endsWith('/') ? API.slice(0, -1) : API;
-                const cleanPath = path.startsWith('/') ? path.slice(1) : path;
-                const finalUrl = `${baseUrl}/${cleanPath}`;
-                const r = await fetch(finalUrl, { ...opts, headers: { ...h, ...(opts.headers || {}) } });
-                if(!r.ok){
-                    let msg = "エラー";
-                    try { const j = await r.json(); msg = j.detail || j.message || msg; } catch(e) {}
-                    throw new Error(msg);
-                }
-                return r.json();
-            };
-
-            function showToast(msg, isErr=false){
-                const t = document.getElementById("toast");
-                t.textContent = msg;
-                t.style.background = isErr ? "#ef4444" : "#10b981";
-                t.classList.add("show");
-                setTimeout(() => t.classList.remove("show"), 3000);
-            }
-        </script>
-
-        <div id="page-home" class="page p-6">
-            <div class="text-center my-8">
-                <h1 class="text-2xl font-black text-indigo-700 uppercase tracking-wider">DMC Inventory</h1>
-                <p class="text-gray-400 text-[10px]">Photo Upload System</p>
-            </div>
-            
-            <div class="grid grid-cols-1 gap-4">
-                <button onclick="go('add')" class="flex items-center p-6 bg-indigo-600 rounded-2xl shadow-lg active:scale-95 transition-all text-white">
-                    <span class="text-4xl mr-4">📸</span>
-                    <div class="text-left">
-                        <div class="font-bold text-lg">入庫登録</div>
-                        <div class="text-xs opacity-70">写真を撮ってスキャン</div>
-                    </div>
-                </button>
-                <button onclick="location.reload()" class="flex items-center p-6 bg-gray-50 border-2 border-gray-100 rounded-2xl active:scale-95 transition-all text-gray-600">
-                    <span class="text-4xl mr-4">🔄</span>
-                    <div class="text-left">
-                        <div class="font-bold text-lg">再読み込み</div>
-                    </div>
-                </button>
-            </div>
+        <div class="p-6 text-center border-b bg-indigo-700 text-white">
+            <h1 class="text-xl font-black">DMC AI SCANNER</h1>
+            <p class="text-[10px] opacity-80 uppercase tracking-widest">Part No & Name Recognition</p>
         </div>
 
-        <div id="page-add" class="page hidden p-4">
-            <div class="flex items-center justify-between mb-4 px-2">
-                <h2 class="font-bold text-lg text-gray-700">写真を撮って登録</h2>
-                <button onclick="go('home')" class="text-gray-400 p-2 text-2xl">✕</button>
-            </div>
-            
-            <div id="upload-zone" class="mb-4">
-                <label for="file-input" class="flex flex-col items-center justify-center p-12 border-4 border-dashed border-indigo-200 rounded-3xl bg-indigo-50 active:bg-indigo-100 transition-colors cursor-pointer">
-                    <span class="text-6xl mb-4">📷</span>
-                    <span class="font-bold text-indigo-600 text-lg">カメラを起動</span>
-                    <span class="text-xs text-gray-400 mt-2 text-center italic">バーコードが水平になるように<br>明るい場所で撮影してください</span>
-                    <input id="file-input" type="file" accept="image/*" capture="environment" class="hidden">
-                </label>
+        <div class="p-6">
+            <label id="upload-label" for="photo-input" class="flex flex-col items-center justify-center w-full h-64 border-4 border-dashed border-indigo-200 rounded-3xl bg-indigo-50 active:bg-indigo-100 transition-all cursor-pointer">
+                <div class="text-6xl mb-4">📸</div>
+                <span class="text-lg font-bold text-indigo-600">ラベルを撮影する</span>
+                <span class="text-[10px] text-gray-400 mt-2">品番 và 品名 sẽ được lấy tự động</span>
+                <input id="photo-input" type="file" accept="image/*" capture="environment" class="hidden">
+            </label>
+
+            <div id="processing" class="hidden mt-8 text-center">
+                <div class="loading-spinner mx-auto mb-3"></div>
+                <p class="text-sm font-bold text-indigo-600 animate-pulse">AI đang phân tích chữ viết...</p>
             </div>
 
-            <div id="processing-status" class="hidden text-center p-5 bg-indigo-50 rounded-2xl mb-4">
-                <div class="loading-spinner mr-2"></div>
-                <span class="text-sm font-bold text-indigo-600">画像を解析中...</span>
-            </div>
-
-            <div id="add-scan-info" class="p-6 bg-white border-2 border-indigo-500 rounded-3xl shadow-xl space-y-6" style="display:none;">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <div class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Part Number</div>
-                        <div id="add-scan-partno" class="text-2xl font-black text-indigo-900 tracking-tighter"></div>
+            <div id="result-form" class="mt-8 hidden animate-in fade-in">
+                <div class="bg-gray-900 rounded-2xl p-5 text-white shadow-2xl">
+                    <div class="mb-5">
+                        <label class="text-[10px] text-indigo-400 font-black uppercase">品番 (Part Number)</label>
+                        <input id="out-partno" type="text" class="w-full bg-transparent border-b-2 border-indigo-500 text-xl font-black outline-none focus:border-white py-1">
                     </div>
-                    <div id="add-scan-status-label" class="px-2 py-1 rounded text-[10px] font-black text-white"></div>
+                    <div class="mb-5">
+                        <label class="text-[10px] text-indigo-400 font-black uppercase">品名 (Part Name)</label>
+                        <input id="out-name" type="text" class="w-full bg-transparent border-b-2 border-indigo-500 text-lg font-bold outline-none focus:border-white py-1">
+                    </div>
+                    <div class="flex items-center justify-between bg-white/10 p-3 rounded-xl">
+                        <label class="font-bold text-sm">数量</label>
+                        <input id="out-qty" type="number" value="1" class="w-20 bg-white text-gray-900 rounded text-center font-bold p-1 outline-none">
+                    </div>
                 </div>
-                
-                <div class="space-y-4">
-                    <div>
-                        <label class="text-[10px] text-gray-400 font-bold uppercase">Part Name</label>
-                        <div id="add-scan-name" class="font-bold text-gray-700 border-b border-gray-100 pb-1 text-lg"></div>
-                        <div id="add-scan-new-name-wrap" class="mt-2" style="display:none;">
-                            <input id="add-scan-new-name" type="text" placeholder="品名を入力してください" class="w-full border-2 border-orange-200 p-3 rounded-xl text-sm focus:border-orange-500 outline-none">
-                        </div>
-                    </div>
-                    <div class="flex items-center justify-between bg-indigo-50 p-4 rounded-2xl">
-                        <label class="font-black text-indigo-900">入庫数</label>
-                        <input id="add-scan-qty-input" type="number" class="w-20 text-center text-3xl font-black bg-transparent outline-none border-b-2 border-indigo-300" value="1">
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <button onclick="resetUI();" class="bg-gray-100 text-gray-500 py-4 rounded-2xl font-bold">やり直し</button>
-                        <button onclick="submitScanAdd()" class="bg-indigo-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-indigo-200">登録する</button>
-                    </div>
+
+                <div class="grid grid-cols-2 gap-4 mt-6">
+                    <button onclick="location.reload()" class="bg-gray-200 text-gray-600 py-4 rounded-2xl font-bold active:scale-95 transition-all">撮り直す</button>
+                    <button onclick="submitToSheet()" class="bg-indigo-600 text-white py-4 rounded-2xl font-bold shadow-lg active:scale-95 transition-all">登録する</button>
                 </div>
             </div>
         </div>
-
-        <script>
-            function go(page){
-                document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
-                document.getElementById('page-' + page).classList.remove('hidden');
-                if(page === 'add') resetUI();
-            }
-
-            // FILE SELECT & SCAN LOGIC
-            document.getElementById('file-input').addEventListener('change', async (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-
-                document.getElementById('upload-zone').classList.add('hidden');
-                document.getElementById('processing-status').classList.remove('hidden');
-                document.getElementById('add-scan-info').style.display = 'none';
-
-                // Instance for scanning file only
-                const html5QrCodeFile = new Html5Qrcode("upload-zone");
-                
-                try {
-                    // 解像度やフォーマットの制約なしにファイルスキャンを実行
-                    const decoded = await html5QrCodeFile.scanFile(file, true);
-                    handleSuccess(decoded);
-                } catch (err) {
-                    showToast("バーコードが見つかりませんでした。より近くで撮影してください。", true);
-                    resetUI();
-                } finally {
-                    document.getElementById('processing-status').classList.add('hidden');
-                }
-            });
-
-            async function handleSuccess(pn) {
-                pn = pn.trim();
-                try {
-                    const r = await api(`/stock/search?part_no=${encodeURIComponent(pn)}`);
-                    document.getElementById("add-scan-info").style.display = "block";
-                    document.getElementById("add-scan-partno").textContent = pn;
-                    
-                    const label = document.getElementById("add-scan-status-label");
-                    if(r && r.part_no){
-                        label.textContent = "登録済み";
-                        label.className = "px-2 py-1 rounded text-[10px] font-black bg-green-500 text-white";
-                        document.getElementById("add-scan-name").textContent = r.name;
-                        document.getElementById("add-scan-new-name-wrap").style.display = "none";
-                        addScanCurrentData = {part_no:pn, name:r.name, is_new:false};
-                    } else {
-                        label.textContent = "新規品番";
-                        label.className = "px-2 py-1 rounded text-[10px] font-black bg-orange-500 text-white";
-                        document.getElementById("add-scan-name").textContent = "未登録のアイテム";
-                        document.getElementById("add-scan-new-name-wrap").style.display = "block";
-                        addScanCurrentData = {part_no:pn, name:"", is_new:true};
-                    }
-                } catch(e) { 
-                    showToast("通信エラー", true);
-                    resetUI();
-                }
-            }
-
-            async function submitScanAdd(){
-                const qty = parseInt(document.getElementById("add-scan-qty-input").value);
-                if(!qty || qty < 1) return showToast("数量を入力してください", true);
-                let name = addScanCurrentData.name;
-                if(addScanCurrentData.is_new) {
-                    name = document.getElementById("add-scan-new-name").value.trim();
-                    if(!name) return showToast("品名を入力してください", true);
-                }
-                try {
-                    await api("/stock/add", {
-                        method: "POST",
-                        body: JSON.stringify({ part_no: addScanCurrentData.part_no, name, qty, user: currentUser || "guest" })
-                    });
-                    showToast("登録が完了しました！");
-                    go('home');
-                } catch(e) { showToast(e.message, true); }
-            }
-
-            function resetUI() {
-                document.getElementById("add-scan-info").style.display = "none";
-                document.getElementById("upload-zone").classList.remove('hidden');
-                document.getElementById("processing-status").classList.add("hidden");
-                document.getElementById("file-input").value = "";
-            }
-        </script>
-
-        <nav class="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-4 shadow-lg">
-            <button onclick="go('home')" class="flex flex-col items-center text-gray-400 focus:text-indigo-600">
-                <span class="text-xl">🏠</span><span class="text-[9px] font-bold uppercase">Home</span>
-            </button>
-            <button onclick="go('add')" class="flex flex-col items-center text-gray-400 focus:text-indigo-600">
-                <span class="text-xl">📷</span><span class="text-[9px] font-bold uppercase">Register</span>
-            </button>
-        </nav>
     </div>
+
+    <script>
+        const API_BASE = "https://buzaikanri.onrender.com";
+
+        function showToast(msg, isErr=false) {
+            const t = document.getElementById("toast");
+            t.textContent = msg;
+            t.style.background = isErr ? "#ef4444" : "#10b981";
+            t.classList.add("show");
+            setTimeout(() => t.classList.remove("show"), 3000);
+        }
+
+        document.getElementById('photo-input').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            document.getElementById('upload-label').classList.add('hidden');
+            document.getElementById('processing').classList.remove('hidden');
+
+            try {
+                // Khởi tạo AI OCR (Hỗ trợ cả tiếng Nhật và tiếng Anh)
+                const worker = await Tesseract.createWorker('jpn+eng');
+                const { data: { text } } = await worker.recognize(file);
+                await worker.terminate();
+
+                console.log("Raw Text:", text); // Debug dữ liệu thô
+
+                // LOGIC TÁCH DỮ LIỆU:
+                const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+                let partNo = "";
+                let partName = "";
+
+                lines.forEach((line, index) => {
+                    // Tìm dòng chứa "品番" hoặc "PART No"
+                    if (line.includes("品番") || line.includes("PART No")) {
+                        // Lấy phần chữ sau từ khóa hoặc lấy dòng tiếp theo nếu dòng hiện tại không có mã
+                        partNo = line.split(/品番|No/i)[1]?.trim() || lines[index + 1];
+                    }
+                    // Tìm dòng chứa "品名" hoặc "PART NAME"
+                    if (line.includes("品名") || line.includes("PART NAME")) {
+                        partName = line.split(/品名|NAME/i)[1]?.trim() || lines[index + 1];
+                    }
+                });
+
+                // Làm sạch dữ liệu (Xóa các ký tự thừa hay gặp khi OCR nhầm)
+                const clean = (str) => str ? str.replace(/[:：]/g, "").trim() : "";
+
+                document.getElementById('out-partno').value = clean(partNo);
+                document.getElementById('out-name').value = clean(partName);
+                
+                document.getElementById('processing').classList.add('hidden');
+                document.getElementById('result-form').classList.remove('hidden');
+
+            } catch (err) {
+                showToast("Dữ liệu ảnh không rõ ràng, vui lòng chụp lại", true);
+                location.reload();
+            }
+        });
+
+        async function submitToSheet() {
+            const pn = document.getElementById('out-partno').value;
+            const nm = document.getElementById('out-name').value;
+            const qt = document.getElementById('out-qty').value;
+
+            if(!pn) return showToast("品番を入力してください", true);
+
+            try {
+                const res = await fetch(`${API_BASE}/stock/add`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ part_no: pn, name: nm, qty: parseInt(qt), user: "AI_OCR" })
+                });
+                if(!res.ok) throw new Error();
+                showToast("登録完了！");
+                setTimeout(() => location.reload(), 2000);
+            } catch (e) {
+                showToast("Lỗi kết nối Server", true);
+            }
+        }
+    </script>
 </body>
 </html>
