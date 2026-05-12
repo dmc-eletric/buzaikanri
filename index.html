@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DMC 部材管理システム</title>
+    <title>DMC 部材管理 - Camera Hybrid</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -15,32 +16,34 @@
         #toast.show { opacity: 1; }
         .page { display: block; }
         .hidden { display: none; }
-        #add-qr-reader video { border-radius: 12px; object-fit: cover !important; }
+        #image-preview { max-height: 200px; object-fit: contain; }
+        .loading-spinner {
+            border: 3px solid #f3f3f3; border-top: 3px solid #6366f1;
+            border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite;
+            display: inline-block; vertical-align: middle;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800">
 
     <div class="max-w-md mx-auto min-h-screen pb-24 relative shadow-2xl bg-white">
+        <!-- Toast Notification -->
         <div id="toast" class="shadow-xl"></div>
 
         <script>
-            // CẤU HÌNH HỆ THỐNG
-            const API = "https://buzaikanri.onrender.com"; // URL Backend của bạn
+            const API = "https://buzaikanri.onrender.com"; 
             let token = localStorage.getItem("parts_token") || null;
             let currentUser = localStorage.getItem("parts_username") || "";
-            let addScanner = null;
-            let addScanLocked = false;
             let addScanCurrentData = null;
+            let html5QrCode = null;
 
-            // HÀM GỌI API CHUẨN (ĐÃ SỬA LỖI DẤU GẠCH CHÉO)
             const api = async (path, opts={}) => {
                 const h = {"Content-Type":"application/json"};
                 if(token) h["Authorization"] = `Bearer ${token}`;
-                
                 const baseUrl = API.endsWith('/') ? API.slice(0, -1) : API;
                 const cleanPath = path.startsWith('/') ? path.slice(1) : path;
                 const finalUrl = `${baseUrl}/${cleanPath}`;
-
                 const r = await fetch(finalUrl, { ...opts, headers: { ...h, ...(opts.headers || {}) } });
                 if(!r.ok){
                     let msg = "エラー";
@@ -59,74 +62,94 @@
             }
         </script>
 
+        <!-- HOME -->
         <div id="page-home" class="page p-6">
             <div class="text-center my-8">
-                <h1 class="text-2xl font-black text-indigo-700">DMC 部材管理</h1>
-                <p class="text-gray-400 text-xs mt-1">Inventory Management System</p>
+                <h1 class="text-2xl font-black text-indigo-700 uppercase tracking-wider">DMC Inventory</h1>
+                <p class="text-gray-400 text-[10px]">Photo & Scan Hybrid System</p>
             </div>
             
             <div class="grid grid-cols-1 gap-4">
-                <button onclick="go('add')" class="flex items-center p-6 bg-indigo-50 border-2 border-indigo-100 rounded-2xl shadow-sm active:scale-95 transition-all">
-                    <span class="text-4xl mr-4">📷</span>
+                <button onclick="go('add')" class="flex items-center p-6 bg-indigo-600 rounded-2xl shadow-lg active:scale-95 transition-all text-white">
+                    <span class="text-4xl mr-4">📸</span>
                     <div class="text-left">
-                        <div class="font-bold text-indigo-900 text-lg">バーコード読取</div>
-                        <div class="text-xs text-indigo-400">入庫・新規登録</div>
+                        <div class="font-bold text-lg">入庫登録</div>
+                        <div class="text-xs opacity-70">撮影またはスキャン</div>
                     </div>
                 </button>
 
-                <button onclick="location.reload()" class="flex items-center p-6 bg-gray-50 border-2 border-gray-100 rounded-2xl shadow-sm active:scale-95 transition-all">
+                <button onclick="location.reload()" class="flex items-center p-6 bg-gray-50 border-2 border-gray-100 rounded-2xl active:scale-95 transition-all">
                     <span class="text-4xl mr-4">🔄</span>
                     <div class="text-left">
-                        <div class="font-bold text-gray-700 text-lg">アプリを更新</div>
-                        <div class="text-xs text-gray-400">最新の状態にする</div>
+                        <div class="font-bold text-gray-700 text-lg">再読み込み</div>
+                        <div class="text-xs text-gray-400">アプリを更新する</div>
                     </div>
                 </button>
             </div>
         </div>
 
+        <!-- ADD PAGE -->
         <div id="page-add" class="page hidden p-4">
             <div class="flex items-center justify-between mb-4 px-2">
-                <h2 class="font-bold text-lg text-gray-700">スキャン入庫</h2>
-                <button onclick="go('home')" class="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-full text-gray-500">✕</button>
+                <h2 class="font-bold text-lg text-gray-700">入庫登録</h2>
+                <button onclick="go('home')" class="text-gray-400 p-2">✕</button>
             </div>
             
-            <div class="rounded-2xl overflow-hidden border-4 border-indigo-500 shadow-2xl bg-black relative">
-                <div id="add-qr-reader" style="width: 100%;"></div>
-                <div class="absolute inset-0 border-[40px] border-black/30 pointer-events-none">
-                    <div class="w-full h-full border-2 border-white/50 rounded-lg"></div>
-                </div>
+            <!-- PHOTO SELECTION (NEW) -->
+            <div class="mb-4">
+                <label for="file-input" class="flex flex-col items-center justify-center p-6 border-4 border-dashed border-indigo-200 rounded-2xl bg-indigo-50 active:bg-indigo-100 transition-colors cursor-pointer">
+                    <span class="text-4xl mb-2">📸</span>
+                    <span class="font-bold text-indigo-600">写真を撮って登録</span>
+                    <span class="text-[10px] text-gray-400 mt-1">バーコードを真ん中に写してください</span>
+                    <input id="file-input" type="file" accept="image/*" capture="environment" class="hidden">
+                </label>
             </div>
 
-            <div id="add-scan-result" class="mt-4 text-center font-mono font-bold text-indigo-600 bg-indigo-50 py-2 rounded-lg">
-                バーコードを探しています...
+            <div class="relative py-4">
+                <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-200"></div></div>
+                <div class="relative flex justify-center text-xs uppercase"><span class="bg-white px-2 text-gray-400 font-bold">OR SCAN LIVE</span></div>
+            </div>
+
+            <!-- LIVE SCANNER (EXISTING) -->
+            <div class="rounded-2xl overflow-hidden border-2 border-gray-200 bg-black relative mb-4">
+                <div id="reader" style="width: 100%;"></div>
+            </div>
+
+            <!-- PROCESSING STATUS -->
+            <div id="processing-status" class="hidden text-center p-3 bg-orange-50 rounded-xl mb-4 border border-orange-100">
+                <div class="loading-spinner mr-2"></div>
+                <span class="text-sm font-bold text-orange-600">画像を解析中...</span>
+            </div>
+
+            <div id="scan-result-text" class="text-center font-mono text-xs text-gray-400 mb-4 italic">
+                待機中...
             </div>
             
-            <div id="add-scan-info" class="mt-4 p-5 bg-white border-2 border-indigo-100 rounded-2xl shadow-xl" style="display:none;">
+            <!-- INFO BOX -->
+            <div id="add-scan-info" class="p-5 bg-white border-2 border-indigo-100 rounded-2xl shadow-xl" style="display:none;">
                 <div class="flex justify-between items-start mb-4">
                     <div>
-                        <div class="text-[10px] text-gray-400 font-bold uppercase">Part Number</div>
-                        <div id="add-scan-partno" class="text-xl font-black text-indigo-900 leading-tight"></div>
+                        <div class="text-[10px] text-gray-400 font-bold">PART NUMBER</div>
+                        <div id="add-scan-partno" class="text-xl font-black text-indigo-900"></div>
                     </div>
                     <div id="add-scan-status-label" class="px-2 py-1 rounded text-[10px] font-black"></div>
                 </div>
                 
                 <div class="space-y-4">
                     <div>
-                        <label class="text-[10px] text-gray-400 font-bold uppercase italic">Part Name</label>
-                        <div id="add-scan-name" class="font-bold text-gray-700 border-b-2 border-dashed border-gray-200 pb-1"></div>
+                        <label class="text-[10px] text-gray-400 font-bold uppercase">Part Name</label>
+                        <div id="add-scan-name" class="font-bold text-gray-700 border-b border-gray-100 pb-1"></div>
                         <div id="add-scan-new-name-wrap" class="mt-2" style="display:none;">
-                            <input id="add-scan-new-name" type="text" placeholder="新規品名を入力してください" class="w-full border-2 border-orange-300 p-3 rounded-xl focus:border-orange-500 outline-none text-sm shadow-inner">
+                            <input id="add-scan-new-name" type="text" placeholder="品名を入力" class="w-full border border-orange-200 p-3 rounded-xl text-sm focus:border-orange-500 outline-none">
                         </div>
                     </div>
-                    
                     <div class="flex items-center justify-between bg-indigo-50 p-4 rounded-xl">
-                        <label class="font-black text-indigo-900">入庫数量</label>
-                        <input id="add-scan-qty-input" type="number" class="w-20 text-center text-2xl font-black bg-transparent border-b-2 border-indigo-400 outline-none focus:text-indigo-600" value="1">
+                        <label class="font-black text-indigo-900">入庫数</label>
+                        <input id="add-scan-qty-input" type="number" class="w-20 text-center text-2xl font-black bg-transparent outline-none border-b-2 border-indigo-300" value="1">
                     </div>
-
-                    <div class="grid grid-cols-2 gap-3 mt-6">
-                        <button onclick="resumeAddScan()" class="bg-gray-100 text-gray-500 py-4 rounded-xl font-bold text-sm shadow-sm active:bg-gray-200">再開</button>
-                        <button onclick="submitScanAdd()" class="bg-indigo-600 text-white py-4 rounded-xl font-bold text-sm shadow-lg active:scale-95 transition-all">登録確定</button>
+                    <div class="grid grid-cols-2 gap-3 mt-4">
+                        <button onclick="resetUI()" class="bg-gray-100 text-gray-500 py-4 rounded-xl font-bold text-sm">戻る</button>
+                        <button onclick="submitScanAdd()" class="bg-indigo-600 text-white py-4 rounded-xl font-bold text-sm shadow-lg">登録</button>
                     </div>
                 </div>
             </div>
@@ -136,109 +159,106 @@
             function go(page){
                 document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
                 document.getElementById('page-' + page).classList.remove('hidden');
-                stopAllScanners();
-                if(page === 'add') startAddScanner();
+                if(page === 'add') initScanner();
+                else stopScanner();
             }
 
-            async function stopAllScanners(){
-                try {
-                    if(addScanner && addScanner.getState() === 2) {
-                        await addScanner.stop();
-                        addScanner = null;
-                    }
-                } catch(e) { console.error(e); }
-            }
-
-            function startAddScanner(){
-                addScanLocked = false;
-                document.getElementById("add-scan-info").style.display = "none";
-                addScanner = new Html5Qrcode("add-qr-reader");
-                
+            async function initScanner() {
+                resetUI();
+                html5QrCode = new Html5Qrcode("reader");
                 const config = { 
-                    fps: 30, // Quét nhanh hơn
-                    qrbox: { width: 300, height: 140 }, // Khung chữ nhật chuẩn cho mã vạch Panasonic
-                    aspectRatio: 1.0,
-                    // ÉP CAMERA ĐỘ PHÂN GIẢI CAO ĐỂ ĐỌC VẠCH MẢNH
-                    videoConstraints: {
-                        facingMode: "environment",
-                        width: { min: 1280, ideal: 1920 },
-                        height: { min: 720, ideal: 1080 }
-                    },
+                    fps: 20, qrbox: { width: 280, height: 120 },
                     formatsToSupport: [ Html5QrcodeSupportedFormats.CODE_128 ]
                 };
+                html5QrCode.start({ facingMode: "environment" }, config, (decoded) => {
+                    handleSuccess(decoded);
+                }).catch(e => console.warn(e));
+            }
 
-                addScanner.start({ facingMode: "environment" }, config, async (decoded) => {
-                    if(addScanLocked) return;
-                    addScanLocked = true;
-                    const pn = decoded.trim();
-                    document.getElementById("add-scan-result").textContent = `読み取り成功: ${pn}`;
+            async function stopScanner() {
+                if(html5QrCode && html5QrCode.isScanning) {
+                    await html5QrCode.stop();
+                    html5QrCode = null;
+                }
+            }
+
+            // XỬ LÝ CHỤP ẢNH (OCR/FILE SCAN)
+            document.getElementById('file-input').addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                document.getElementById('processing-status').classList.remove('hidden');
+                document.getElementById('add-scan-info').style.display = 'none';
+
+                const tempScanner = new Html5Qrcode("reader");
+                try {
+                    // Thư viện sẽ xử lý file ảnh tĩnh
+                    const decoded = await tempScanner.scanFile(file, true);
+                    handleSuccess(decoded);
+                } catch (err) {
+                    showToast("バーコードが見つかりません。明るい場所で撮り直してください。", true);
+                } finally {
+                    document.getElementById('processing-status').classList.add('hidden');
+                }
+            });
+
+            async function handleSuccess(pn) {
+                pn = pn.trim();
+                document.getElementById("scan-result-text").textContent = "READ: " + pn;
+                try {
+                    const r = await api(`/stock/search?part_no=${encodeURIComponent(pn)}`);
+                    document.getElementById("add-scan-info").style.display = "block";
+                    document.getElementById("add-scan-partno").textContent = pn;
                     
-                    try {
-                        // Gọi API tìm kiếm trong sheet "stock"
-                        const r = await api(`/stock/search?part_no=${encodeURIComponent(pn)}`);
-                        document.getElementById("add-scan-info").style.display = "block";
-                        document.getElementById("add-scan-partno").textContent = pn;
-                        
-                        const label = document.getElementById("add-scan-status-label");
-                        if(r && r.part_no){
-                            label.textContent = "REGISTERED";
-                            label.className = "px-2 py-1 rounded text-[10px] font-black bg-green-500 text-white";
-                            document.getElementById("add-scan-name").textContent = r.name;
-                            document.getElementById("add-scan-new-name-wrap").style.display = "none";
-                            addScanCurrentData = {part_no:pn, name:r.name, is_new:false};
-                        } else {
-                            label.textContent = "NEW ITEM";
-                            label.className = "px-2 py-1 rounded text-[10px] font-black bg-orange-500 text-white";
-                            document.getElementById("add-scan-name").textContent = "未登録の品番";
-                            document.getElementById("add-scan-new-name-wrap").style.display = "block";
-                            addScanCurrentData = {part_no:pn, name:"", is_new:true};
-                        }
-                    } catch(e) { 
-                        showToast("通信エラー: " + e.message, true); 
-                        addScanLocked = false; 
+                    const label = document.getElementById("add-scan-status-label");
+                    if(r && r.part_no){
+                        label.textContent = "EXISTING";
+                        label.className = "px-2 py-1 rounded text-[10px] font-black bg-green-500 text-white";
+                        document.getElementById("add-scan-name").textContent = r.name;
+                        document.getElementById("add-scan-new-name-wrap").style.display = "none";
+                        addScanCurrentData = {part_no:pn, name:r.name, is_new:false};
+                    } else {
+                        label.textContent = "NEW";
+                        label.className = "px-2 py-1 rounded text-[10px] font-black bg-orange-500 text-white";
+                        document.getElementById("add-scan-name").textContent = "未登録の品番";
+                        document.getElementById("add-scan-new-name-wrap").style.display = "block";
+                        addScanCurrentData = {part_no:pn, name:"", is_new:true};
                     }
-                });
+                } catch(e) { showToast("通信エラー", true); }
             }
 
             async function submitScanAdd(){
-                const qtyInput = document.getElementById("add-scan-qty-input");
-                const qty = parseInt(qtyInput.value);
-                if(!qty || qty < 1) return showToast("数量を入力してください", true);
-                
+                const qty = parseInt(document.getElementById("add-scan-qty-input").value);
+                if(!qty || qty < 1) return showToast("数量を入力", true);
                 let name = addScanCurrentData.name;
                 if(addScanCurrentData.is_new) {
                     name = document.getElementById("add-scan-new-name").value.trim();
-                    if(!name) return showToast("品名を入力してください", true);
+                    if(!name) return showToast("品名を入力", true);
                 }
-
                 try {
                     await api("/stock/add", {
                         method: "POST",
-                        body: JSON.stringify({ 
-                            part_no: addScanCurrentData.part_no, 
-                            name: name, 
-                            qty: qty, 
-                            user: currentUser || "guest" 
-                        })
+                        body: JSON.stringify({ part_no: addScanCurrentData.part_no, name, qty, user: currentUser || "guest" })
                     });
-                    showToast("入庫登録が完了しました");
+                    showToast("登録完了");
                     go('home');
                 } catch(e) { showToast(e.message, true); }
             }
 
-            function resumeAddScan() {
-                addScanLocked = false;
+            function resetUI() {
                 document.getElementById("add-scan-info").style.display = "none";
-                document.getElementById("add-scan-result").textContent = "スキャン待機中...";
+                document.getElementById("scan-result-text").textContent = "待機中...";
+                document.getElementById("processing-status").classList.add("hidden");
+                document.getElementById("file-input").value = "";
             }
         </script>
 
-        <nav class="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t border-gray-100 flex justify-around py-4">
-            <button onclick="go('home')" class="flex flex-col items-center text-gray-400 focus:text-indigo-600 transition-colors">
-                <span class="text-2xl">🏠</span><span class="text-[9px] font-bold mt-1 uppercase">Home</span>
+        <nav class="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-4 shadow-lg">
+            <button onclick="go('home')" class="flex flex-col items-center text-gray-400 focus:text-indigo-600">
+                <span class="text-xl">🏠</span><span class="text-[9px] font-bold uppercase">Home</span>
             </button>
-            <button onclick="go('add')" class="flex flex-col items-center text-gray-400 focus:text-indigo-600 transition-colors">
-                <span class="text-2xl">📷</span><span class="text-[9px] font-bold mt-1 uppercase">Scan</span>
+            <button onclick="go('add')" class="flex flex-col items-center text-gray-400 focus:text-indigo-600">
+                <span class="text-xl">📷</span><span class="text-[9px] font-bold uppercase">Action</span>
             </button>
         </nav>
     </div>
