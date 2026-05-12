@@ -64,9 +64,9 @@ def open_sheet(sheet_name: str) -> gspread.Worksheet:
 # ──────────────────────────────────────────────────
 # シート名定数
 # ──────────────────────────────────────────────────
-WS_STOCK   = GOOGLE_WORKSHEET          # 在庫シート
-WS_HISTORY = "履歴"                    # 履歴シート
-WS_USERS   = "ユーザー"               # ユーザーシート
+WS_STOCK   = os.getenv("GOOGLE_WORKSHEET", "stock")
+WS_HISTORY = "history"
+WS_USERS   = "ユーザー"
 
 # ══════════════════════════════════════════════════
 # シートヘッダー初期化
