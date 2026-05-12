@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
 <title>部材・補材管理システム</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
 <style>
 * { box-sizing: border-box; }
 body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
@@ -37,11 +37,20 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
 .search-wrap svg { position:absolute;left:11px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:#9ca3af;pointer-events:none; }
 .search-bar { width:100%;border:1px solid #d1d5db;border-radius:10px;padding:9px 14px 9px 36px;font-size:14px;outline:none;background:#fff; }
 .search-bar:focus { border-color:#a78bfa; }
-.scan-wrap { position:relative;max-width:360px;margin:0 auto; }
-#add-scan-locked { display:none;position:absolute;inset:0;background:rgba(0,0,0,.58);border-radius:12px;z-index:10;align-items:center;justify-content:center;flex-direction:column;gap:10px; }
-#add-scan-locked.show { display:flex; }
-#use-scan-locked { display:none;position:absolute;inset:0;background:rgba(0,0,0,.58);border-radius:12px;z-index:10;align-items:center;justify-content:center;flex-direction:column;gap:10px; }
-#use-scan-locked.show { display:flex; }
+.photo-scan-wrap { max-width:360px;margin:0 auto; }
+.camera-preview-box { position:relative;width:100%;background:#000;border-radius:14px;overflow:hidden;border:2px solid #7c3aed; }
+.camera-preview-box video { width:100%;display:block;max-height:280px;object-fit:cover; }
+.camera-shutter-btn { position:absolute;bottom:14px;left:50%;transform:translateX(-50%);width:62px;height:62px;border-radius:50%;background:#fff;border:4px solid #7c3aed;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(124,58,237,.35);transition:transform .1s,box-shadow .1s;z-index:5; }
+.camera-shutter-btn:active { transform:translateX(-50%) scale(.92); box-shadow:0 2px 8px rgba(124,58,237,.25); }
+.camera-shutter-btn svg { width:26px;height:26px; }
+.photo-canvas { display:none; }
+.photo-result-card { background:#f5f3ff;border:1.5px solid #c4b5fd;border-radius:14px;padding:16px;margin-top:12px;animation:fadeSlideUp .25s ease; }
+@keyframes fadeSlideUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+.scan-analyzing { display:flex;align-items:center;justify-content:center;gap:10px;padding:18px;background:#f5f3ff;border-radius:12px;font-size:13px;color:#7c3aed;font-weight:600; }
+.spin { animation:spin .8s linear infinite;width:20px;height:20px; }
+@keyframes spin { to{transform:rotate(360deg)} }
+.upload-zone { border:2px dashed #c4b5fd;border-radius:14px;padding:28px 16px;text-align:center;cursor:pointer;transition:background .15s;background:#faf8ff; }
+.upload-zone:hover { background:#ede9fe; }
 .mode-tab { flex:1;padding:10px;border-radius:10px;font-size:13px;font-weight:600;border:2px solid #e5e7eb;background:#fff;color:#374151;cursor:pointer;transition:all .15s; }
 .mode-tab.active { border-color:#7c3aed;background:#ede9fe;color:#5b21b6; }
 .item-card { background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:14px;display:flex;align-items:center;gap:12px; }
@@ -171,32 +180,64 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
       <button onclick="submitAdd()" class="btn-primary">追加する</button>
     </div>
 
-    <!-- ── バーコードスキャンモード ── -->
+    <!-- ── 写真解析モード（部材追加） ── -->
     <div id="add-scan-area" style="display:none;">
-      <div class="scan-wrap" style="margin-bottom:14px;">
-        <div id="add-qr-reader" style="border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;"></div>
-        <div id="add-scan-locked">
-          <svg fill="none" stroke="#fff" viewBox="0 0 24 24" style="width:44px;height:44px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
-          <span style="color:#fff;font-size:14px;font-weight:600;">スキャン完了</span>
-          <button onclick="resumeAddScan()" style="margin-top:4px;background:#fff;color:#5b21b6;border:none;padding:7px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">続けてスキャン</button>
-        </div>
-      </div>
-      <div id="add-scan-result" style="font-size:13px;color:#059669;min-height:20px;text-align:center;margin-bottom:12px;"></div>
 
-      <div id="add-scan-info" style="display:none;background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:14px;margin-bottom:14px;">
-        <div style="font-size:12px;color:#7c3aed;font-weight:600;margin-bottom:4px;" id="add-scan-status-label">スキャン結果</div>
-        <div style="font-size:15px;font-weight:700;color:#111827;margin-bottom:2px;" id="add-scan-partno"></div>
-        <div style="font-size:14px;color:#374151;" id="add-scan-name"></div>
-        <div style="font-size:12px;color:#6b7280;margin-top:4px;">現在庫: <span id="add-scan-qty-disp" style="font-weight:600;color:#374151;"></span></div>
-        <div id="add-scan-new-name-wrap" style="display:none;margin-top:10px;">
-          <label style="font-size:12px;color:#4b5563;display:block;margin-bottom:4px;">品名 * <span style="color:#7c3aed;font-size:11px;">(未登録)</span></label>
+      <!-- カメラプレビュー -->
+      <div id="add-camera-section" class="photo-scan-wrap" style="margin-bottom:14px;">
+        <div class="camera-preview-box">
+          <video id="add-video" autoplay playsinline muted></video>
+          <button class="camera-shutter-btn" onclick="captureAddPhoto()" title="撮影して解析">
+            <svg fill="none" stroke="#7c3aed" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          </button>
+        </div>
+        <p style="font-size:11px;color:#9ca3af;text-align:center;margin:8px 0 0;">バーコードにピントを合わせて撮影ボタンを押してください</p>
+      </div>
+
+      <!-- ファイル選択（代替） -->
+      <div id="add-upload-zone" class="upload-zone" onclick="document.getElementById('add-file-input').click()" style="margin-bottom:12px;">
+        <svg fill="none" stroke="#a78bfa" viewBox="0 0 24 24" style="width:32px;height:32px;margin:0 auto 8px;display:block;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        <p style="font-size:13px;color:#7c3aed;font-weight:600;margin:0;">ギャラリーから画像を選択</p>
+        <p style="font-size:11px;color:#9ca3af;margin:4px 0 0;">カメラが使えない場合はこちら</p>
+        <input id="add-file-input" type="file" accept="image/*" style="display:none;" onchange="analyzeAddFile(this)"/>
+      </div>
+
+      <!-- 解析中インジケーター -->
+      <div id="add-analyzing" style="display:none;" class="scan-analyzing">
+        <svg class="spin" fill="none" stroke="#7c3aed" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        バーコードを解析中…
+      </div>
+
+      <!-- 解析結果カード -->
+      <canvas id="add-photo-canvas" class="photo-canvas"></canvas>
+      <div id="add-scan-info" style="display:none;" class="photo-result-card">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+          <svg fill="none" stroke="#7c3aed" viewBox="0 0 24 24" style="width:18px;height:18px;flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span style="font-size:12px;color:#7c3aed;font-weight:700;" id="add-scan-status-label">解析完了</span>
+          <button onclick="resetAddScan()" style="margin-left:auto;background:#ede9fe;color:#5b21b6;border:none;padding:4px 12px;border-radius:7px;font-size:11px;font-weight:600;cursor:pointer;">再撮影</button>
+        </div>
+        <div style="background:#fff;border-radius:10px;padding:10px;margin-bottom:10px;">
+          <div style="font-size:11px;color:#9ca3af;margin-bottom:2px;">読み取り品番</div>
+          <div style="font-size:17px;font-weight:800;color:#111827;letter-spacing:.5px;" id="add-scan-partno"></div>
+          <div style="font-size:14px;color:#374151;margin-top:4px;" id="add-scan-name"></div>
+          <div style="font-size:12px;color:#6b7280;margin-top:4px;">現在庫: <span id="add-scan-qty-disp" style="font-weight:700;color:#059669;"></span></div>
+        </div>
+        <div id="add-scan-new-name-wrap" style="display:none;margin-bottom:10px;">
+          <label style="font-size:12px;color:#4b5563;display:block;margin-bottom:4px;">品名 * <span style="color:#7c3aed;font-size:11px;">(未登録品番)</span></label>
           <input id="add-scan-new-name" type="text" class="form-input" placeholder="品名を入力"/>
         </div>
-        <div style="margin-top:10px;">
+        <div style="margin-bottom:12px;">
           <label style="font-size:13px;color:#4b5563;display:block;margin-bottom:4px;">数量 *</label>
           <input id="add-scan-qty-input" type="number" class="form-input" placeholder="0" min="1" style="width:120px;"/>
         </div>
-        <button onclick="submitScanAdd()" class="btn-primary" style="margin-top:12px;">追加する</button>
+        <button onclick="submitScanAdd()" class="btn-primary">追加する</button>
+      </div>
+
+      <!-- 解析失敗メッセージ -->
+      <div id="add-scan-fail" style="display:none;background:#fff7f7;border:1.5px solid #fca5a5;border-radius:12px;padding:14px;text-align:center;margin-top:8px;">
+        <p style="font-size:14px;font-weight:600;color:#ef4444;margin:0 0 6px;">バーコードを読み取れませんでした</p>
+        <p style="font-size:12px;color:#6b7280;margin:0 0 10px;">明るい場所でバーコードを中央に合わせて再撮影してください</p>
+        <button onclick="resetAddScan()" style="background:#ef4444;color:#fff;border:none;padding:8px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">再撮影する</button>
       </div>
     </div>
   </div>
@@ -231,18 +272,51 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
       <div id="use-name-results" style="display:flex;flex-direction:column;gap:8px;"></div>
     </div>
 
-    <!-- ── バーコード検索 ── -->
+    <!-- ── 写真解析モード（部材使用） ── -->
     <div id="use-scan-area" style="display:none;">
-      <div class="scan-wrap" style="margin-bottom:14px;">
-        <div id="use-qr-reader" style="border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;"></div>
-        <div id="use-scan-locked">
-          <svg fill="none" stroke="#fff" viewBox="0 0 24 24" style="width:44px;height:44px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
-          <span style="color:#fff;font-size:14px;font-weight:600;">スキャン完了</span>
-          <button onclick="resumeUseScan()" style="margin-top:4px;background:#fff;color:#5b21b6;border:none;padding:7px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">再スキャン</button>
+
+      <!-- カメラプレビュー -->
+      <div id="use-camera-section" class="photo-scan-wrap" style="margin-bottom:14px;">
+        <div class="camera-preview-box">
+          <video id="use-video" autoplay playsinline muted></video>
+          <button class="camera-shutter-btn" onclick="captureUsePhoto()" title="撮影して解析">
+            <svg fill="none" stroke="#7c3aed" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          </button>
         </div>
+        <p style="font-size:11px;color:#9ca3af;text-align:center;margin:8px 0 0;">バーコードにピントを合わせて撮影ボタンを押してください</p>
       </div>
-      <div id="use-scan-result-msg" style="font-size:13px;color:#059669;min-height:20px;text-align:center;margin-bottom:12px;"></div>
-      <div id="use-scan-item" style="display:none;"></div>
+
+      <!-- ファイル選択（代替） -->
+      <div class="upload-zone" onclick="document.getElementById('use-file-input').click()" style="margin-bottom:12px;">
+        <svg fill="none" stroke="#a78bfa" viewBox="0 0 24 24" style="width:32px;height:32px;margin:0 auto 8px;display:block;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        <p style="font-size:13px;color:#7c3aed;font-weight:600;margin:0;">ギャラリーから画像を選択</p>
+        <p style="font-size:11px;color:#9ca3af;margin:4px 0 0;">カメラが使えない場合はこちら</p>
+        <input id="use-file-input" type="file" accept="image/*" style="display:none;" onchange="analyzeUseFile(this)"/>
+      </div>
+
+      <!-- 解析中インジケーター -->
+      <div id="use-analyzing" style="display:none;" class="scan-analyzing">
+        <svg class="spin" fill="none" stroke="#7c3aed" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        バーコードを解析中…
+      </div>
+
+      <!-- 解析結果 -->
+      <canvas id="use-photo-canvas" class="photo-canvas"></canvas>
+      <div id="use-scan-result-card" style="display:none;" class="photo-result-card">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+          <svg fill="none" stroke="#7c3aed" viewBox="0 0 24 24" style="width:18px;height:18px;flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span style="font-size:12px;color:#7c3aed;font-weight:700;">解析完了 — 在庫を確認しました</span>
+          <button onclick="resetUseScan()" style="margin-left:auto;background:#ede9fe;color:#5b21b6;border:none;padding:4px 12px;border-radius:7px;font-size:11px;font-weight:600;cursor:pointer;">再撮影</button>
+        </div>
+        <div id="use-scan-item" style="margin-bottom:8px;"></div>
+      </div>
+
+      <!-- 解析失敗 -->
+      <div id="use-scan-fail" style="display:none;background:#fff7f7;border:1.5px solid #fca5a5;border-radius:12px;padding:14px;text-align:center;margin-top:8px;">
+        <p style="font-size:14px;font-weight:600;color:#ef4444;margin:0 0 6px;">バーコードを読み取れませんでした</p>
+        <p style="font-size:12px;color:#6b7280;margin:0 0 10px;">明るい場所でバーコードを中央に合わせて再撮影してください</p>
+        <button onclick="resetUseScan()" style="background:#ef4444;color:#fff;border:none;padding:8px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">再撮影する</button>
+      </div>
     </div>
 
     <!-- ── 複数品番検索 ── -->
@@ -404,15 +478,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
 // ════════════════════════════════════════════
 // CONFIG – RenderのURL に変更してください
 // ════════════════════════════════════════════
-const API = "https://buzaikanri.onrender.com"; 
+const API = "";  // 例: "https://your-app.onrender.com"
 
 let token   = localStorage.getItem("parts_token")    || null;
 let isAdmin = localStorage.getItem("parts_is_admin") === "true";
 let currentUser = localStorage.getItem("parts_username") || "";
 
-// Scanner state
-let addScanner = null, useScanner = null;
-let addScanLocked = false, useScanLocked = false;
+// Photo Analysis state
+let addStream = null, useStream = null;
+let addScanCurrentData = null;
 let useConfirmData = null;  // {part_no, name, stock}
 let _allStock = [];
 let _allHistory = [];
@@ -429,18 +503,10 @@ function showToast(msg, isErr=false){
   setTimeout(()=>t.classList.remove("show"),2500);
 }
 
-// --- HÀM API ĐÃ SỬA LỖI DẤU GẠCH CHÉO // ---
 const api = async (path, opts={}) => {
   const h = {"Content-Type":"application/json"};
   if(token) h["Authorization"] = `Bearer ${token}`;
-
-  // Tự động dọn dẹp URL để tránh lỗi //
-  const baseUrl = API.endsWith('/') ? API.slice(0, -1) : API;
-  const cleanPath = path.startsWith('/') ? path.slice(1) : path;
-  const finalUrl = `${baseUrl}/${cleanPath}`;
-
-  const r = await fetch(finalUrl, {...opts, headers:{...h,...(opts.headers||{})}});
-  
+  const r = await fetch(API+path, {...opts, headers:{...h,...(opts.headers||{})}});
   if(!r.ok){
     let msg="エラーが発生しました";
     try{ const j=await r.json(); msg=j.detail||j.message||msg; }catch(_){}
@@ -460,9 +526,7 @@ function go(page){
   document.querySelectorAll(".bottom-nav-item").forEach(b=>b.classList.remove("active"));
   const bEl=document.getElementById("bnav-"+page); if(bEl) bEl.classList.add("active");
   if(["history","admin"].includes(page)) document.getElementById("bnav-more").classList.add("active");
-  
   stopAllScanners();
-  
   if(page==="home")    loadHome();
   if(page==="add")     initAdd();
   if(page==="use")     initUse();
@@ -470,14 +534,49 @@ function go(page){
   if(page==="history") loadHistory();
   if(page==="admin")   loadAdmin();
 }
+
+function toggleMoreDrawer(){ document.getElementById("more-drawer").classList.toggle("open"); document.getElementById("drawer-overlay").classList.toggle("open"); }
+function closeMoreDrawer(){ document.getElementById("more-drawer").classList.remove("open"); document.getElementById("drawer-overlay").classList.remove("open"); }
+
 function stopAllScanners(){
-  if(addScanner){addScanner.stop().catch(()=>{}); addScanner=null;}
-  if(useScanner){useScanner.stop().catch(()=>{}); useScanner=null;}
-  addScanLocked=false; useScanLocked=false;
-  hideLock("add-scan-locked"); hideLock("use-scan-locked");
+  stopStream(addStream); addStream=null;
+  stopStream(useStream); useStream=null;
 }
-function showLock(id){ document.getElementById(id).classList.add("show"); }
-function hideLock(id){ document.getElementById(id).classList.remove("show"); }
+function stopStream(stream){
+  if(!stream) return;
+  stream.getTracks().forEach(t=>t.stop());
+}
+
+// ZXing バーコード解析
+async function decodeImageFromCanvas(canvas){
+  const codeReader = new ZXing.BrowserMultiFormatReader();
+  const ctx = canvas.getContext("2d");
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  // ZXing は HTMLImageElement / HTMLCanvasElement / HTMLVideoElement を受け取る
+  const result = await codeReader.decodeFromCanvas(canvas);
+  return result.getText();
+}
+
+async function decodeImageFromBlob(blob){
+  return new Promise((resolve, reject)=>{
+    const img = new Image();
+    const url = URL.createObjectURL(blob);
+    img.onload = async ()=>{
+      const canvas = document.createElement("canvas");
+      canvas.width  = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      canvas.getContext("2d").drawImage(img, 0, 0);
+      URL.revokeObjectURL(url);
+      try{
+        const codeReader = new ZXing.BrowserMultiFormatReader();
+        const result = await codeReader.decodeFromCanvas(canvas);
+        resolve(result.getText());
+      }catch(e){ reject(e); }
+    };
+    img.onerror = ()=>{ URL.revokeObjectURL(url); reject(new Error("画像読み込み失敗")); };
+    img.src = url;
+  });
+}
 
 // ─── HOME ─────────────────────────────────────
 async function loadHome(){
@@ -519,7 +618,7 @@ function setAddMode(mode){
     document.getElementById("add-"+m+"-area").style.display=m===mode?"":"none";
   });
   stopAllScanners();
-  if(mode==="scan") startAddScanner();
+  if(mode==="scan") startAddCamera();
 }
 
 function onAddPartNoInput(){
@@ -570,72 +669,123 @@ async function submitAdd(){
   }catch(e){showToast(e.message,true);}
 }
 
-// バーコード追加スキャン
-function startAddScanner(){
-  addScanLocked=false; hideLock("add-scan-locked");
-  document.getElementById("add-scan-result").textContent="バーコードをカメラに向けてください";
-  document.getElementById("add-scan-info").style.display="none";
-  addScanner=new Html5Qrcode("add-qr-reader");
-  addScanner.start(
-    {facingMode:"environment"},
-    {fps:10, qrbox:{width:220,height:220}},
-    async (decoded)=>{
-      if(addScanLocked) return;
-      addScanLocked=true;
-      showLock("add-scan-locked");
-      const pn=decoded.trim();
-      document.getElementById("add-scan-result").textContent=`品番: ${pn}`;
-      try{
-        const r=await api(`/stock/search?part_no=${encodeURIComponent(pn)}`);
-        const info=document.getElementById("add-scan-info");
-        info.style.display="";
-        document.getElementById("add-scan-partno").textContent=pn;
-        if(r && r.part_no){
-          document.getElementById("add-scan-status-label").textContent="既存品番 — 在庫に加算されます";
-          document.getElementById("add-scan-name").textContent=r.name;
-          document.getElementById("add-scan-qty-disp").textContent=r.qty;
-          document.getElementById("add-scan-new-name-wrap").style.display="none";
-          addScanCurrentData={part_no:pn,name:r.name,qty:r.qty,is_new:false};
-        } else {
-          document.getElementById("add-scan-status-label").textContent="未登録品番 — 新規追加されます";
-          document.getElementById("add-scan-name").textContent="（未登録）";
-          document.getElementById("add-scan-qty-disp").textContent="0";
-          document.getElementById("add-scan-new-name-wrap").style.display="";
-          document.getElementById("add-scan-new-name").value="";
-          addScanCurrentData={part_no:pn,name:"",qty:0,is_new:true};
-        }
-        document.getElementById("add-scan-qty-input").value="";
-      }catch(e){showToast(e.message,true);}
-    },
-    ()=>{}
-  ).catch(e=>{document.getElementById("add-scan-result").textContent="カメラ起動失敗: "+e;});
+// ─── 部材追加 写真解析 ────────────────────────────────────────
+async function startAddCamera(){
+  resetAddScanUI();
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video:{ facingMode:"environment", width:{ideal:1920}, height:{ideal:1080} }
+    });
+    addStream = stream;
+    const video = document.getElementById("add-video");
+    video.srcObject = stream;
+    document.getElementById("add-camera-section").style.display="";
+  }catch(e){
+    document.getElementById("add-camera-section").style.display="none";
+    showToast("カメラを起動できませんでした。ギャラリーから選択してください",true);
+  }
 }
 
-function resumeAddScan(){
-  addScanLocked=false;
-  hideLock("add-scan-locked");
+function resetAddScanUI(){
   document.getElementById("add-scan-info").style.display="none";
-  document.getElementById("add-scan-result").textContent="次のバーコードをスキャンしてください";
+  document.getElementById("add-scan-fail").style.display="none";
+  document.getElementById("add-analyzing").style.display="none";
+  document.getElementById("add-camera-section").style.display="";
+  document.getElementById("add-upload-zone").style.display="";
+  document.getElementById("add-file-input").value="";
   addScanCurrentData=null;
 }
 
+function resetAddScan(){
+  resetAddScanUI();
+  if(!addStream) startAddCamera();
+}
+
+async function captureAddPhoto(){
+  const video = document.getElementById("add-video");
+  const canvas = document.getElementById("add-photo-canvas");
+  canvas.width  = video.videoWidth  || 640;
+  canvas.height = video.videoHeight || 480;
+  canvas.getContext("2d").drawImage(video, 0, 0);
+  // カメラ・アップロードゾーンを隠す
+  document.getElementById("add-camera-section").style.display="none";
+  document.getElementById("add-upload-zone").style.display="none";
+  await analyzeAddCanvas(canvas);
+}
+
+async function analyzeAddFile(input){
+  if(!input.files||!input.files[0]) return;
+  const file = input.files[0];
+  const img = new Image();
+  const url = URL.createObjectURL(file);
+  img.onload = async ()=>{
+    const canvas = document.getElementById("add-photo-canvas");
+    canvas.width  = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    canvas.getContext("2d").drawImage(img, 0, 0);
+    URL.revokeObjectURL(url);
+    document.getElementById("add-camera-section").style.display="none";
+    document.getElementById("add-upload-zone").style.display="none";
+    await analyzeAddCanvas(canvas);
+  };
+  img.src = url;
+}
+
+async function analyzeAddCanvas(canvas){
+  document.getElementById("add-analyzing").style.display="";
+  document.getElementById("add-scan-fail").style.display="none";
+  let pn;
+  try{
+    const codeReader = new ZXing.BrowserMultiFormatReader();
+    const result = await codeReader.decodeFromCanvas(canvas);
+    pn = result.getText().trim();
+  }catch(e){
+    document.getElementById("add-analyzing").style.display="none";
+    document.getElementById("add-scan-fail").style.display="";
+    return;
+  }
+  document.getElementById("add-analyzing").style.display="none";
+  // Sheets 検索
+  try{
+    const r = await api(`/stock/search?part_no=${encodeURIComponent(pn)}`);
+    document.getElementById("add-scan-partno").textContent = pn;
+    const info = document.getElementById("add-scan-info");
+    info.style.display="";
+    if(r && r.part_no){
+      document.getElementById("add-scan-status-label").textContent="既存品番 — 在庫に加算されます";
+      document.getElementById("add-scan-name").textContent = r.name;
+      document.getElementById("add-scan-qty-disp").textContent = r.qty;
+      document.getElementById("add-scan-new-name-wrap").style.display="none";
+      addScanCurrentData={part_no:pn, name:r.name, qty:r.qty, is_new:false};
+    } else {
+      document.getElementById("add-scan-status-label").textContent="未登録品番 — 新規追加されます";
+      document.getElementById("add-scan-name").textContent="（未登録）";
+      document.getElementById("add-scan-qty-disp").textContent="0";
+      document.getElementById("add-scan-new-name-wrap").style.display="";
+      document.getElementById("add-scan-new-name").value="";
+      addScanCurrentData={part_no:pn, name:"", qty:0, is_new:true};
+    }
+    document.getElementById("add-scan-qty-input").value="";
+    info.scrollIntoView({behavior:"smooth",block:"nearest"});
+  }catch(e){ showToast(e.message,true); resetAddScanUI(); }
+}
+
 async function submitScanAdd(){
-  if(!addScanCurrentData){return;}
-  const qty=parseInt(document.getElementById("add-scan-qty-input").value);
-  if(isNaN(qty)||qty<1){showToast("数量を入力してください",true);return;}
-  let name=addScanCurrentData.name;
+  if(!addScanCurrentData) return;
+  const qty = parseInt(document.getElementById("add-scan-qty-input").value);
+  if(isNaN(qty)||qty<1){ showToast("数量を入力してください",true); return; }
+  let name = addScanCurrentData.name;
   if(addScanCurrentData.is_new){
-    name=document.getElementById("add-scan-new-name").value.trim();
-    if(!name){showToast("品名を入力してください",true);return;}
+    name = document.getElementById("add-scan-new-name").value.trim();
+    if(!name){ showToast("品名を入力してください",true); return; }
   }
   try{
     await api("/stock/add",{method:"POST",body:JSON.stringify({
       part_no:addScanCurrentData.part_no, name, qty, user:currentUser||"ゲスト"
     })});
     showToast(`✓ ${addScanCurrentData.part_no} に ${qty} 追加しました`);
-    document.getElementById("add-scan-info").style.display="none";
-    resumeAddScan();
-  }catch(e){showToast(e.message,true);}
+    resetAddScan();
+  }catch(e){ showToast(e.message,true); }
 }
 
 // ─── 部材使用 ──────────────────────────────────
@@ -653,7 +803,7 @@ function setUseMode(mode){
   stopAllScanners();
   document.getElementById("use-confirm-panel").style.display="none";
   useConfirmData=null;
-  if(mode==="scan") startUseScanner();
+  if(mode==="scan") startUseCamera();
 }
 
 // 品番検索
@@ -725,51 +875,101 @@ async function submitUse(){
   }catch(e){errEl.style.display="";errEl.textContent=e.message;}
 }
 
-// バーコード使用スキャン
-function startUseScanner(){
-  useScanLocked=false; hideLock("use-scan-locked");
-  document.getElementById("use-scan-result-msg").textContent="バーコードをカメラに向けてください";
-  document.getElementById("use-scan-item").style.display="none";
-  useScanner=new Html5Qrcode("use-qr-reader");
-  useScanner.start(
-    {facingMode:"environment"},
-    {fps:10, qrbox:{width:220,height:220}},
-    async (decoded)=>{
-      if(useScanLocked) return;
-      useScanLocked=true;
-      showLock("use-scan-locked");
-      const pn=decoded.trim();
-      document.getElementById("use-scan-result-msg").textContent=`品番: ${pn}`;
-      try{
-        const r=await api(`/stock/search?part_no=${encodeURIComponent(pn)}`);
-        if(r&&r.part_no){
-          document.getElementById("use-scan-item").style.display="";
-          document.getElementById("use-scan-item").innerHTML=`
-            <div class="item-card">
-              <div style="flex:1;min-width:0;">
-                <div style="font-size:12px;color:#6b7280;">${esc(r.part_no)}</div>
-                <div style="font-size:15px;font-weight:600;color:#111827;">${esc(r.name)}</div>
-              </div>
-              <div style="text-align:right;flex-shrink:0;">
-                <div style="font-size:20px;font-weight:700;color:${r.qty<=0?"#ef4444":r.qty<=5?"#f59e0b":"#059669"};">${r.qty}</div>
-                <div style="font-size:11px;color:#9ca3af;">在庫</div>
-              </div>
-            </div>`;
-          openUseConfirm(r.part_no, r.name, r.qty);
-        } else {
-          document.getElementById("use-scan-result-msg").textContent=`品番 ${pn} は未登録です`;
-          useScanLocked=false; hideLock("use-scan-locked");
-        }
-      }catch(e){document.getElementById("use-scan-result-msg").textContent=e.message;}
-    },
-    ()=>{}
-  ).catch(e=>{document.getElementById("use-scan-result-msg").textContent="カメラ起動失敗: "+e;});
+// ─── 部材使用 写真解析 ────────────────────────────────────────
+async function startUseCamera(){
+  resetUseScanUI();
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video:{ facingMode:"environment", width:{ideal:1920}, height:{ideal:1080} }
+    });
+    useStream = stream;
+    const video = document.getElementById("use-video");
+    video.srcObject = stream;
+    document.getElementById("use-camera-section").style.display="";
+  }catch(e){
+    document.getElementById("use-camera-section").style.display="none";
+    showToast("カメラを起動できませんでした。ギャラリーから選択してください",true);
+  }
 }
-function resumeUseScan(){
-  useScanLocked=false; hideLock("use-scan-locked");
-  document.getElementById("use-scan-item").style.display="none";
-  document.getElementById("use-scan-result-msg").textContent="次のバーコードをスキャンしてください";
+
+function resetUseScanUI(){
+  document.getElementById("use-scan-result-card").style.display="none";
+  document.getElementById("use-scan-fail").style.display="none";
+  document.getElementById("use-analyzing").style.display="none";
+  document.getElementById("use-scan-item").innerHTML="";
+  document.getElementById("use-camera-section").style.display="";
   document.getElementById("use-confirm-panel").style.display="none";
+}
+
+function resetUseScan(){
+  resetUseScanUI();
+  if(!useStream) startUseCamera();
+}
+
+async function captureUsePhoto(){
+  const video = document.getElementById("use-video");
+  const canvas = document.getElementById("use-photo-canvas");
+  canvas.width  = video.videoWidth  || 640;
+  canvas.height = video.videoHeight || 480;
+  canvas.getContext("2d").drawImage(video, 0, 0);
+  document.getElementById("use-camera-section").style.display="none";
+  await analyzeUseCanvas(canvas);
+}
+
+async function analyzeUseFile(input){
+  if(!input.files||!input.files[0]) return;
+  const file = input.files[0];
+  const img = new Image();
+  const url = URL.createObjectURL(file);
+  img.onload = async ()=>{
+    const canvas = document.getElementById("use-photo-canvas");
+    canvas.width  = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    canvas.getContext("2d").drawImage(img, 0, 0);
+    URL.revokeObjectURL(url);
+    document.getElementById("use-camera-section").style.display="none";
+    await analyzeUseCanvas(canvas);
+  };
+  img.src = url;
+}
+
+async function analyzeUseCanvas(canvas){
+  document.getElementById("use-analyzing").style.display="";
+  document.getElementById("use-scan-fail").style.display="none";
+  let pn;
+  try{
+    const codeReader = new ZXing.BrowserMultiFormatReader();
+    const result = await codeReader.decodeFromCanvas(canvas);
+    pn = result.getText().trim();
+  }catch(e){
+    document.getElementById("use-analyzing").style.display="none";
+    document.getElementById("use-scan-fail").style.display="";
+    return;
+  }
+  document.getElementById("use-analyzing").style.display="none";
+  try{
+    const r = await api(`/stock/search?part_no=${encodeURIComponent(pn)}`);
+    if(r && r.part_no){
+      const card = document.getElementById("use-scan-result-card");
+      card.style.display="";
+      document.getElementById("use-scan-item").innerHTML=`
+        <div class="item-card" style="cursor:pointer;" onclick="openUseConfirm('${esc(r.part_no)}','${esc(r.name)}',${r.qty})">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:12px;color:#6b7280;">${esc(r.part_no)}</div>
+            <div style="font-size:15px;font-weight:600;color:#111827;">${esc(r.name)}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;">
+            <div style="font-size:22px;font-weight:700;color:${r.qty<=0?"#ef4444":r.qty<=5?"#f59e0b":"#059669"};">${r.qty}</div>
+            <div style="font-size:11px;color:#9ca3af;">在庫</div>
+          </div>
+        </div>`;
+      card.scrollIntoView({behavior:"smooth",block:"nearest"});
+      openUseConfirm(r.part_no, r.name, r.qty);
+    } else {
+      document.getElementById("use-scan-fail").style.display="";
+      document.getElementById("use-scan-fail").querySelector("p").textContent=`品番 ${pn} は未登録です`;
+    }
+  }catch(e){ showToast(e.message,true); resetUseScanUI(); }
 }
 
 // 複数品番検索
@@ -993,7 +1193,7 @@ async function loadAdminUsers(){
           <div style="font-size:14px;font-weight:600;color:#111827;">${esc(u.username)}</div>
           <div style="font-size:12px;color:#6b7280;">${u.is_admin?"管理者":"一般ユーザー"}</div>
         </div>
-        ${u.username!=="admin"?`<button onclick="deleteUser('${esc(u.username)}')" class="btn-danger"	 style="padding:6px 12px;font-size:12px;">削除</button>`:""}
+        ${u.username!=="admin"?`<button onclick="deleteUser('${esc(u.username)}')" class="btn-danger" style="padding:6px 12px;font-size:12px;">削除</button>`:""}
       </div>`).join("");
   }catch(e){ document.getElementById("admin-users-list").innerHTML=`<p style="color:#ef4444;font-size:13px;">${esc(e.message)}</p>`; }
 }
