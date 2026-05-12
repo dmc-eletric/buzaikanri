@@ -1,1036 +1,196 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
-<title>部材・補材管理システム</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-<style>
-* { box-sizing: border-box; }
-body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-#sidebar { width:220px;flex-shrink:0;height:100vh;overflow-y:auto;border-right:1px solid #e5e7eb;background:#fff;display:flex;flex-direction:column; }
-#main-content { flex:1;overflow-y:auto;height:100vh; }
-@media (max-width:640px) {
-  body { display:block !important; }
-  #sidebar { display:none !important; }
-  #mobile-bottom-nav { display:flex !important; }
-  #main-content { height:calc(100vh - 64px);overflow-y:auto;padding-bottom:8px; }
-  .page { padding:16px !important; }
-}
-#mobile-bottom-nav { display:none;position:fixed;bottom:0;left:0;right:0;height:64px;background:#fff;border-top:1px solid #e5e7eb;z-index:100;align-items:stretch; }
-.bottom-nav-item { flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:10px;color:#9ca3af;cursor:pointer;transition:color .15s;border:none;background:none;padding:0;-webkit-tap-highlight-color:transparent; }
-.bottom-nav-item.active { color:#7c3aed; }
-.bottom-nav-item svg { width:22px;height:22px; }
-#more-drawer { display:none;position:fixed;bottom:64px;left:0;right:0;background:#fff;border-top:1px solid #e5e7eb;z-index:99;padding:8px 0; }
-#more-drawer.open { display:block; }
-.drawer-item { display:flex;align-items:center;gap:12px;padding:12px 20px;font-size:14px;color:#374151;cursor:pointer; }
-.drawer-item svg { width:20px;height:20px; }
-#drawer-overlay { display:none;position:fixed;inset:0;z-index:98; }
-#drawer-overlay.open { display:block; }
-.sidebar-link { display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;font-size:14px;color:#374151;cursor:pointer;transition:background .1s; }
-.sidebar-link:hover { background:#f9fafb; }
-.sidebar-link.active { background:#ede9fe;color:#5b21b6;font-weight:600; }
-.stat-card { background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;text-align:center; }
-.page.hidden { display:none; }
-.search-wrap { position:relative;margin-bottom:12px; }
-.search-wrap svg { position:absolute;left:11px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:#9ca3af;pointer-events:none; }
-.search-bar { width:100%;border:1px solid #d1d5db;border-radius:10px;padding:9px 14px 9px 36px;font-size:14px;outline:none;background:#fff; }
-.search-bar:focus { border-color:#a78bfa; }
-.scan-wrap { position:relative;max-width:360px;margin:0 auto; }
-#add-scan-locked { display:none;position:absolute;inset:0;background:rgba(0,0,0,.58);border-radius:12px;z-index:10;align-items:center;justify-content:center;flex-direction:column;gap:10px; }
-#add-scan-locked.show { display:flex; }
-#use-scan-locked { display:none;position:absolute;inset:0;background:rgba(0,0,0,.58);border-radius:12px;z-index:10;align-items:center;justify-content:center;flex-direction:column;gap:10px; }
-#use-scan-locked.show { display:flex; }
-.mode-tab { flex:1;padding:10px;border-radius:10px;font-size:13px;font-weight:600;border:2px solid #e5e7eb;background:#fff;color:#374151;cursor:pointer;transition:all .15s; }
-.mode-tab.active { border-color:#7c3aed;background:#ede9fe;color:#5b21b6; }
-.item-card { background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:14px;display:flex;align-items:center;gap:12px; }
-.item-card.selected { border-color:#7c3aed;background:#f5f3ff; }
-.item-card.not-found { border-color:#fca5a5;background:#fff7f7; }
-.qty-input { width:80px;border:1px solid #d1d5db;border-radius:8px;padding:8px 10px;font-size:15px;text-align:center;outline:none; }
-.qty-input:focus { border-color:#a78bfa; }
-.badge-add { background:#d1fae5;color:#065f46;font-size:11px;padding:3px 9px;border-radius:99px; }
-.badge-use { background:#dbeafe;color:#1e40af;font-size:11px;padding:3px 9px;border-radius:99px; }
-.badge-admin { background:#fef3c7;color:#92400e;font-size:11px;padding:3px 9px;border-radius:99px; }
-.badge-low { background:#fee2e2;color:#991b1b;font-size:11px;padding:3px 9px;border-radius:99px; }
-.admin-tab { padding:8px 16px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:#6b7280;border-bottom:2px solid transparent;transition:all .15s; }
-.admin-tab.active { color:#7c3aed;border-bottom-color:#7c3aed; }
-.btn-primary { background:#7c3aed;color:#fff;padding:12px;border-radius:10px;font-size:15px;font-weight:600;border:none;cursor:pointer;width:100%; }
-.btn-primary:active { opacity:.85; }
-.btn-danger { background:#ef4444;color:#fff;padding:9px 16px;border-radius:8px;font-size:13px;font-weight:600;border:none;cursor:pointer; }
-.btn-ghost { background:#f3f4f6;color:#374151;padding:9px 16px;border-radius:8px;font-size:13px;font-weight:600;border:none;cursor:pointer; }
-.form-input { width:100%;border:1px solid #d1d5db;border-radius:8px;padding:10px 14px;font-size:14px;outline:none;background:#fff; }
-.form-input:focus { border-color:#a78bfa; }
-.toast { position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:#1f2937;color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:500;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap; }
-.toast.show { opacity:1;transform:translateX(-50%) translateY(0); }
-.multi-registered { border-left:4px solid #7c3aed; }
-.multi-unregistered { border-left:4px solid #f87171; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>部材管理システム</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom Styles for Mobile UX */
+        .page { display: block; }
+        .hidden { display: none; }
+        #toast {
+            position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+            padding: 12px 24px; border-radius: 8px; color: white; font-weight: bold;
+            opacity: 0; transition: opacity 0.3s; z-index: 9999;
+        }
+        #toast.show { opacity: 1; }
+    </style>
 </head>
-<body class="bg-gray-50 flex" style="min-height:100vh;">
+<body class="bg-gray-50 text-gray-800">
 
-<div id="toast" class="toast"></div>
+    <div class="max-w-md mx-auto min-h-screen pb-20">
+        
+        <script>
+            const API = "https://buzaikanri.onrender.com"; 
+            let token = localStorage.getItem("parts_token") || null;
+            let currentUser = localStorage.getItem("parts_username") || "";
+            let addScanner = null;
+            let useScanner = null;
+            let addScanLocked = false;
+            let useScanLocked = false;
+            let addScanCurrentData = null;
+            let useConfirmData = null;
 
-<!-- DESKTOP SIDEBAR -->
-<aside id="sidebar">
-  <div style="padding:16px 20px 12px;border-bottom:1px solid #f3f4f6;">
-    <h1 style="font-size:16px;font-weight:700;color:#5b21b6;margin:0;">部材管理</h1>
-    <p style="font-size:11px;color:#9ca3af;margin:4px 0 0;">在庫管理システム</p>
-  </div>
-  <nav style="flex:1;padding:12px 10px;display:flex;flex-direction:column;gap:2px;">
-    <p style="font-size:11px;font-weight:600;color:#9ca3af;padding:4px 8px;margin:0 0 2px;">メニュー</p>
-    <a class="sidebar-link" onclick="go('home')">
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:16px;height:16px;flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-      ホーム
-    </a>
-    <a class="sidebar-link" onclick="go('add')">
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:16px;height:16px;flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-      部材追加
-    </a>
-    <a class="sidebar-link" onclick="go('use')">
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:16px;height:16px;flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/></svg>
-      部材使用
-    </a>
-    <a class="sidebar-link" onclick="go('stock')">
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:16px;height:16px;flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
-      在庫確認
-    </a>
-    <a class="sidebar-link" onclick="go('history')">
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:16px;height:16px;flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-      履歴確認
-    </a>
-    <p style="font-size:11px;font-weight:600;color:#9ca3af;padding:4px 8px;margin:8px 0 2px;">ADMIN</p>
-    <a class="sidebar-link" onclick="go('admin')">
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:16px;height:16px;flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-      管理（Admin）
-    </a>
-  </nav>
-  <div style="padding:12px 16px;border-top:1px solid #f3f4f6;font-size:12px;color:#9ca3af;display:flex;align-items:center;gap:8px;">
-    <span id="user-info-desk">未ログイン</span>
-    <button id="logout-btn-desk" class="hidden" onclick="logout()" style="color:#ef4444;background:none;border:none;cursor:pointer;font-size:12px;">ログアウト</button>
-  </div>
-</aside>
+            // --- HÀM API ĐÃ SỬA LỖI CÚ PHÁP & DẤU GẠCH CHÉO ---
+            const api = async (path, opts={}) => {
+                const h = {"Content-Type":"application/json"};
+                if(token) h["Authorization"] = `Bearer ${token}`;
 
-<!-- MAIN CONTENT -->
-<div id="main-content">
+                const baseUrl = API.endsWith('/') ? API.slice(0, -1) : API;
+                const cleanPath = path.startsWith('/') ? path.slice(1) : path;
+                const finalUrl = `${baseUrl}/${cleanPath}`;
 
-  <!-- ════════════════ HOME ════════════════ -->
-  <div id="page-home" class="page" style="padding:24px;max-width:640px;margin:0 auto;">
-    <h2 style="font-size:20px;font-weight:700;margin:0 0 4px;color:#111827;">ダッシュボード</h2>
-    <p style="font-size:13px;color:#6b7280;margin:0 0 20px;">部材・補材在庫の現状</p>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px;">
-      <div class="stat-card">
-        <div id="stat-total" style="font-size:28px;font-weight:700;color:#111827;">-</div>
-        <div style="font-size:12px;color:#6b7280;margin-top:4px;">品番数</div>
-      </div>
-      <div class="stat-card">
-        <div id="stat-low" style="font-size:28px;font-weight:700;color:#ef4444;">-</div>
-        <div style="font-size:12px;color:#6b7280;margin-top:4px;">在庫少</div>
-      </div>
-      <div class="stat-card">
-        <div id="stat-zero" style="font-size:28px;font-weight:700;color:#9ca3af;">-</div>
-        <div style="font-size:12px;color:#6b7280;margin-top:4px;">在庫ゼロ</div>
-      </div>
-    </div>
-    <h3 style="font-size:15px;font-weight:600;color:#374151;margin:0 0 12px;">在庫少アイテム（5件以下）</h3>
-    <div id="home-low-stock" style="display:flex;flex-direction:column;gap:8px;"></div>
-  </div>
+                const r = await fetch(finalUrl, {
+                    ...opts, 
+                    headers: { ...h, ...(opts.headers || {}) }
+                });
+                
+                if(!r.ok){
+                    let msg = "エラーが発生しました";
+                    try { 
+                        const j = await r.json(); 
+                        msg = j.detail || j.message || msg; 
+                    } catch(e) {}
+                    throw new Error(msg);
+                }
+                return r.json();
+            };
 
-  <!-- ════════════════ 部材追加 ════════════════ -->
-  <div id="page-add" class="page hidden" style="padding:24px;max-width:640px;margin:0 auto;">
-    <h2 style="font-size:20px;font-weight:700;margin:0 0 16px;color:#111827;">部材追加</h2>
+            function showToast(msg, isErr=false){
+                const t = document.getElementById("toast");
+                t.textContent = msg;
+                t.style.background = isErr ? "#ef4444" : "#10b981";
+                t.classList.add("show");
+                setTimeout(() => t.classList.remove("show"), 3000);
+            }
+        </script>
 
-    <!-- Mode tabs -->
-    <div style="display:flex;gap:8px;margin-bottom:20px;">
-      <button id="add-tab-manual" class="mode-tab active" onclick="setAddMode('manual')">手入力</button>
-      <button id="add-tab-scan"   class="mode-tab"        onclick="setAddMode('scan')">バーコード読取</button>
-    </div>
+        <div id="toast"></div>
 
-    <!-- ── 手入力モード ── -->
-    <div id="add-manual-area">
-      <div style="margin-bottom:12px;">
-        <label style="font-size:13px;color:#4b5563;display:block;margin-bottom:4px;">品番 *</label>
-        <div style="display:flex;gap:8px;">
-          <input id="add-part-no" type="text" class="form-input" placeholder="例: ABC-001" style="flex:1;" oninput="onAddPartNoInput()"/>
-          <button onclick="searchAddPartNo()" style="background:#7c3aed;color:#fff;padding:10px 16px;border-radius:8px;font-size:14px;font-weight:600;border:none;cursor:pointer;">検索</button>
+        <header class="p-4 bg-white shadow-sm flex justify-between items-center">
+            <h1 class="font-bold text-lg text-indigo-600">部材管理</h1>
+            <span id="user-display" class="text-sm text-gray-500"></span>
+        </header>
+
+        <div id="page-home" class="page p-4">
+            <div class="grid grid-cols-2 gap-4">
+                <button onclick="go('add')" class="p-6 bg-white border rounded-xl shadow-sm text-center">
+                    <div class="text-3xl mb-2">➕</div>
+                    <div class="font-bold">部材追加</div>
+                </button>
+                <button onclick="go('use')" class="p-6 bg-white border rounded-xl shadow-sm text-center">
+                    <div class="text-3xl mb-2">➖</div>
+                    <div class="font-bold">部材使用</div>
+                </button>
+            </div>
         </div>
-      </div>
-      <div id="add-part-info" style="display:none;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:10px;padding:12px;margin-bottom:12px;">
-        <div style="font-size:12px;color:#7c3aed;font-weight:600;margin-bottom:4px;" id="add-part-status-label">既存品番</div>
-        <div style="font-size:15px;font-weight:700;color:#111827;" id="add-part-name-disp"></div>
-        <div style="font-size:12px;color:#6b7280;margin-top:2px;">現在庫: <span id="add-part-qty-disp" style="font-weight:600;color:#374151;"></span></div>
-      </div>
-      <div id="add-new-name-wrap" style="display:none;margin-bottom:12px;">
-        <label style="font-size:13px;color:#4b5563;display:block;margin-bottom:4px;">品名 * <span style="color:#7c3aed;font-size:11px;">(未登録品番)</span></label>
-        <input id="add-new-name" type="text" class="form-input" placeholder="品名を入力"/>
-      </div>
-      <div style="margin-bottom:16px;">
-        <label style="font-size:13px;color:#4b5563;display:block;margin-bottom:4px;">数量 *</label>
-        <input id="add-qty" type="number" class="form-input" placeholder="0" min="1" style="width:120px;"/>
-      </div>
-      <button onclick="submitAdd()" class="btn-primary">追加する</button>
-    </div>
 
-    <!-- ── バーコードスキャンモード ── -->
-    <div id="add-scan-area" style="display:none;">
-      <div class="scan-wrap" style="margin-bottom:14px;">
-        <div id="add-qr-reader" style="border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;"></div>
-        <div id="add-scan-locked">
-          <svg fill="none" stroke="#fff" viewBox="0 0 24 24" style="width:44px;height:44px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
-          <span style="color:#fff;font-size:14px;font-weight:600;">スキャン完了</span>
-          <button onclick="resumeAddScan()" style="margin-top:4px;background:#fff;color:#5b21b6;border:none;padding:7px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">続けてスキャン</button>
+       
+        <div id="page-add" class="page hidden p-4">
+            <h2 class="font-bold mb-4">部材追加 (Scanner)</h2>
+            <div id="add-qr-reader" class="rounded-lg overflow-hidden border"></div>
+            <div id="add-scan-result" class="mt-2 text-center text-sm font-bold text-indigo-600"></div>
+            
+            <div id="add-scan-info" class="mt-4 p-4 bg-white border rounded-lg shadow-sm" style="display:none;">
+                <div class="mb-2"><span class="text-gray-500">品番:</span> <span id="add-scan-partno" class="font-bold"></span></div>
+                <div id="add-scan-status-label" class="text-xs text-orange-500 mb-2"></div>
+                <div class="mb-2"><span class="text-gray-500">品名:</span> <span id="add-scan-name"></span></div>
+                <div id="add-scan-new-name-wrap" class="mb-2">
+                    <input id="add-scan-new-name" type="text" placeholder="新規品名を入力" class="w-full border p-2 rounded">
+                </div>
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="text-gray-500">数量:</span>
+                    <input id="add-scan-qty-input" type="number" class="border p-2 rounded w-24" placeholder="0">
+                </div>
+                <button onclick="submitScanAdd()" class="w-full bg-indigo-600 text-white p-3 rounded-lg font-bold">追加する</button>
+                <button onclick="resumeAddScan()" class="w-full mt-2 text-gray-500 text-sm">キャンセル</button>
+            </div>
         </div>
-      </div>
-      <div id="add-scan-result" style="font-size:13px;color:#059669;min-height:20px;text-align:center;margin-bottom:12px;"></div>
 
-      <div id="add-scan-info" style="display:none;background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:14px;margin-bottom:14px;">
-        <div style="font-size:12px;color:#7c3aed;font-weight:600;margin-bottom:4px;" id="add-scan-status-label">スキャン結果</div>
-        <div style="font-size:15px;font-weight:700;color:#111827;margin-bottom:2px;" id="add-scan-partno"></div>
-        <div style="font-size:14px;color:#374151;" id="add-scan-name"></div>
-        <div style="font-size:12px;color:#6b7280;margin-top:4px;">現在庫: <span id="add-scan-qty-disp" style="font-weight:600;color:#374151;"></span></div>
-        <div id="add-scan-new-name-wrap" style="display:none;margin-top:10px;">
-          <label style="font-size:12px;color:#4b5563;display:block;margin-bottom:4px;">品名 * <span style="color:#7c3aed;font-size:11px;">(未登録)</span></label>
-          <input id="add-scan-new-name" type="text" class="form-input" placeholder="品名を入力"/>
-        </div>
-        <div style="margin-top:10px;">
-          <label style="font-size:13px;color:#4b5563;display:block;margin-bottom:4px;">数量 *</label>
-          <input id="add-scan-qty-input" type="number" class="form-input" placeholder="0" min="1" style="width:120px;"/>
-        </div>
-        <button onclick="submitScanAdd()" class="btn-primary" style="margin-top:12px;">追加する</button>
-      </div>
+        <script>
+            function go(page){
+                document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+                document.getElementById('page-' + page).classList.remove('hidden');
+                stopAllScanners();
+                if(page === 'add') startAddScanner();
+                if(page === 'use') startUseScanner();
+            }
+
+            async function stopAllScanners(){
+                try {
+                    if(addScanner) { await addScanner.stop(); addScanner = null; }
+                    if(useScanner) { await useScanner.stop(); useScanner = null; }
+                } catch(e) {}
+            }
+
+            // --- HÀM QUÉT MÃ VẠCH CODE 128 TỐI ƯU ---
+            function startAddScanner(){
+                addScanLocked = false;
+                addScanner = new Html5Qrcode("add-qr-reader");
+                const config = { 
+                    fps: 20, 
+                    qrbox: { width: 280, height: 120 }, // Hình chữ nhật cho mã vạch
+                    formatsToSupport: [ Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.QR_CODE ]
+                };
+
+                addScanner.start({ facingMode: "environment" }, config, async (decoded) => {
+                    if(addScanLocked) return;
+                    addScanLocked = true;
+                    const pn = decoded.trim();
+                    document.getElementById("add-scan-result").textContent = `品番: ${pn}`;
+                    
+                    try {
+                        // Tìm kiếm trên sheet "stock"
+                        const r = await api(`/stock/search?part_no=${encodeURIComponent(pn)}`);
+                        document.getElementById("add-scan-info").style.display = "block";
+                        document.getElementById("add-scan-partno").textContent = pn;
+                        
+                        if(r && r.part_no){
+                            document.getElementById("add-scan-status-label").textContent = "既存品番";
+                            document.getElementById("add-scan-name").textContent = r.name;
+                            document.getElementById("add-scan-new-name-wrap").style.display = "none";
+                            addScanCurrentData = {part_no:pn, name:r.name, is_new:false};
+                        } else {
+                            document.getElementById("add-scan-status-label").textContent = "未登録品番";
+                            document.getElementById("add-scan-name").textContent = "（未登録）";
+                            document.getElementById("add-scan-new-name-wrap").style.display = "block";
+                            addScanCurrentData = {part_no:pn, name:"", is_new:true};
+                        }
+                    } catch(e) { showToast(e.message, true); addScanLocked = false; }
+                });
+            }
+
+            async function submitScanAdd(){
+                const qty = parseInt(document.getElementById("add-scan-qty-input").value);
+                if(!qty || qty < 1) return showToast("数量を入力してください", true);
+                let name = addScanCurrentData.name;
+                if(addScanCurrentData.is_new) name = document.getElementById("add-scan-new-name").value;
+
+                try {
+                    await api("/stock/add", {
+                        method: "POST",
+                        body: JSON.stringify({ part_no: addScanCurrentData.part_no, name, qty, user: currentUser || "guest" })
+                    });
+                    showToast("追加完了");
+                    go('home');
+                } catch(e) { showToast(e.message, true); }
+            }
+
+            function resumeAddScan() {
+                addScanLocked = false;
+                document.getElementById("add-scan-info").style.display = "none";
+                document.getElementById("add-scan-result").textContent = "再開しました";
+            }
+        </script>
+
+        <nav class="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around p-2">
+            <button onclick="go('home')" class="text-center p-2">🏠<br><span class="text-xs">Home</span></button>
+            <button onclick="go('add')" class="text-center p-2">➕<br><span class="text-xs">入庫</span></button>
+            <button onclick="go('use')" class="text-center p-2">➖<br><span class="text-xs">出庫</span></button>
+        </nav>
+
     </div>
-  </div>
-
-  <!-- ════════════════ 部材使用 ════════════════ -->
-  <div id="page-use" class="page hidden" style="padding:24px;max-width:640px;margin:0 auto;">
-    <h2 style="font-size:20px;font-weight:700;margin:0 0 16px;color:#111827;">部材使用</h2>
-
-    <!-- Mode tabs -->
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:20px;">
-      <button id="use-tab-partno"   class="mode-tab active" onclick="setUseMode('partno')"  style="font-size:12px;padding:8px 4px;">品番検索</button>
-      <button id="use-tab-name"     class="mode-tab"        onclick="setUseMode('name')"    style="font-size:12px;padding:8px 4px;">品名検索</button>
-      <button id="use-tab-scan"     class="mode-tab"        onclick="setUseMode('scan')"    style="font-size:12px;padding:8px 4px;">バーコード</button>
-      <button id="use-tab-multi"    class="mode-tab"        onclick="setUseMode('multi')"   style="font-size:12px;padding:8px 4px;">複数品番</button>
-    </div>
-
-    <!-- ── 品番検索 ── -->
-    <div id="use-partno-area">
-      <div class="search-wrap">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/></svg>
-        <input id="use-partno-input" class="search-bar" type="text" placeholder="品番を入力 例: ABC-001" oninput="searchByPartNo()"/>
-      </div>
-      <div id="use-partno-results" style="display:flex;flex-direction:column;gap:8px;"></div>
-    </div>
-
-    <!-- ── 品名検索 ── -->
-    <div id="use-name-area" style="display:none;">
-      <div class="search-wrap">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/></svg>
-        <input id="use-name-input" class="search-bar" type="text" placeholder="品名を入力" oninput="searchByName()"/>
-      </div>
-      <div id="use-name-results" style="display:flex;flex-direction:column;gap:8px;"></div>
-    </div>
-
-    <!-- ── バーコード検索 ── -->
-    <div id="use-scan-area" style="display:none;">
-      <div class="scan-wrap" style="margin-bottom:14px;">
-        <div id="use-qr-reader" style="border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;"></div>
-        <div id="use-scan-locked">
-          <svg fill="none" stroke="#fff" viewBox="0 0 24 24" style="width:44px;height:44px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
-          <span style="color:#fff;font-size:14px;font-weight:600;">スキャン完了</span>
-          <button onclick="resumeUseScan()" style="margin-top:4px;background:#fff;color:#5b21b6;border:none;padding:7px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">再スキャン</button>
-        </div>
-      </div>
-      <div id="use-scan-result-msg" style="font-size:13px;color:#059669;min-height:20px;text-align:center;margin-bottom:12px;"></div>
-      <div id="use-scan-item" style="display:none;"></div>
-    </div>
-
-    <!-- ── 複数品番検索 ── -->
-    <div id="use-multi-area" style="display:none;">
-      <div style="margin-bottom:10px;">
-        <label style="font-size:13px;color:#4b5563;display:block;margin-bottom:4px;">品番を貼り付け（1行に1品番）</label>
-        <textarea id="use-multi-input" rows="5" class="form-input" style="resize:vertical;" placeholder="ABC-001&#10;XYZ-002&#10;DEF-003"></textarea>
-      </div>
-      <button onclick="searchMultiPartNo()" style="background:#7c3aed;color:#fff;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;border:none;cursor:pointer;margin-bottom:16px;">検索する</button>
-      <div id="use-multi-results" style="display:flex;flex-direction:column;gap:8px;"></div>
-    </div>
-
-    <!-- 使用確定パネル（品番/品名/バーコード共通） -->
-    <div id="use-confirm-panel" style="display:none;background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-top:16px;">
-      <div style="font-size:13px;color:#7c3aed;font-weight:600;margin-bottom:4px;">使用対象</div>
-      <div style="font-size:15px;font-weight:700;color:#111827;" id="use-confirm-partno"></div>
-      <div style="font-size:14px;color:#374151;margin-top:2px;" id="use-confirm-name"></div>
-      <div style="font-size:13px;color:#6b7280;margin-top:4px;">在庫数: <span id="use-confirm-stock" style="font-weight:700;color:#111827;"></span></div>
-      <div style="margin-top:12px;">
-        <label style="font-size:13px;color:#4b5563;display:block;margin-bottom:4px;">使用数量 *</label>
-        <input id="use-confirm-qty" type="number" min="1" class="form-input" style="width:120px;" placeholder="0"/>
-      </div>
-      <div id="use-confirm-err" style="display:none;color:#ef4444;font-size:12px;margin-top:6px;"></div>
-      <div style="display:flex;gap:8px;margin-top:12px;">
-        <button onclick="submitUse()" class="btn-primary" style="flex:1;">使用する</button>
-        <button onclick="closeUseConfirm()" class="btn-ghost">キャンセル</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ════════════════ 在庫確認 ════════════════ -->
-  <div id="page-stock" class="page hidden" style="padding:24px;max-width:640px;margin:0 auto;">
-    <h2 style="font-size:20px;font-weight:700;margin:0 0 14px;color:#111827;">在庫確認</h2>
-    <div class="search-wrap">
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/></svg>
-      <input id="stock-search" class="search-bar" type="text" placeholder="品番または品名で検索" oninput="filterStock()"/>
-    </div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-      <span id="stock-count" style="font-size:12px;color:#9ca3af;"></span>
-      <button onclick="loadStock()" style="background:#f3f4f6;color:#374151;border:none;padding:5px 12px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;">更新</button>
-    </div>
-    <div id="stock-list" style="display:flex;flex-direction:column;gap:8px;"></div>
-  </div>
-
-  <!-- ════════════════ 履歴確認 ════════════════ -->
-  <div id="page-history" class="page hidden" style="padding:24px;max-width:640px;margin:0 auto;">
-    <h2 style="font-size:20px;font-weight:700;margin:0 0 14px;color:#111827;">履歴確認</h2>
-    <div style="display:flex;gap:8px;margin-bottom:14px;">
-      <select id="history-filter" class="form-input" style="flex:1;" onchange="filterHistory()">
-        <option value="">全て</option>
-        <option value="add">追加のみ</option>
-        <option value="use">使用のみ</option>
-        <option value="edit">管理者編集</option>
-      </select>
-      <button onclick="loadHistory()" style="background:#f3f4f6;color:#374151;border:none;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">更新</button>
-    </div>
-    <div id="history-list" style="display:flex;flex-direction:column;gap:8px;"></div>
-  </div>
-
-  <!-- ════════════════ ADMIN ════════════════ -->
-  <div id="page-admin" class="page hidden" style="padding:24px;max-width:640px;margin:0 auto;">
-    <h2 style="font-size:20px;font-weight:700;margin:0 0 16px;color:#111827;">管理ページ</h2>
-
-    <!-- ログインボックス -->
-    <div id="admin-login-box" style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:20px;margin-bottom:20px;">
-      <p style="font-size:13px;color:#6b7280;margin:0 0 12px;">管理者としてログインしてください</p>
-      <input id="admin-user" type="text" class="form-input" placeholder="Username" style="margin-bottom:8px;"/>
-      <input id="admin-pass" type="password" class="form-input" placeholder="Password" style="margin-bottom:12px;"/>
-      <button onclick="adminLogin()" class="btn-primary">ログイン</button>
-      <p id="login-err" style="display:none;color:#ef4444;font-size:12px;margin-top:8px;">ログイン失敗</p>
-    </div>
-
-    <!-- 管理パネル -->
-    <div id="admin-panel" style="display:none;">
-      <div style="display:flex;border-bottom:1px solid #e5e7eb;margin-bottom:16px;gap:4px;flex-wrap:wrap;">
-        <button class="admin-tab active" id="atab-stock"  onclick="switchAdminTab('stock')">在庫編集</button>
-        <button class="admin-tab"        id="atab-export" onclick="switchAdminTab('export')">CSVエクスポート</button>
-        <button class="admin-tab"        id="atab-users"  onclick="switchAdminTab('users')">ユーザー</button>
-      </div>
-
-      <!-- 在庫直接編集 -->
-      <div id="admin-stock-section">
-        <div class="search-wrap">
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/></svg>
-          <input id="admin-stock-search" class="search-bar" type="text" placeholder="品番または品名で検索" oninput="filterAdminStock()"/>
-        </div>
-        <div id="admin-stock-list" style="display:flex;flex-direction:column;gap:8px;"></div>
-      </div>
-
-      <!-- CSVエクスポート -->
-      <div id="admin-export-section" style="display:none;">
-        <div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:12px;">
-          <p style="font-size:14px;color:#374151;margin:0;font-weight:600;">データのエクスポート</p>
-          <p style="font-size:13px;color:#6b7280;margin:0;">Google Sheetsの在庫データをCSVファイルとしてダウンロードします。</p>
-          <button onclick="exportCSV('stock')" style="background:#059669;color:#fff;padding:11px;border-radius:10px;font-size:14px;font-weight:600;border:none;cursor:pointer;">在庫データをCSVでダウンロード</button>
-          <button onclick="exportCSV('history')" style="background:#1d4ed8;color:#fff;padding:11px;border-radius:10px;font-size:14px;font-weight:600;border:none;cursor:pointer;">履歴データをCSVでダウンロード</button>
-        </div>
-      </div>
-
-      <!-- ユーザー管理 -->
-      <div id="admin-users-section" style="display:none;">
-        <div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-bottom:14px;">
-          <p style="font-size:14px;font-weight:600;color:#374151;margin:0 0 12px;">新しいユーザーを追加</p>
-          <input id="new-user-name" type="text" class="form-input" placeholder="ユーザー名" style="margin-bottom:8px;"/>
-          <input id="new-user-pass" type="password" class="form-input" placeholder="パスワード" style="margin-bottom:8px;"/>
-          <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#374151;margin-bottom:12px;cursor:pointer;">
-            <input id="new-user-admin" type="checkbox" style="width:16px;height:16px;accent-color:#7c3aed;"/>
-            管理者権限
-          </label>
-          <button onclick="createUser()" style="background:#7c3aed;color:#fff;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;border:none;cursor:pointer;">追加</button>
-        </div>
-        <div id="admin-users-list" style="display:flex;flex-direction:column;gap:8px;"></div>
-      </div>
-    </div>
-  </div>
-
-</div><!-- /main-content -->
-
-<!-- MOBILE BOTTOM NAV -->
-<nav id="mobile-bottom-nav">
-  <button class="bottom-nav-item" id="bnav-home"    onclick="go('home')">
-    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-    ホーム
-  </button>
-  <button class="bottom-nav-item" id="bnav-add"     onclick="go('add')">
-    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-    追加
-  </button>
-  <button class="bottom-nav-item" id="bnav-use"     onclick="go('use')">
-    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/></svg>
-    使用
-  </button>
-  <button class="bottom-nav-item" id="bnav-stock"   onclick="go('stock')">
-    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
-    在庫
-  </button>
-  <button class="bottom-nav-item" id="bnav-more"    onclick="toggleMoreDrawer()">
-    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
-    More
-  </button>
-</nav>
-<div id="drawer-overlay" onclick="closeMoreDrawer()"></div>
-<div id="more-drawer">
-  <div class="drawer-item" onclick="go('history');closeMoreDrawer()">
-    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-    履歴確認
-  </div>
-  <div class="drawer-item" onclick="go('admin');closeMoreDrawer()">
-    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-    管理（Admin）
-  </div>
-  <div style="padding:8px 20px;border-top:1px solid #f3f4f6;margin-top:4px;display:flex;align-items:center;gap:8px;">
-    <span id="user-info-mob" style="font-size:13px;color:#9ca3af;flex:1;">未ログイン</span>
-    <button id="logout-btn-mob" style="display:none;color:#ef4444;background:none;border:none;cursor:pointer;font-size:13px;" onclick="logout()">ログアウト</button>
-  </div>
-</div>
-
-<script>
-// ════════════════════════════════════════════
-// CONFIG – RenderのURL に変更してください
-// ════════════════════════════════════════════
-const API = "https://buzaikanri.onrender.com"; 
-
-let token   = localStorage.getItem("parts_token")    || null;
-let isAdmin = localStorage.getItem("parts_is_admin") === "true";
-let currentUser = localStorage.getItem("parts_username") || "";
-
-// Scanner state
-let addScanner = null, useScanner = null;
-let addScanLocked = false, useScanLocked = false;
-let useConfirmData = null;  // {part_no, name, stock}
-let _allStock = [];
-let _allHistory = [];
-let _allAdminStock = [];
-
-// ─── Helpers ─────────────────────────────────
-function esc(s){ if(s==null)return""; return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
-
-function showToast(msg, isErr=false){
-  const t=document.getElementById("toast");
-  t.textContent=msg;
-  t.style.background=isErr?"#ef4444":"#1f2937";
-  t.classList.add("show");
-  setTimeout(()=>t.classList.remove("show"),2500);
-}
-
-// --- HÀM API ĐÃ SỬA LỖI DẤU GẠCH CHÉO // ---
-const api = async (path, opts={}) => {
-  const h = {"Content-Type":"application/json"};
-  if(token) h["Authorization"] = `Bearer ${token}`;
-
-  // Tự động dọn dẹp URL để tránh lỗi //
-  const baseUrl = API.endsWith('/') ? API.slice(0, -1) : API;
-  const cleanPath = path.startsWith('/') ? path.slice(1) : path;
-  const finalUrl = `${baseUrl}/${cleanPath}`;
-
-  const r = await fetch(finalUrl, {...opts, headers:{...h,...(opts.headers||{})}});
-  
-  if(!r.ok){
-    let msg="エラーが発生しました";
-    try{ const j=await r.json(); msg=j.detail||j.message||msg; }catch(_){}
-    throw new Error(msg);
-  }
-  return r.json();
-};
-
-// ─── Navigation ───────────────────────────────
-function go(page){
-  document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
-  document.getElementById("page-"+page).classList.remove("hidden");
-  document.querySelectorAll(".sidebar-link").forEach(l=>l.classList.remove("active"));
-  document.querySelectorAll(".sidebar-link").forEach(l=>{
-    if(l.getAttribute("onclick")&&l.getAttribute("onclick").includes("'"+page+"'")) l.classList.add("active");
-  });
-  document.querySelectorAll(".bottom-nav-item").forEach(b=>b.classList.remove("active"));
-  const bEl=document.getElementById("bnav-"+page); if(bEl) bEl.classList.add("active");
-  if(["history","admin"].includes(page)) document.getElementById("bnav-more").classList.add("active");
-  
-  stopAllScanners();
-  
-  if(page==="home")    loadHome();
-  if(page==="add")     initAdd();
-  if(page==="use")     initUse();
-  if(page==="stock")   loadStock();
-  if(page==="history") loadHistory();
-  if(page==="admin")   loadAdmin();
-}
-function stopAllScanners(){
-  if(addScanner){addScanner.stop().catch(()=>{}); addScanner=null;}
-  if(useScanner){useScanner.stop().catch(()=>{}); useScanner=null;}
-  addScanLocked=false; useScanLocked=false;
-  hideLock("add-scan-locked"); hideLock("use-scan-locked");
-}
-function showLock(id){ document.getElementById(id).classList.add("show"); }
-function hideLock(id){ document.getElementById(id).classList.remove("show"); }
-
-// ─── HOME ─────────────────────────────────────
-async function loadHome(){
-  try{
-    const s=await api("/stats");
-    document.getElementById("stat-total").textContent=s.total;
-    document.getElementById("stat-low").textContent=s.low_stock;
-    document.getElementById("stat-zero").textContent=s.zero_stock;
-    const low=await api("/stock?low=true");
-    document.getElementById("home-low-stock").innerHTML = low.length===0
-      ? `<p style="color:#9ca3af;font-size:13px;text-align:center;padding:20px;">在庫少のアイテムはありません</p>`
-      : low.map(it=>`
-        <div class="item-card">
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:13px;color:#6b7280;">${esc(it.part_no)}</div>
-            <div style="font-size:15px;font-weight:600;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.name)}</div>
-          </div>
-          <span class="badge-low">残 ${it.qty}</span>
-        </div>`).join("");
-  }catch(e){ console.error(e); }
-}
-
-// ─── 部材追加 ──────────────────────────────────
-let addCurrentData = null; // {part_no, name, qty, is_new}
-let addScanCurrentData = null;
-
-function initAdd(){
-  setAddMode("manual");
-  document.getElementById("add-part-no").value="";
-  document.getElementById("add-part-info").style.display="none";
-  document.getElementById("add-new-name-wrap").style.display="none";
-  document.getElementById("add-qty").value="";
-  addCurrentData=null;
-}
-
-function setAddMode(mode){
-  ["manual","scan"].forEach(m=>{
-    document.getElementById("add-tab-"+m).classList.toggle("active",m===mode);
-    document.getElementById("add-"+m+"-area").style.display=m===mode?"":"none";
-  });
-  stopAllScanners();
-  if(mode==="scan") startAddScanner();
-}
-
-function onAddPartNoInput(){
-  document.getElementById("add-part-info").style.display="none";
-  document.getElementById("add-new-name-wrap").style.display="none";
-  addCurrentData=null;
-}
-
-async function searchAddPartNo(){
-  const pn=document.getElementById("add-part-no").value.trim();
-  if(!pn){showToast("品番を入力してください",true); return;}
-  try{
-    const r=await api(`/stock/search?part_no=${encodeURIComponent(pn)}`);
-    const inf=document.getElementById("add-part-info");
-    inf.style.display="";
-    if(r && r.part_no){
-      document.getElementById("add-part-status-label").textContent="既存品番 — 在庫に加算されます";
-      document.getElementById("add-part-name-disp").textContent=r.name;
-      document.getElementById("add-part-qty-disp").textContent=r.qty;
-      document.getElementById("add-new-name-wrap").style.display="none";
-      addCurrentData={part_no:r.part_no, name:r.name, qty:r.qty, is_new:false};
-    } else {
-      document.getElementById("add-part-status-label").textContent="未登録品番 — 新規追加されます";
-      document.getElementById("add-part-name-disp").textContent="（未登録）";
-      document.getElementById("add-part-qty-disp").textContent="0";
-      document.getElementById("add-new-name-wrap").style.display="";
-      document.getElementById("add-new-name").value="";
-      addCurrentData={part_no:pn, name:"", qty:0, is_new:true};
-    }
-  }catch(e){showToast(e.message,true);}
-}
-
-async function submitAdd(){
-  const qty=parseInt(document.getElementById("add-qty").value);
-  if(!addCurrentData){showToast("品番を検索してください",true);return;}
-  if(isNaN(qty)||qty<1){showToast("数量を入力してください",true);return;}
-  let name=addCurrentData.name;
-  if(addCurrentData.is_new){
-    name=document.getElementById("add-new-name").value.trim();
-    if(!name){showToast("品名を入力してください",true);return;}
-  }
-  try{
-    await api("/stock/add",{method:"POST",body:JSON.stringify({
-      part_no:addCurrentData.part_no, name, qty, user:currentUser||"ゲスト"
-    })});
-    showToast(`✓ ${addCurrentData.part_no} に ${qty} 追加しました`);
-    initAdd();
-  }catch(e){showToast(e.message,true);}
-}
-
-// バーコード追加スキャン
-function startAddScanner(){
-  addScanLocked=false; hideLock("add-scan-locked");
-  document.getElementById("add-scan-result").textContent="バーコードをカメラに向けてください";
-  document.getElementById("add-scan-info").style.display="none";
-  addScanner=new Html5Qrcode("add-qr-reader");
-  addScanner.start(
-    {facingMode:"environment"},
-    {fps:10, qrbox:{width:220,height:220}},
-    async (decoded)=>{
-      if(addScanLocked) return;
-      addScanLocked=true;
-      showLock("add-scan-locked");
-      const pn=decoded.trim();
-      document.getElementById("add-scan-result").textContent=`品番: ${pn}`;
-      try{
-        const r=await api(`/stock/search?part_no=${encodeURIComponent(pn)}`);
-        const info=document.getElementById("add-scan-info");
-        info.style.display="";
-        document.getElementById("add-scan-partno").textContent=pn;
-        if(r && r.part_no){
-          document.getElementById("add-scan-status-label").textContent="既存品番 — 在庫に加算されます";
-          document.getElementById("add-scan-name").textContent=r.name;
-          document.getElementById("add-scan-qty-disp").textContent=r.qty;
-          document.getElementById("add-scan-new-name-wrap").style.display="none";
-          addScanCurrentData={part_no:pn,name:r.name,qty:r.qty,is_new:false};
-        } else {
-          document.getElementById("add-scan-status-label").textContent="未登録品番 — 新規追加されます";
-          document.getElementById("add-scan-name").textContent="（未登録）";
-          document.getElementById("add-scan-qty-disp").textContent="0";
-          document.getElementById("add-scan-new-name-wrap").style.display="";
-          document.getElementById("add-scan-new-name").value="";
-          addScanCurrentData={part_no:pn,name:"",qty:0,is_new:true};
-        }
-        document.getElementById("add-scan-qty-input").value="";
-      }catch(e){showToast(e.message,true);}
-    },
-    ()=>{}
-  ).catch(e=>{document.getElementById("add-scan-result").textContent="カメラ起動失敗: "+e;});
-}
-
-function resumeAddScan(){
-  addScanLocked=false;
-  hideLock("add-scan-locked");
-  document.getElementById("add-scan-info").style.display="none";
-  document.getElementById("add-scan-result").textContent="次のバーコードをスキャンしてください";
-  addScanCurrentData=null;
-}
-
-async function submitScanAdd(){
-  if(!addScanCurrentData){return;}
-  const qty=parseInt(document.getElementById("add-scan-qty-input").value);
-  if(isNaN(qty)||qty<1){showToast("数量を入力してください",true);return;}
-  let name=addScanCurrentData.name;
-  if(addScanCurrentData.is_new){
-    name=document.getElementById("add-scan-new-name").value.trim();
-    if(!name){showToast("品名を入力してください",true);return;}
-  }
-  try{
-    await api("/stock/add",{method:"POST",body:JSON.stringify({
-      part_no:addScanCurrentData.part_no, name, qty, user:currentUser||"ゲスト"
-    })});
-    showToast(`✓ ${addScanCurrentData.part_no} に ${qty} 追加しました`);
-    document.getElementById("add-scan-info").style.display="none";
-    resumeAddScan();
-  }catch(e){showToast(e.message,true);}
-}
-
-// ─── 部材使用 ──────────────────────────────────
-function initUse(){
-  setUseMode("partno");
-  document.getElementById("use-confirm-panel").style.display="none";
-  useConfirmData=null;
-}
-
-function setUseMode(mode){
-  ["partno","name","scan","multi"].forEach(m=>{
-    document.getElementById("use-tab-"+m).classList.toggle("active",m===mode);
-    document.getElementById("use-"+m+"-area").style.display=m===mode?"":"none";
-  });
-  stopAllScanners();
-  document.getElementById("use-confirm-panel").style.display="none";
-  useConfirmData=null;
-  if(mode==="scan") startUseScanner();
-}
-
-// 品番検索
-async function searchByPartNo(){
-  const pn=(document.getElementById("use-partno-input").value||"").trim();
-  if(!pn){ document.getElementById("use-partno-results").innerHTML=""; return; }
-  try{
-    const res=await api(`/stock/search?part_no=${encodeURIComponent(pn)}&fuzzy=true`);
-    renderUseResults("use-partno-results", Array.isArray(res)?res:(res?[res]:[]));
-  }catch(e){ document.getElementById("use-partno-results").innerHTML=`<p style="color:#ef4444;font-size:13px;">${esc(e.message)}</p>`; }
-}
-
-// 品名検索
-async function searchByName(){
-  const q=(document.getElementById("use-name-input").value||"").trim();
-  if(!q){ document.getElementById("use-name-results").innerHTML=""; return; }
-  try{
-    const res=await api(`/stock/search?name=${encodeURIComponent(q)}`);
-    renderUseResults("use-name-results", Array.isArray(res)?res:(res?[res]:[]));
-  }catch(e){ document.getElementById("use-name-results").innerHTML=`<p style="color:#ef4444;font-size:13px;">${esc(e.message)}</p>`; }
-}
-
-function renderUseResults(containerId, items){
-  const el=document.getElementById(containerId);
-  if(!items||items.length===0){ el.innerHTML=`<p style="color:#9ca3af;font-size:13px;text-align:center;padding:20px;">該当なし</p>`; return; }
-  el.innerHTML=items.map(it=>`
-    <div class="item-card" onclick="openUseConfirm('${esc(it.part_no)}','${esc(it.name)}',${it.qty})" style="cursor:pointer;">
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:12px;color:#6b7280;">${esc(it.part_no)}</div>
-        <div style="font-size:15px;font-weight:600;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.name)}</div>
-        <div style="font-size:12px;color:#6b7280;margin-top:2px;">更新: ${esc(it.updated_at||"")}</div>
-      </div>
-      <div style="text-align:right;flex-shrink:0;">
-        <div style="font-size:20px;font-weight:700;color:${it.qty<=0?"#ef4444":it.qty<=5?"#f59e0b":"#059669"};">${it.qty}</div>
-        <div style="font-size:11px;color:#9ca3af;">在庫</div>
-      </div>
-    </div>`).join("");
-}
-
-function openUseConfirm(part_no, name, stock){
-  useConfirmData={part_no,name,stock};
-  document.getElementById("use-confirm-partno").textContent=part_no;
-  document.getElementById("use-confirm-name").textContent=name;
-  document.getElementById("use-confirm-stock").textContent=stock;
-  document.getElementById("use-confirm-qty").value="";
-  document.getElementById("use-confirm-err").style.display="none";
-  document.getElementById("use-confirm-panel").style.display="";
-  document.getElementById("use-confirm-panel").scrollIntoView({behavior:"smooth",block:"nearest"});
-}
-function closeUseConfirm(){ document.getElementById("use-confirm-panel").style.display="none"; useConfirmData=null; }
-
-async function submitUse(){
-  if(!useConfirmData) return;
-  const qty=parseInt(document.getElementById("use-confirm-qty").value);
-  const errEl=document.getElementById("use-confirm-err");
-  if(isNaN(qty)||qty<1){errEl.style.display="";errEl.textContent="数量を入力してください";return;}
-  if(qty>useConfirmData.stock){errEl.style.display="";errEl.textContent=`在庫数 (${useConfirmData.stock}) を超えています`;return;}
-  errEl.style.display="none";
-  try{
-    await api("/stock/use",{method:"POST",body:JSON.stringify({
-      part_no:useConfirmData.part_no, qty, user:currentUser||"ゲスト"
-    })});
-    showToast(`✓ ${useConfirmData.part_no} を ${qty} 使用しました`);
-    closeUseConfirm();
-    // 検索結果を再取得
-    const mode=document.querySelector(".mode-tab.active")?.id?.replace("use-tab-","");
-    if(mode==="partno") searchByPartNo();
-    if(mode==="name") searchByName();
-  }catch(e){errEl.style.display="";errEl.textContent=e.message;}
-}
-
-// バーコード使用スキャン
-function startUseScanner(){
-  useScanLocked=false; hideLock("use-scan-locked");
-  document.getElementById("use-scan-result-msg").textContent="バーコードをカメラに向けてください";
-  document.getElementById("use-scan-item").style.display="none";
-  useScanner=new Html5Qrcode("use-qr-reader");
-  useScanner.start(
-    {facingMode:"environment"},
-    {fps:10, qrbox:{width:220,height:220}},
-    async (decoded)=>{
-      if(useScanLocked) return;
-      useScanLocked=true;
-      showLock("use-scan-locked");
-      const pn=decoded.trim();
-      document.getElementById("use-scan-result-msg").textContent=`品番: ${pn}`;
-      try{
-        const r=await api(`/stock/search?part_no=${encodeURIComponent(pn)}`);
-        if(r&&r.part_no){
-          document.getElementById("use-scan-item").style.display="";
-          document.getElementById("use-scan-item").innerHTML=`
-            <div class="item-card">
-              <div style="flex:1;min-width:0;">
-                <div style="font-size:12px;color:#6b7280;">${esc(r.part_no)}</div>
-                <div style="font-size:15px;font-weight:600;color:#111827;">${esc(r.name)}</div>
-              </div>
-              <div style="text-align:right;flex-shrink:0;">
-                <div style="font-size:20px;font-weight:700;color:${r.qty<=0?"#ef4444":r.qty<=5?"#f59e0b":"#059669"};">${r.qty}</div>
-                <div style="font-size:11px;color:#9ca3af;">在庫</div>
-              </div>
-            </div>`;
-          openUseConfirm(r.part_no, r.name, r.qty);
-        } else {
-          document.getElementById("use-scan-result-msg").textContent=`品番 ${pn} は未登録です`;
-          useScanLocked=false; hideLock("use-scan-locked");
-        }
-      }catch(e){document.getElementById("use-scan-result-msg").textContent=e.message;}
-    },
-    ()=>{}
-  ).catch(e=>{document.getElementById("use-scan-result-msg").textContent="カメラ起動失敗: "+e;});
-}
-function resumeUseScan(){
-  useScanLocked=false; hideLock("use-scan-locked");
-  document.getElementById("use-scan-item").style.display="none";
-  document.getElementById("use-scan-result-msg").textContent="次のバーコードをスキャンしてください";
-  document.getElementById("use-confirm-panel").style.display="none";
-}
-
-// 複数品番検索
-async function searchMultiPartNo(){
-  const raw=document.getElementById("use-multi-input").value;
-  const partNos=[...new Set(raw.split("\n").map(s=>s.trim()).filter(Boolean))];
-  if(!partNos.length){showToast("品番を入力してください",true);return;}
-  try{
-    const res=await api("/stock/multi-search",{method:"POST",body:JSON.stringify({part_nos:partNos})});
-    const el=document.getElementById("use-multi-results");
-    if(!res||res.length===0){ el.innerHTML=`<p style="color:#9ca3af;font-size:13px;text-align:center;padding:20px;">該当なし</p>`; return; }
-    el.innerHTML=res.map(it=>{
-      if(it.found){
-        return `<div class="item-card multi-registered">
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:12px;color:#6b7280;">${esc(it.part_no)}</div>
-            <div style="font-size:14px;font-weight:600;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.name)}</div>
-          </div>
-          <div style="text-align:right;flex-shrink:0;">
-            <div style="font-size:18px;font-weight:700;color:${it.qty<=0?"#ef4444":it.qty<=5?"#f59e0b":"#059669"};">${it.qty}</div>
-            <div style="font-size:11px;color:#9ca3af;">在庫</div>
-          </div>
-        </div>`;
-      } else {
-        return `<div class="item-card multi-unregistered" style="opacity:.7;">
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:13px;color:#6b7280;">${esc(it.part_no)}</div>
-            <div style="font-size:13px;font-weight:600;color:#9ca3af;">未登録</div>
-          </div>
-          <span style="font-size:11px;background:#fee2e2;color:#991b1b;padding:3px 9px;border-radius:99px;">未登録</span>
-        </div>`;
-      }
-    }).join("");
-  }catch(e){showToast(e.message,true);}
-}
-
-// ─── 在庫確認 ──────────────────────────────────
-async function loadStock(){
-  try{
-    _allStock=await api("/stock");
-    document.getElementById("stock-count").textContent=`全 ${_allStock.length} 件`;
-    renderStock(_allStock);
-  }catch(e){ document.getElementById("stock-list").innerHTML=`<p style="color:#ef4444;font-size:13px;">${esc(e.message)}</p>`; }
-}
-function filterStock(){
-  const q=(document.getElementById("stock-search").value||"").toLowerCase().trim();
-  const filtered=q?_allStock.filter(it=>(it.part_no+it.name).toLowerCase().includes(q)):_allStock;
-  document.getElementById("stock-count").textContent=`${filtered.length} / ${_allStock.length} 件`;
-  renderStock(filtered);
-}
-function renderStock(items){
-  document.getElementById("stock-list").innerHTML=items.map(it=>`
-    <div class="item-card">
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:12px;color:#6b7280;">${esc(it.part_no)}</div>
-        <div style="font-size:15px;font-weight:600;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.name)}</div>
-        <div style="font-size:11px;color:#9ca3af;margin-top:2px;">更新: ${esc(it.updated_at||"")}</div>
-      </div>
-      <div style="text-align:right;flex-shrink:0;">
-        <div style="font-size:22px;font-weight:700;color:${it.qty<=0?"#ef4444":it.qty<=5?"#f59e0b":"#059669"};">${it.qty}</div>
-        <div style="font-size:11px;color:#9ca3af;">在庫数</div>
-      </div>
-    </div>`).join("")||`<p style="color:#9ca3af;font-size:13px;text-align:center;padding:20px;">データなし</p>`;
-}
-
-// ─── 履歴確認 ──────────────────────────────────
-async function loadHistory(){
-  try{
-    _allHistory=await api("/history");
-    filterHistory();
-  }catch(e){ document.getElementById("history-list").innerHTML=`<p style="color:#ef4444;font-size:13px;">${esc(e.message)}</p>`; }
-}
-function filterHistory(){
-  const f=document.getElementById("history-filter").value;
-  const filtered=f?_allHistory.filter(h=>h.action===f):_allHistory;
-  document.getElementById("history-list").innerHTML=filtered.map(h=>{
-    const badgeCls=h.action==="add"?"badge-add":h.action==="use"?"badge-use":"badge-admin";
-    const actionLabel=h.action==="add"?"追加":h.action==="use"?"使用":"編集";
-    const sign=h.action==="add"?"+":h.action==="use"?"-":"±";
-    return `<div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:12px;display:flex;align-items:flex-start;gap:10px;">
-      <span class="${badgeCls}" style="margin-top:2px;flex-shrink:0;">${actionLabel}</span>
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:14px;font-weight:600;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(h.part_no)} ${esc(h.name)}</div>
-        <div style="font-size:12px;color:#6b7280;margin-top:2px;">
-          操作者: ${esc(h.user||"—")} &nbsp;|&nbsp; ${sign}${h.qty}
-        </div>
-      </div>
-      <div style="font-size:11px;color:#9ca3af;white-space:nowrap;text-align:right;">${esc(h.timestamp||"")}</div>
-    </div>`;
-  }).join("")||`<p style="color:#9ca3af;font-size:13px;text-align:center;padding:20px;">履歴なし</p>`;
-}
-
-// ─── ADMIN ────────────────────────────────────
-async function adminLogin(){
-  document.getElementById("login-err").style.display="none";
-  try{
-    const res=await api("/auth/login",{method:"POST",body:JSON.stringify({
-      username:document.getElementById("admin-user").value,
-      password:document.getElementById("admin-pass").value
-    })});
-    token=res.access_token; isAdmin=res.is_admin;
-    localStorage.setItem("parts_token",token);
-    localStorage.setItem("parts_is_admin",isAdmin);
-    const uname=document.getElementById("admin-user").value;
-    currentUser=uname;
-    localStorage.setItem("parts_username",uname);
-    document.getElementById("user-info-desk").textContent=uname;
-    document.getElementById("user-info-mob").textContent=uname;
-    document.getElementById("logout-btn-desk").classList.remove("hidden");
-    document.getElementById("logout-btn-mob").style.display="";
-    loadAdmin();
-  }catch{ document.getElementById("login-err").style.display=""; }
-}
-
-function logout(){
-  token=null; isAdmin=false; currentUser="";
-  localStorage.removeItem("parts_token"); localStorage.removeItem("parts_is_admin"); localStorage.removeItem("parts_username");
-  document.getElementById("user-info-desk").textContent="未ログイン";
-  document.getElementById("user-info-mob").textContent="未ログイン";
-  document.getElementById("logout-btn-desk").classList.add("hidden");
-  document.getElementById("logout-btn-mob").style.display="none";
-  go("home");
-}
-
-async function loadAdmin(){
-  if(!token||!isAdmin){
-    document.getElementById("admin-login-box").style.display="";
-    document.getElementById("admin-panel").style.display="none";
-    return;
-  }
-  document.getElementById("admin-login-box").style.display="none";
-  document.getElementById("admin-panel").style.display="";
-  switchAdminTab("stock");
-}
-
-function switchAdminTab(tab){
-  ["stock","export","users"].forEach(t=>{
-    document.getElementById("atab-"+t).classList.toggle("active",t===tab);
-    document.getElementById("admin-"+t+"-section").style.display=t===tab?"":"none";
-  });
-  if(tab==="stock")  loadAdminStock();
-  if(tab==="users")  loadAdminUsers();
-}
-
-// 在庫直接編集
-async function loadAdminStock(){
-  try{
-    _allAdminStock=await api("/stock");
-    filterAdminStock();
-  }catch(e){ document.getElementById("admin-stock-list").innerHTML=`<p style="color:#ef4444;font-size:13px;">${esc(e.message)}</p>`; }
-}
-function filterAdminStock(){
-  const q=(document.getElementById("admin-stock-search").value||"").toLowerCase().trim();
-  const filtered=q?_allAdminStock.filter(it=>(it.part_no+it.name).toLowerCase().includes(q)):_allAdminStock;
-  renderAdminStock(filtered);
-}
-function renderAdminStock(items){
-  document.getElementById("admin-stock-list").innerHTML=items.map(it=>`
-    <div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:14px;">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:10px;">
-        <div style="min-width:0;flex:1;">
-          <div style="font-size:12px;color:#6b7280;">${esc(it.part_no)}</div>
-          <div style="font-size:14px;font-weight:600;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.name)}</div>
-        </div>
-        <div style="font-size:18px;font-weight:700;color:${it.qty<=0?"#ef4444":it.qty<=5?"#f59e0b":"#059669"};flex-shrink:0;">${it.qty}</div>
-      </div>
-      <div style="display:flex;gap:6px;align-items:center;">
-        <input id="edit-qty-${esc(it.part_no.replace(/[^a-zA-Z0-9]/g,'_'))}" type="number" value="${it.qty}" min="0" class="qty-input"/>
-        <button onclick="saveAdminQty('${esc(it.part_no)}','${esc(it.name)}',this)"
-          style="flex:1;background:#7c3aed;color:#fff;padding:8px;border-radius:8px;font-size:13px;font-weight:600;border:none;cursor:pointer;"
-          data-id="${esc(it.part_no.replace(/[^a-zA-Z0-9]/g,'_'))}">保存</button>
-        <button onclick="deleteStockItem('${esc(it.part_no)}')"
-          style="background:#fee2e2;color:#ef4444;padding:8px 12px;border-radius:8px;font-size:13px;font-weight:600;border:1px solid #fecaca;cursor:pointer;">削除</button>
-      </div>
-    </div>`).join("")||`<p style="color:#9ca3af;font-size:13px;text-align:center;padding:20px;">データなし</p>`;
-}
-
-async function saveAdminQty(part_no, name, btn){
-  const safeId=part_no.replace(/[^a-zA-Z0-9]/g,'_');
-  const qtyEl=document.getElementById("edit-qty-"+safeId);
-  const qty=parseInt(qtyEl.value);
-  if(isNaN(qty)||qty<0){showToast("数量を入力してください",true);return;}
-  try{
-    await api("/admin/stock/edit",{method:"PUT",body:JSON.stringify({part_no,name,qty,user:currentUser})});
-    showToast(`✓ ${part_no} の在庫を ${qty} に更新しました`);
-    loadAdminStock();
-  }catch(e){showToast(e.message,true);}
-}
-
-async function deleteStockItem(part_no){
-  if(!confirm(`品番 ${part_no} を削除しますか？`)) return;
-  try{
-    await api(`/admin/stock/${encodeURIComponent(part_no)}`,{method:"DELETE"});
-    showToast(`✓ ${part_no} を削除しました`);
-    loadAdminStock();
-  }catch(e){showToast(e.message,true);}
-}
-
-// CSV Export
-async function exportCSV(type){
-  try{
-    const res=await fetch(API+`/admin/export/${type}`,{
-      headers:token?{"Authorization":`Bearer ${token}`}:{}
-    });
-    if(!res.ok) throw new Error("エクスポート失敗");
-    const blob=await res.blob();
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement("a");
-    a.href=url; a.download=`${type}_${new Date().toISOString().slice(0,10)}.csv`;
-    a.click(); URL.revokeObjectURL(url);
-  }catch(e){showToast(e.message,true);}
-}
-
-// Users
-async function loadAdminUsers(){
-  try{
-    const users=await api("/admin/users");
-    document.getElementById("admin-users-list").innerHTML=users.map(u=>`
-      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:12px;display:flex;align-items:center;gap:10px;">
-        <div style="flex:1;">
-          <div style="font-size:14px;font-weight:600;color:#111827;">${esc(u.username)}</div>
-          <div style="font-size:12px;color:#6b7280;">${u.is_admin?"管理者":"一般ユーザー"}</div>
-        </div>
-        ${u.username!=="admin"?`<button onclick="deleteUser('${esc(u.username)}')" class="btn-danger"	 style="padding:6px 12px;font-size:12px;">削除</button>`:""}
-      </div>`).join("");
-  }catch(e){ document.getElementById("admin-users-list").innerHTML=`<p style="color:#ef4444;font-size:13px;">${esc(e.message)}</p>`; }
-}
-
-async function createUser(){
-  const username=document.getElementById("new-user-name").value.trim();
-  const password=document.getElementById("new-user-pass").value.trim();
-  const is_admin=document.getElementById("new-user-admin").checked;
-  if(!username||!password){showToast("ユーザー名とパスワードを入力してください",true);return;}
-  try{
-    await api("/admin/users",{method:"POST",body:JSON.stringify({username,password,is_admin})});
-    showToast(`✓ ${username} を追加しました`);
-    document.getElementById("new-user-name").value="";
-    document.getElementById("new-user-pass").value="";
-    document.getElementById("new-user-admin").checked=false;
-    loadAdminUsers();
-  }catch(e){showToast(e.message,true);}
-}
-
-async function deleteUser(username){
-  if(!confirm(`${username} を削除しますか？`)) return;
-  try{
-    await api(`/admin/users/${encodeURIComponent(username)}`,{method:"DELETE"});
-    showToast(`✓ ${username} を削除しました`);
-    loadAdminUsers();
-  }catch(e){showToast(e.message,true);}
-}
-
-// ─── Init ─────────────────────────────────────
-if(token){
-  document.getElementById("user-info-desk").textContent=currentUser;
-  document.getElementById("user-info-mob").textContent=currentUser;
-  if(currentUser){
-    document.getElementById("logout-btn-desk").classList.remove("hidden");
-    document.getElementById("logout-btn-mob").style.display="";
-  }
-}
-go("home");
-</script>
+</body>
 </html>
