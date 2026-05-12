@@ -3,172 +3,131 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DMC 部材管理 - Photo Mode</title>
+    <title>DMC Auto-Fill System</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        #toast {
-            position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
-            padding: 12px 24px; border-radius: 12px; color: white; font-weight: bold;
-            opacity: 0; transition: opacity 0.3s; z-index: 9999; pointer-events: none;
-        }
-        #toast.show { opacity: 1; }
-        .loading-spinner {
-            border: 4px solid #f3f3f3; border-top: 4px solid #6366f1;
-            border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite;
+        .loading-animation {
+            border: 4px solid #f3f3f3; border-top: 4px solid #4f46e5;
+            border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
 
-    <div class="max-w-md mx-auto min-h-screen pb-24 relative bg-white shadow-xl">
-        <div id="toast"></div>
-
-        <div class="p-6 text-center border-b bg-indigo-600">
-            <h1 class="text-xl font-black text-white">DMC 部材管理</h1>
-            <p class="text-[10px] text-indigo-200 uppercase tracking-widest mt-1">Photo Decoding System</p>
+    <div class="max-w-md mx-auto min-h-screen bg-white shadow-2xl relative pb-20">
+        <div class="bg-indigo-700 p-6 text-center text-white shadow-md">
+            <h1 class="text-2xl font-black italic">DMC SMART SCAN</h1>
+            <p class="text-[10px] opacity-70 tracking-[0.2em] mt-1">AUTOMATIC DATA EXTRACTION</p>
         </div>
 
         <div class="p-6">
-            <div id="upload-container">
-                <label for="photo-input" class="flex flex-col items-center justify-center w-full h-80 border-4 border-dashed border-indigo-100 rounded-3xl bg-indigo-50 active:bg-indigo-100 transition-all cursor-pointer">
-                    <div class="text-7xl mb-4">📸</div>
-                    <span class="text-lg font-bold text-indigo-700">ラベルを撮影する</span>
-                    <p class="text-[10px] text-gray-400 mt-2 text-center px-6">
-                        バーコードが水平（真横）になるように<br>明るい場所でくっきりと写してください
-                    </p>
-                    <input id="photo-input" type="file" accept="image/*" capture="environment" class="hidden">
-                </label>
+            <label id="drop-zone" for="file-input" class="flex flex-col items-center justify-center w-full h-72 border-4 border-dashed border-indigo-100 rounded-[2rem] bg-indigo-50 active:bg-indigo-100 transition-all cursor-pointer">
+                <div class="text-7xl mb-4">📸</div>
+                <span class="text-lg font-bold text-indigo-700">ラベルを撮影</span>
+                <p class="text-[10px] text-gray-400 mt-2 text-center px-8">
+                    Chụp rõ <b>Mã Vuông (Data Matrix)</b><br>để tự động lấy 品番 và 品名
+                </p>
+                <input id="file-input" type="file" accept="image/*" capture="environment" class="hidden">
+            </label>
+
+            <div id="loader" class="hidden flex-col items-center mt-10">
+                <div class="loading-animation"></div>
+                <p class="text-indigo-500 font-bold mt-4 animate-pulse">AI đang bóc tách dữ liệu...</p>
             </div>
 
-            <div id="status-area" class="hidden mt-8 text-center">
-                <div class="loading-spinner mx-auto mb-3"></div>
-                <p class="text-sm font-bold text-indigo-600 animate-pulse">画像を解析しています...</p>
-            </div>
-
-            <div id="info-box" class="mt-8 hidden animate-in fade-in duration-500">
-                <div class="bg-white border-2 border-indigo-500 rounded-2xl p-5 shadow-xl">
-                    <div class="flex justify-between items-center mb-4 border-b border-gray-100 pb-3">
+            <div id="result-card" class="hidden mt-8 animate-in slide-in-from-bottom duration-500">
+                <div class="bg-gray-900 rounded-[2rem] p-6 text-white shadow-2xl border-t-4 border-indigo-500">
+                    <div class="space-y-6">
                         <div>
-                            <span class="text-[10px] text-gray-400 font-bold block">品番 / PART NO.</span>
-                            <span id="display-partno" class="text-xl font-black text-indigo-900 leading-none"></span>
+                            <label class="text-[10px] text-indigo-400 font-black uppercase tracking-widest block mb-1">Part Number (品番)</label>
+                            <input id="res-pn" type="text" class="w-full bg-transparent border-b-2 border-indigo-800 text-2xl font-black outline-none focus:border-white transition-colors py-1">
                         </div>
-                        <span id="status-badge" class="px-2 py-1 rounded text-[10px] font-black text-white"></span>
-                    </div>
-
-                    <div class="space-y-4">
                         <div>
-                            <label class="text-[10px] text-gray-400 font-bold block mb-1 uppercase">Part Name / 品名</label>
-                            <div id="display-name" class="font-bold text-gray-700 bg-gray-50 p-2 rounded-lg"></div>
-                            <div id="new-name-input-wrap" class="mt-2 hidden">
-                                <input id="new-name-input" type="text" placeholder="品名を入力してください" class="w-full border-2 border-orange-200 p-2 rounded-lg text-sm focus:border-orange-400 outline-none">
-                            </div>
+                            <label class="text-[10px] text-indigo-400 font-black uppercase tracking-widest block mb-1">Part Name (品名)</label>
+                            <input id="res-nm" type="text" class="w-full bg-transparent border-b-2 border-indigo-800 text-lg font-bold outline-none focus:border-white transition-colors py-1">
                         </div>
-
-                        <div class="flex items-center justify-between bg-indigo-50 p-4 rounded-xl">
-                            <label class="font-black text-indigo-900">入庫数量</label>
-                            <input id="qty-input" type="number" class="w-20 text-center text-2xl font-black bg-transparent border-b-2 border-indigo-400 outline-none" value="1">
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-3 mt-6">
-                            <button onclick="location.reload()" class="bg-gray-100 text-gray-500 py-4 rounded-xl font-bold text-sm">キャンセル</button>
-                            <button onclick="submitData()" class="bg-indigo-600 text-white py-4 rounded-xl font-bold text-sm shadow-lg active:scale-95 transition-all">登録を確定する</button>
+                        <div class="flex items-center justify-between bg-white/5 p-4 rounded-2xl border border-white/10">
+                            <span class="font-bold">入庫数</span>
+                            <input id="res-qty" type="number" value="1" class="w-20 bg-indigo-600 text-white text-center font-black rounded-lg py-2 outline-none">
                         </div>
                     </div>
                 </div>
+
+                <div class="grid grid-cols-2 gap-4 mt-8">
+                    <button onclick="location.reload()" class="bg-gray-100 text-gray-500 py-4 rounded-2xl font-bold active:scale-95 transition-all">撮り直す</button>
+                    <button onclick="submitData()" class="bg-indigo-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-indigo-200 active:scale-95 transition-all">登録確定</button>
+                </div>
             </div>
         </div>
-
-        <nav class="fixed bottom-0 left-0 right-0 bg-white border-t p-4 flex justify-around">
-            <button onclick="location.reload()" class="flex flex-col items-center text-indigo-600">
-                <span class="text-2xl">🏠</span><span class="text-[10px] font-bold">HOME</span>
-            </button>
-        </nav>
     </div>
 
     <script>
-        const API_URL = "https://buzaikanri.onrender.com";
-        let currentData = null;
+        const API_BASE = "https://buzaikanri.onrender.com";
 
-        function showToast(msg, isErr=false) {
-            const t = document.getElementById("toast");
-            t.textContent = msg;
-            t.style.background = isErr ? "#ef4444" : "#10b981";
-            t.classList.add("show");
-            setTimeout(() => t.classList.remove("show"), 3000);
-        }
-
-        // LÀM SAU KHI CHỤP ẢNH
-        document.getElementById('photo-input').addEventListener('change', async (e) => {
+        document.getElementById('file-input').addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
 
-            document.getElementById('upload-container').classList.add('hidden');
-            document.getElementById('status-area').classList.remove('hidden');
+            document.getElementById('drop-zone').classList.add('hidden');
+            document.getElementById('loader').classList.remove('hidden');
 
-            const scanner = new Html5Qrcode("upload-container"); // Instance ẩn
+            // Khởi tạo engine quét mã
+            const scanner = new Html5Qrcode("loader");
 
             try {
-                // Giải mã mã vạch từ ảnh tĩnh
+                // Quét mã Data Matrix (Mã vuông của Panasonic)
                 const decoded = await scanner.scanFile(file, true);
-                const pn = decoded.trim();
                 
-                // Gọi API tìm trong tab "stock"
-                const r = await fetch(`${API_URL}/stock/search?part_no=${encodeURIComponent(pn)}`).then(res => res.json());
+                // Logic xử lý chuỗi Panasonic: "Mã_品番 <cách_nhiều_khoảng_trắng> Tên_品名"
+                // Ví dụ từ ảnh của bạn: "MTNS000437AA  FLOW SENSOR"
+                const raw = decoded.trim();
+                const segments = raw.split(/\s{2,}/); // Tách khi thấy 2 khoảng trắng trở lên
 
-                document.getElementById('status-area').classList.add('hidden');
-                document.getElementById('info-box').classList.remove('hidden');
-                document.getElementById('display-partno').textContent = pn;
+                let finalPn = segments[0] || "";
+                let finalNm = segments[1] || "";
 
-                const badge = document.getElementById('status-badge');
-                if(r && r.part_no) {
-                    badge.textContent = "登録済み";
-                    badge.className = "px-2 py-1 rounded text-[10px] font-black text-white bg-green-500";
-                    document.getElementById('display-name').textContent = r.name;
-                    document.getElementById('new-name-input-wrap').classList.add('hidden');
-                    currentData = { part_no: pn, name: r.name, is_new: false };
-                } else {
-                    badge.textContent = "新規品番";
-                    badge.className = "px-2 py-1 rounded text-[10px] font-black text-white bg-orange-500";
-                    document.getElementById('display-name').textContent = "未登録アイテム";
-                    document.getElementById('new-name-input-wrap').classList.remove('hidden');
-                    currentData = { part_no: pn, name: "", is_new: true };
+                // Trường hợp mã vuông định dạng dính liền (dự phòng)
+                if(!finalNm && raw.length > 12) {
+                    finalPn = raw.substring(0, 12).trim();
+                    finalNm = raw.substring(12).trim();
                 }
 
+                document.getElementById('res-pn').value = finalPn;
+                document.getElementById('res-nm').value = finalNm;
+
+                document.getElementById('loader').classList.add('hidden');
+                document.getElementById('result-card').classList.remove('hidden');
+
             } catch (err) {
-                console.error(err);
-                showToast("バーコードを読み取れません。もっと明るい場所で、水平に撮ってください。", true);
-                setTimeout(() => location.reload(), 3000);
+                alert("Mã vuông không rõ nét hoặc không chứa dữ liệu. Vui lòng chụp gần mã vuông hơn.");
+                location.reload();
             }
         });
 
         async function submitData() {
-            const qty = parseInt(document.getElementById('qty-input').value);
-            if(!qty || qty < 1) return showToast("数量を入力してください", true);
-
-            let name = currentData.name;
-            if(currentData.is_new) {
-                name = document.getElementById('new-name-input').value.trim();
-                if(!name) return showToast("品名を入力してください", true);
-            }
+            const payload = {
+                part_no: document.getElementById('res-pn').value,
+                name: document.getElementById('res-nm').value,
+                qty: parseInt(document.getElementById('res-qty').value),
+                user: "AUTO_DETECTOR"
+            };
 
             try {
-                const res = await fetch(`${API_URL}/stock/add`, {
+                const res = await fetch(`${API_BASE}/stock/add`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        part_no: currentData.part_no,
-                        name: name,
-                        qty: qty,
-                        user: "PHOTO_SCAN"
-                    })
+                    body: JSON.stringify(payload)
                 });
-                if(!res.ok) throw new Error("登録に失敗しました");
-                showToast("在庫を更新しました！");
-                setTimeout(() => location.reload(), 2000);
+                if(res.ok) {
+                    alert("Đã đăng ký thành công!");
+                    location.reload();
+                } else {
+                    alert("Lỗi server!");
+                }
             } catch (e) {
-                showToast(e.message, true);
+                alert("Lỗi kết nối!");
             }
         }
     </script>
