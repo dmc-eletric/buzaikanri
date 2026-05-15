@@ -466,4 +466,4 @@ def admin_delete_user(username: str, _=Depends(get_admin_user)):
 def health(): return {"status": "ok", "time": jst_now()}
 @app.get("/")
 def root(): return {"message": "API", "docs": "/docs"}
-```
+
