@@ -76,7 +76,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .cam-box video{width:100%;display:block;height:220px;object-fit:cover;}
 /* Guide overlay inside camera */
 .cam-guide{position:absolute;inset:0;pointer-events:none;display:flex;align-items:center;justify-content:center;}
-.cam-guide-rect{border:2px solid rgba(255,255,255,.8);border-radius:12px;width:220px;height:220px;box-shadow:0 0 0 9999px rgba(0,0,0,.4);}
+.cam-guide-rect{border:2px solid rgba(255,255,255,.7);border-radius:6px;width:68%;height:54%;box-shadow:0 0 0 9999px rgba(0,0,0,.35);}
 .shutter{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);width:58px;height:58px;border-radius:50%;background:#fff;border:4px solid #7c3aed;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(124,58,237,.4);transition:transform .1s;z-index:5;}
 .shutter:active{transform:translateX(-50%) scale(.9);}
 .shutter svg{width:24px;height:24px;}
@@ -464,90 +464,104 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 // ════════════════════════════════════════════════
 // CONFIG — RenderのURLを設定してください
 // ════════════════════════════════════════════════
-const API = "https://buzaikanri.onrender.com";  // 例: "https://your-app.onrender.com"
+const API = "";  // 例: "https://your-app.onrender.com"
 const CACHE_TTL_MS   = 3 * 60 * 1000;  // 在庫キャッシュ有効期限 3分
 const RENDER_PAGE    = 40;              // 一度にレンダリングする行数
 
 // ════════════════════════════════════════════════
-// ZXing 遅延ロード（DATA_MATRIX 等対応）
+// Dynamsoft Barcode Reader — Data Matrix 専用
+// ライブラリ: dbr-js (CDN) — Data Matrix / QR / Code128 全対応
 // ════════════════════════════════════════════════
-let _zxingReady = false;
-function loadZXing(){
-  return new Promise(res=>{
-    if(_zxingReady){ res(); return; }
-    const s=document.createElement('script');
-    s.src='https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js';
-    s.onload=()=>{ _zxingReady=true; res(); };
-    s.onerror=()=>res();
+let _dbr = null;
+let _dbrLoading = false;
+
+async function loadDBR(){
+  if(_dbr) return _dbr;
+  if(_dbrLoading) {
+    // wait until loaded
+    return new Promise(res=>{ const t=setInterval(()=>{ if(_dbr){ clearInterval(t); res(_dbr); }},100); });
+  }
+  _dbrLoading = true;
+  return new Promise((resolve, reject)=>{
+    const s = document.createElement('script');
+    // Dynamsoft Barcode Reader JS SDK (free trial — all formats including Data Matrix)
+    s.src = 'https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode@9.6.42/dist/dbr.js';
+    s.onload = async ()=>{
+      try{
+        // Free trial license (valid for evaluation)
+        Dynamsoft.DBR.BarcodeReader.license =
+          'DLS2eyJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSJ9';
+        _dbr = await Dynamsoft.DBR.BarcodeReader.createInstance();
+        // Settings optimized for Data Matrix on Panasonic labels
+        const settings = await _dbr.getRuntimeSettings();
+        settings.barcodeFormatIds =
+          Dynamsoft.DBR.EnumBarcodeFormat.BF_DATAMATRIX |
+          Dynamsoft.DBR.EnumBarcodeFormat.BF_CODE_128   |
+          Dynamsoft.DBR.EnumBarcodeFormat.BF_QR_CODE;
+        settings.expectedBarcodesCount = 1;
+        settings.deblurLevel = 9;
+        settings.scaleDownThreshold = 9999; // no scale down — keep full resolution
+        await _dbr.updateRuntimeSettings(settings);
+        resolve(_dbr);
+      }catch(e){ reject(e); }
+    };
+    s.onerror = ()=> reject(new Error('DBR load failed'));
     document.head.appendChild(s);
   });
 }
 
-// ZXing デコード — DATA_MATRIX / QR_CODE / CODE_128 対応
-async function zxingDecode(canvas){
-  await loadZXing();
-  const hints = new Map();
-  const formats = [
-    ZXing.BarcodeFormat.DATA_MATRIX,
-    ZXing.BarcodeFormat.QR_CODE,
-    ZXing.BarcodeFormat.CODE_128,
-    ZXing.BarcodeFormat.EAN_13
-  ];
-  hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
-  hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+// ────────────────────────────────────────────────
+// parseDataMatrixText:
+//   PanasonicラベルのData Matrixは以下の形式が多い:
+//   "[)>\x1e06\x1d品番\x1d品名\x1d..."  (GS1-2D / MH10.8.2形式)
+//   "品番;品名"  (カスタム区切り)
+//   "品番\n品名"  (改行区切り)
+//   "品番"  (品番のみ)
+// 戻り値: { part_no, name }
+// ────────────────────────────────────────────────
+function parseDataMatrixText(raw){
+  // GS (0x1D) / RS (0x1E) / EOT などASCII制御文字を空白に置換して分割
+  const cleaned = raw.replace(/[\x00-\x1f\x7f]+/g, '\t');
+  const parts = cleaned.split('\t').map(s=>s.trim()).filter(Boolean);
 
-  const reader = new ZXing.MultiFormatReader();
-  reader.setHints(hints);
+  // GS1-2D ヘッダ "[)>" を除去
+  const filtered = parts.filter(p=> p!=='[)>' && p!=='>06' && p!=='06' && p.length>0);
 
-  const tries = [
-    ()=> _canvasToBinaryBitmap(canvas, false, false), // Normal
-    ()=> _canvasToBinaryBitmap(canvas, true,  false), // High Contrast (Tốt cho Data Matrix)
-    ()=> _canvasToBinaryBitmap(canvas, false, true),  // Flip H
-  ];
-  for(const fn of tries){
-    try{
-      const bmp = fn();
-      const result = reader.decode(bmp);
-      if(result) return normalizeBarcode(result.getText());
-    }catch(_){}
+  if(filtered.length >= 2){
+    return { part_no: normalizeCode(filtered[0]), name: filtered[1].trim() };
   }
-  throw new Error('decode_failed');
+
+  // セミコロン区切り
+  if(raw.includes(';')){
+    const sp = raw.split(';').map(s=>s.trim()).filter(Boolean);
+    if(sp.length>=2) return { part_no: normalizeCode(sp[0]), name: sp[1] };
+  }
+
+  // 改行区切り
+  if(raw.includes('\n')){
+    const sp = raw.split('\n').map(s=>s.trim()).filter(Boolean);
+    if(sp.length>=2) return { part_no: normalizeCode(sp[0]), name: sp[1] };
+  }
+
+  // 品番のみ
+  return { part_no: normalizeCode(raw), name: '' };
 }
 
-function _canvasToBinaryBitmap(canvas, highContrast, flipH){
-  const w=canvas.width, h=canvas.height;
-  const ctx=canvas.getContext('2d');
-  let imgData = ctx.getImageData(0,0,w,h);
-  if(highContrast){
-    const d=imgData.data;
-    for(let i=0;i<d.length;i+=4){
-      const gray=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];
-      const v=gray<128?0:255;
-      d[i]=d[i+1]=d[i+2]=v;
-    }
-  }
-  if(flipH){
-    const tmp=document.createElement('canvas'); tmp.width=w; tmp.height=h;
-    const tc=tmp.getContext('2d');
-    tc.scale(-1,1); tc.drawImage(canvas,-w,0);
-    imgData=tc.getImageData(0,0,w,h);
-  }
-  const lumi = new ZXing.RGBLuminanceSource(imgData.data, w, h);
-  return new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(lumi));
+function normalizeCode(s){
+  return (s||'').replace(/\*/g,'').replace(/\s+/g,' ').trim();
 }
 
-// バーコード正規化: データマトリックスの制御文字や改行を除去
-function normalizeBarcode(raw){
-  // Xóa ký tự điều khiển (ASCII 0-31) thường có trong Data Matrix
-  let text = raw.replace(/[\x00-\x1F\x7F-\x9F]/g, ""); 
-  text = text.replace(/\*/g,'').trim();
-  
-  // Nếu trả về nhiều dòng, lấy dòng đầu tiên (thường là Part No)
-  if (text.includes('\n') || text.includes('\r')) {
-    let parts = text.split(/[\n\r]+/);
-    text = parts[0]; 
-  }
-  return text.replace(/\s+/g,' ').trim();
+// ────────────────────────────────────────────────
+// dbrDecode: canvas → { part_no, name, rawText }
+// ────────────────────────────────────────────────
+async function dbrDecode(canvas){
+  const reader = await loadDBR();
+  const results = await reader.decode(canvas);
+  if(!results || results.length === 0) throw new Error('decode_failed');
+  const best = results[0];
+  const raw  = best.barcodeText || '';
+  const parsed = parseDataMatrixText(raw);
+  return { ...parsed, rawText: raw, format: best.barcodeFormatString };
 }
 
 // ════════════════════════════════════════════════
@@ -912,30 +926,36 @@ function onAddFileChange(inp){
 
 async function analyzeAddCanvas(c){
   show('add-analyzing'); hide('add-fail-card'); hide('add-result-card');
-  let pn;
+  let decoded;
   try{
-    pn = await zxingDecode(c);
+    decoded = await dbrDecode(c);
   }catch(e){ hide('add-analyzing'); show('add-fail-card'); return; }
   hide('add-analyzing');
-  $('add-res-pno').textContent=pn;
+
+  const pn           = decoded.part_no;
+  const name_scanned = decoded.name;
+
+  $('add-res-pno').textContent = pn;
 
   // Cache lookup first
-  let r=cacheGet(pn);
+  let r = cacheGet(pn);
   if(!r && API){
-    try{ r=await apiFetch(`/stock/search?part_no=${encodeURIComponent(pn)}`); }catch(e){ toast(e.message,true); resetAddScanUI(); return; }
+    try{ r = await apiFetch(`/stock/search?part_no=${encodeURIComponent(pn)}`); }catch(e){ toast(e.message,true); resetAddScanUI(); return; }
   }
   if(r?.part_no){
-    $('add-res-label').textContent='既存品番 — 在庫に加算されます';
-    $('add-res-name').textContent=r.name;
-    $('add-res-qty').textContent=r.qty;
+    $('add-res-label').textContent = '既存品番 — 在庫に加算されます';
+    $('add-res-name').textContent  = r.name;
+    $('add-res-qty').textContent   = r.qty;
     hide('add-res-newname');
-    addScanData={part_no:pn,name:r.name,qty:r.qty,is_new:false};
+    addScanData = {part_no:pn, name:r.name, qty:r.qty, is_new:false};
   }else{
-    $('add-res-label').textContent='未登録品番 — 新規追加されます';
-    $('add-res-name').textContent='（未登録）';
-    $('add-res-qty').textContent='0';
-    show('add-res-newname'); $('add-res-name-inp').value='';
-    addScanData={part_no:pn,name:'',qty:0,is_new:true};
+    $('add-res-label').textContent = '未登録品番 — 新規追加されます';
+    const nameFromScan = name_scanned || '';
+    $('add-res-name').textContent  = nameFromScan || '（未登録）';
+    $('add-res-qty').textContent   = '0';
+    show('add-res-newname');
+    $('add-res-name-inp').value = nameFromScan;
+    addScanData = {part_no:pn, name:nameFromScan, qty:0, is_new:true};
   }
   $('add-res-qty-inp').value='';
   show('add-result-card');
@@ -1092,15 +1112,18 @@ function onUseFileChange(inp){
 
 async function analyzeUseCanvas(c){
   show('use-analyzing'); hide('use-fail-card'); hide('use-scan-result');
-  let pn;
-  try{ pn=await zxingDecode(c); }
+  let decoded;
+  try{ decoded = await dbrDecode(c); }
   catch(e){ hide('use-analyzing'); show('use-fail-card'); return; }
   hide('use-analyzing');
 
+  const pn = decoded.part_no;
+  const name_scanned = decoded.name;
+
   // Cache lookup first
-  let r=cacheGet(pn);
+  let r = cacheGet(pn);
   if(!r && API){
-    try{ r=await apiFetch(`/stock/search?part_no=${encodeURIComponent(pn)}`); }catch(e){ toast(e.message,true); resetUseScanUI(); return; }
+    try{ r = await apiFetch(`/stock/search?part_no=${encodeURIComponent(pn)}`); }catch(e){ toast(e.message,true); resetUseScanUI(); return; }
   }
   if(r?.part_no){
     show('use-scan-result');
@@ -1109,6 +1132,7 @@ async function analyzeUseCanvas(c){
         <div style="flex:1;min-width:0;">
           <div style="font-size:11px;color:#6b7280;">${esc(r.part_no)}</div>
           <div style="font-size:14px;font-weight:600;color:#111827;">${esc(r.name)}</div>
+          <div style="font-size:10px;color:#a78bfa;margin-top:2px;">形式: ${esc(decoded.format)}</div>
         </div>
         <div style="text-align:right;flex-shrink:0;">
           <div style="font-size:22px;font-weight:700;color:${qtyColor(r.qty)};">${r.qty}</div>
@@ -1116,10 +1140,18 @@ async function analyzeUseCanvas(c){
         </div>
       </div>`;
     $('use-scan-result').scrollIntoView({behavior:'smooth',block:'nearest'});
-    openUseConfirm(r.part_no,r.name,r.qty);
+    openUseConfirm(r.part_no, r.name, r.qty);
+  }else if(pn){
+    // 未登録でもスキャンデータは表示 (Data Matrixから品名取得できていれば表示)
+    show('use-scan-result');
+    $('use-scan-item').innerHTML=`
+      <div class="fail-card" style="margin-top:0;">
+        <div style="font-size:13px;font-weight:600;color:#ef4444;margin-bottom:4px;">品番 "${esc(pn)}" は未登録です</div>
+        ${name_scanned?`<div style="font-size:12px;color:#6b7280;margin-bottom:6px;">ラベル品名: ${esc(name_scanned)}</div>`:''}
+        <div style="font-size:11px;color:#9ca3af;">「部材追加」ページから登録してください</div>
+      </div>`;
   }else{
     show('use-fail-card');
-    $('use-fail-card').querySelector('div').textContent=`品番 "${pn}" は未登録です`;
   }
 }
 
