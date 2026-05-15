@@ -76,7 +76,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .cam-box video{width:100%;display:block;height:220px;object-fit:cover;}
 /* Guide overlay inside camera */
 .cam-guide{position:absolute;inset:0;pointer-events:none;display:flex;align-items:center;justify-content:center;}
-.cam-guide-rect{border:2px solid rgba(255,255,255,.7);border-radius:6px;width:68%;height:54%;box-shadow:0 0 0 9999px rgba(0,0,0,.35);}
+.cam-guide-rect{border:2px solid rgba(255,255,255,.8);border-radius:12px;width:220px;height:220px;box-shadow:0 0 0 9999px rgba(0,0,0,.4);}
 .shutter{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);width:58px;height:58px;border-radius:50%;background:#fff;border:4px solid #7c3aed;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(124,58,237,.4);transition:transform .1s;z-index:5;}
 .shutter:active{transform:translateX(-50%) scale(.9);}
 .shutter svg{width:24px;height:24px;}
@@ -99,6 +99,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .top3-item{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px;margin-bottom:6px;}
 /* Cache badge */
 .cache-badge{display:inline-block;background:#ede9fe;color:#5b21b6;font-size:10px;padding:2px 7px;border-radius:99px;margin-left:6px;vertical-align:middle;}
+/* Session Cart Panel */
+.cart-panel{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:14px;margin-top:20px;}
 </style>
 </head>
 <body>
@@ -349,6 +351,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
         <button onclick="closeUseConfirm()" class="btn-g">キャンセル</button>
       </div>
     </div>
+
+    <!-- TÍNH NĂNG MỚI: Bảng xuất dữ liệu các sản phẩm ĐÃ DÙNG trong phiên -->
+    <div class="cart-panel" id="session-cart-panel" style="display:none;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div>
+          <div style="font-size:14px;font-weight:700;color:#166534;">✅ 今回使用したアイテム</div>
+          <div style="font-size:11px;color:#15803d;margin-top:2px;" id="cart-count">0 件</div>
+        </div>
+        <button onclick="exportSessionCartCSV()" style="background:#16a34a;color:#fff;border:none;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:14px;height:14px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+          CSV出力
+        </button>
+      </div>
+    </div>
+
   </div>
 
   <!-- 在庫確認 -->
@@ -464,108 +481,101 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 // ════════════════════════════════════════════════
 // CONFIG — RenderのURLを設定してください
 // ════════════════════════════════════════════════
-const API = "https://buzaikanri.onrender.com";  // 例: "https://your-app.onrender.com"
+const API = "https://buzaikanri.onrender.com";  // <--- Hãy chắc chắn link ở đây CHƯA BỊ CÓ DẤU / Ở CUỐI.
 const CACHE_TTL_MS   = 3 * 60 * 1000;  // 在庫キャッシュ有効期限 3分
 const RENDER_PAGE    = 40;              // 一度にレンダリングする行数
 
 // ════════════════════════════════════════════════
-// Dynamsoft Barcode Reader — Data Matrix 専用
-// ライブラリ: dbr-js (CDN) — Data Matrix / QR / Code128 全対応
+// Camera & Barcode Decoder (Native API + ZXing Fallback)
 // ════════════════════════════════════════════════
-let _dbr = null;
-let _dbrLoading = false;
-
-async function loadDBR(){
-  if(_dbr) return _dbr;
-  if(_dbrLoading) {
-    // wait until loaded
-    return new Promise(res=>{ const t=setInterval(()=>{ if(_dbr){ clearInterval(t); res(_dbr); }},100); });
-  }
-  _dbrLoading = true;
-  return new Promise((resolve, reject)=>{
-    const s = document.createElement('script');
-    // Dynamsoft Barcode Reader JS SDK (free trial — all formats including Data Matrix)
-    s.src = 'https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode@9.6.42/dist/dbr.js';
-    s.onload = async ()=>{
-      try{
-        // Free trial license (valid for evaluation)
-        Dynamsoft.DBR.BarcodeReader.license =
-          'DLS2eyJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSJ9';
-        _dbr = await Dynamsoft.DBR.BarcodeReader.createInstance();
-        // Settings optimized for Data Matrix on Panasonic labels
-        const settings = await _dbr.getRuntimeSettings();
-        settings.barcodeFormatIds =
-          Dynamsoft.DBR.EnumBarcodeFormat.BF_DATAMATRIX |
-          Dynamsoft.DBR.EnumBarcodeFormat.BF_CODE_128   |
-          Dynamsoft.DBR.EnumBarcodeFormat.BF_QR_CODE;
-        settings.expectedBarcodesCount = 1;
-        settings.deblurLevel = 9;
-        settings.scaleDownThreshold = 9999; // no scale down — keep full resolution
-        await _dbr.updateRuntimeSettings(settings);
-        resolve(_dbr);
-      }catch(e){ reject(e); }
-    };
-    s.onerror = ()=> reject(new Error('DBR load failed'));
+let _zxingReady = false;
+function loadZXing(){
+  return new Promise(res=>{
+    if(_zxingReady){ res(); return; }
+    const s=document.createElement('script');
+    s.src='https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js';
+    s.onload=()=>{ _zxingReady=true; res(); };
+    s.onerror=()=>res();
     document.head.appendChild(s);
   });
 }
 
-// ────────────────────────────────────────────────
-// parseDataMatrixText:
-//   PanasonicラベルのData Matrixは以下の形式が多い:
-//   "[)>\x1e06\x1d品番\x1d品名\x1d..."  (GS1-2D / MH10.8.2形式)
-//   "品番;品名"  (カスタム区切り)
-//   "品番\n品名"  (改行区切り)
-//   "品番"  (品番のみ)
-// 戻り値: { part_no, name }
-// ────────────────────────────────────────────────
-function parseDataMatrixText(raw){
-  // GS (0x1D) / RS (0x1E) / EOT などASCII制御文字を空白に置換して分割
-  const cleaned = raw.replace(/[\x00-\x1f\x7f]+/g, '\t');
-  const parts = cleaned.split('\t').map(s=>s.trim()).filter(Boolean);
-
-  // GS1-2D ヘッダ "[)>" を除去
-  const filtered = parts.filter(p=> p!=='[)>' && p!=='>06' && p!=='06' && p.length>0);
-
-  if(filtered.length >= 2){
-    return { part_no: normalizeCode(filtered[0]), name: filtered[1].trim() };
+// Hàm cốt lõi đọc ảnh: Tự động chọn thuật toán tốt nhất
+async function decodeBarcodeImage(canvas) {
+  // 1. THỬ NATIVE API TRƯỚC (Rất mạnh, đọc được Data Matrix tí hon)
+  if ('BarcodeDetector' in window) {
+    try {
+      const detector = new BarcodeDetector({ formats: ['data_matrix', 'qr_code', 'code_128', 'ean_13', 'code_39'] });
+      const barcodes = await detector.detect(canvas);
+      if (barcodes.length > 0) {
+        console.log("Đọc bằng Native API thành công!");
+        return normalizeBarcode(barcodes[0].rawValue);
+      }
+    } catch(e) { console.warn("Native Detector failed, falling back to ZXing...", e); }
   }
 
-  // セミコロン区切り
-  if(raw.includes(';')){
-    const sp = raw.split(';').map(s=>s.trim()).filter(Boolean);
-    if(sp.length>=2) return { part_no: normalizeCode(sp[0]), name: sp[1] };
-  }
+  // 2. NẾU NATIVE API KHÔNG CÓ/KHÔNG NHẬN ĐƯỢC -> DÙNG ZXING DỰ PHÒNG
+  await loadZXing();
+  const hints = new Map();
+  hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+    ZXing.BarcodeFormat.DATA_MATRIX, ZXing.BarcodeFormat.QR_CODE, 
+    ZXing.BarcodeFormat.CODE_128, ZXing.BarcodeFormat.EAN_13
+  ]);
+  hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
 
-  // 改行区切り
-  if(raw.includes('\n')){
-    const sp = raw.split('\n').map(s=>s.trim()).filter(Boolean);
-    if(sp.length>=2) return { part_no: normalizeCode(sp[0]), name: sp[1] };
-  }
+  const reader = new ZXing.MultiFormatReader();
+  reader.setHints(hints);
 
-  // 品番のみ
-  return { part_no: normalizeCode(raw), name: '' };
+  const tries = [
+    ()=> _canvasToBinaryBitmap(canvas, false, false), // Bình thường
+    ()=> _canvasToBinaryBitmap(canvas, true,  false), // Tăng độ tương phản
+    ()=> _canvasToBinaryBitmap(canvas, false, true),  // Lật ngược
+  ];
+  for(const fn of tries){
+    try{
+      const bmp = fn();
+      const result = reader.decode(bmp);
+      if(result) return normalizeBarcode(result.getText());
+    }catch(_){}
+  }
+  throw new Error('decode_failed');
 }
 
-function normalizeCode(s){
-  return (s||'').replace(/\*/g,'').replace(/\s+/g,' ').trim();
+function _canvasToBinaryBitmap(canvas, highContrast, flipH){
+  const w=canvas.width, h=canvas.height;
+  const ctx=canvas.getContext('2d');
+  let imgData = ctx.getImageData(0,0,w,h);
+  if(highContrast){
+    const d=imgData.data;
+    for(let i=0;i<d.length;i+=4){
+      const gray=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];
+      const v=gray<128?0:255;
+      d[i]=d[i+1]=d[i+2]=v;
+    }
+  }
+  if(flipH){
+    const tmp=document.createElement('canvas'); tmp.width=w; tmp.height=h;
+    const tc=tmp.getContext('2d');
+    tc.scale(-1,1); tc.drawImage(canvas,-w,0);
+    imgData=tc.getImageData(0,0,w,h);
+  }
+  const lumi = new ZXing.RGBLuminanceSource(imgData.data, w, h);
+  return new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(lumi));
 }
 
-// ────────────────────────────────────────────────
-// dbrDecode: canvas → { part_no, name, rawText }
-// ────────────────────────────────────────────────
-async function dbrDecode(canvas){
-  const reader = await loadDBR();
-  const results = await reader.decode(canvas);
-  if(!results || results.length === 0) throw new Error('decode_failed');
-  const best = results[0];
-  const raw  = best.barcodeText || '';
-  const parsed = parseDataMatrixText(raw);
-  return { ...parsed, rawText: raw, format: best.barcodeFormatString };
+// Xóa ký tự rác từ Data Matrix
+function normalizeBarcode(raw){
+  let text = raw.replace(/[\x00-\x1F\x7F-\x9F]/g, ""); 
+  text = text.replace(/\*/g,'').trim();
+  if (text.includes('\n') || text.includes('\r')) {
+    let parts = text.split(/[\n\r]+/);
+    text = parts[0]; 
+  }
+  return text.replace(/\s+/g,' ').trim();
 }
 
 // ════════════════════════════════════════════════
-// 状態
+// 状態 (States)
 // ════════════════════════════════════════════════
 let token       = localStorage.getItem('pm_token') || null;
 let isAdmin     = localStorage.getItem('pm_admin') === 'true';
@@ -577,6 +587,9 @@ let addScanData = null;
 let useConfirmData = null;
 let _manualData = null;
 
+// TÍNH NĂNG MỚI: Mảng lưu trữ các item đã dùng trong phiên
+let sessionCart = []; 
+
 // Frontend inventory cache
 let _cache = { data:[], ts:0, map:{} };  // map: part_no → item
 let _allHistory = [];
@@ -584,7 +597,6 @@ let _stockFiltered = [];
 let _stockRenderOffset = 0;
 let _allAdminStock = [];
 
-// Debounce timers
 const _dbt = {};
 function debounce(key, fn, ms=300){
   clearTimeout(_dbt[key]);
@@ -647,7 +659,6 @@ async function doLogin(){
   hide('li-err');
   const btn=$('li-btn'); btn.disabled=true; btn.textContent='ログイン中…';
   if(!API){
-    // API未設定でも入力ユーザー名で仮ログイン
     token=null; isAdmin=false; currentUser=user;
     localStorage.setItem('pm_user',user);
     btn.disabled=false; btn.textContent='ログイン';
@@ -668,7 +679,6 @@ async function doLogin(){
 
 function guestLogin(){
   currentUser='ゲスト'; token=null; isAdmin=false;
-  // guestはlocalStorageに保存しない
   finalizeLogin();
 }
 
@@ -697,7 +707,7 @@ function updateUserUI(){
 }
 
 // ════════════════════════════════════════════════
-// INVENTORY CACHE (frontend RAM)
+// INVENTORY CACHE
 // ════════════════════════════════════════════════
 function cacheIsValid(){ return _cache.data.length>0 && (Date.now()-_cache.ts)<CACHE_TTL_MS; }
 
@@ -712,24 +722,17 @@ async function refreshCache(force=false){
     return data;
   }catch(e){ console.warn('cache refresh failed',e); return _cache.data; }
 }
-
 function cacheGet(part_no){ return _cache.map[part_no]||null; }
-
 function cacheSearch(query, byName=false){
   const q=query.toLowerCase().trim();
   if(!q) return [];
-  return _cache.data.filter(it=>
-    byName ? it.name.toLowerCase().includes(q)
-           : it.part_no.toLowerCase().includes(q)
-  );
+  return _cache.data.filter(it=> byName ? it.name.toLowerCase().includes(q) : it.part_no.toLowerCase().includes(q));
 }
-
 function clearCache(){
   _cache={data:[],ts:0,map:{}};
   toast('キャッシュをクリアしました');
   updateCacheInfo();
 }
-
 function updateCacheInfo(){
   const el=$('cache-info');
   if(!el) return;
@@ -754,7 +757,6 @@ function go(page){
   const bn=$('bnav-'+page); if(bn) bn.classList.add('active');
   if(['history','admin'].includes(page)){ const bm=$('bnav-more'); if(bm) bm.classList.add('active'); }
 
-  // Camera cleanup — stop streams when leaving scan pages
   if(page!=='add'){ cleanupCam('add-video',addStream); addStream=null; }
   if(page!=='use'){ cleanupCam('use-video',useStream); useStream=null; }
 
@@ -772,7 +774,7 @@ function toggleDrawer(){ $('more-drawer').classList.toggle('open'); $('drawer-ov
 function closeDrawer()  { $('more-drawer').classList.remove('open'); $('drawer-overlay').classList.remove('open'); }
 
 // ════════════════════════════════════════════════
-// HOME (compact dashboard — from cache)
+// HOME
 // ════════════════════════════════════════════════
 function initHome(){
   const data = _cache.data;
@@ -780,15 +782,12 @@ function initHome(){
   const low   = data.filter(it=>it.qty>0&&it.qty<=5).length;
   const zero  = data.filter(it=>it.qty<=0).length;
 
-  setText('stat-total', total||'—');
-  setText('stat-low',   low||'—');
-  setText('stat-zero',  zero||'—');
-  setText('stat-today', '…');
+  setText('stat-total', total||'—'); setText('stat-low',   low||'—');
+  setText('stat-zero',  zero||'—');  setText('stat-today', '…');
 
   if(_cache.ts){ setText('home-updated','キャッシュ: '+new Date(_cache.ts).toLocaleTimeString('ja-JP')); }
   else          { setText('home-updated',''); }
 
-  // Top3 critical (qty asc, only low stock)
   const critical = [...data].filter(it=>it.qty<=5).sort((a,b)=>a.qty-b.qty).slice(0,3);
   $('home-top3').innerHTML = critical.length
     ? critical.map(it=>`<div class="top3-item">
@@ -800,30 +799,23 @@ function initHome(){
       </div>`).join('')
     : emptyMsg('在庫少のアイテムはありません ✓');
 
-  // Today's operation count from API (non-blocking)
   if(API){
     apiFetch('/stats').then(s=>{
-      setText('stat-total', s.total);
-      setText('stat-low',   s.low_stock);
-      setText('stat-zero',  s.zero_stock);
-      setText('stat-today', s.today_ops??'—');
+      setText('stat-total', s.total); setText('stat-low',   s.low_stock);
+      setText('stat-zero',  s.zero_stock); setText('stat-today', s.today_ops??'—');
     }).catch(()=>{});
   }
 }
 
 // ════════════════════════════════════════════════
-// 部材追加
+// 部材追加 (ADD)
 // ════════════════════════════════════════════════
 function initAdd(){
-  $('add-tab-manual').classList.add('active');
-  $('add-tab-scan').classList.remove('active');
+  $('add-tab-manual').classList.add('active'); $('add-tab-scan').classList.remove('active');
   show('add-manual'); hide('add-scan');
-  $('add-pno').value='';
-  hide('add-info'); hide('add-new-name-wrap');
-  $('add-qty').value='';
+  $('add-pno').value=''; hide('add-info'); hide('add-new-name-wrap'); $('add-qty').value='';
   _manualData=null;
 }
-
 function setAddMode(mode){
   $('add-tab-manual').classList.toggle('active',mode==='manual');
   $('add-tab-scan').classList.toggle('active',  mode==='scan');
@@ -832,30 +824,22 @@ function setAddMode(mode){
   if(mode!=='scan'){ cleanupCam('add-video',addStream); addStream=null; }
   if(mode==='scan') startAddCamera();
 }
-
 function onAddPnoInput(){ hide('add-info'); hide('add-new-name-wrap'); _manualData=null; }
 
 async function searchAddPno(){
   const pn=$('add-pno').value.trim();
   if(!pn){ toast('品番を入力してください',true); return; }
-  // Check cache first
   let r=cacheGet(pn);
   if(!r && API){
     try{ r=await apiFetch(`/stock/search?part_no=${encodeURIComponent(pn)}`); }catch(e){ if(e.message!=='__NO_API__') toast(e.message,true); return; }
   }
   show('add-info');
   if(r?.part_no){
-    $('add-info-label').textContent='既存品番 — 在庫に加算されます';
-    $('add-info-name').textContent=r.name;
-    $('add-info-qty').textContent=r.qty;
-    hide('add-new-name-wrap');
-    _manualData={part_no:r.part_no,name:r.name,qty:r.qty,is_new:false};
+    $('add-info-label').textContent='既存品番 — 在庫に加算されます'; $('add-info-name').textContent=r.name; $('add-info-qty').textContent=r.qty;
+    hide('add-new-name-wrap'); _manualData={part_no:r.part_no,name:r.name,qty:r.qty,is_new:false};
   }else{
-    $('add-info-label').textContent='未登録品番 — 新規追加されます';
-    $('add-info-name').textContent='（未登録）';
-    $('add-info-qty').textContent='0';
-    show('add-new-name-wrap'); $('add-new-name').value='';
-    _manualData={part_no:pn,name:'',qty:0,is_new:true};
+    $('add-info-label').textContent='未登録品番 — 新規追加されます'; $('add-info-name').textContent='（未登録）'; $('add-info-qty').textContent='0';
+    show('add-new-name-wrap'); $('add-new-name').value=''; _manualData={part_no:pn,name:'',qty:0,is_new:true};
   }
 }
 
@@ -869,97 +853,57 @@ async function submitManualAdd(){
   try{
     await apiFetch('/stock/add',{method:'POST',body:JSON.stringify({part_no:_manualData.part_no,name,qty,user:currentUser||'ゲスト'})});
     toast(`✓ ${_manualData.part_no} に ${qty} 追加しました`);
-    await refreshCache(true);
-    initAdd();
+    await refreshCache(true); initAdd();
   }catch(e){ toast(e.message,true); }
 }
 
-// ── Camera (Add) ──
 async function startAddCamera(){
   resetAddScanUI();
   try{
-    const s=await navigator.mediaDevices.getUserMedia({
-      video:{ facingMode:'environment', width:{ideal:1920,min:1280}, height:{ideal:1080,min:720}, focusMode:'continuous' }
-    });
-    addStream=s;
-    const v=$('add-video'); v.srcObject=s;
-    await v.play().catch(()=>{});
-    show('add-cam-wrap');
-  }catch(e){
-    hide('add-cam-wrap');
-    toast('カメラを起動できません。ギャラリーから選択してください',true);
-  }
+    const s=await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment', width:{ideal:1920}, height:{ideal:1080}, focusMode:'continuous' } });
+    addStream=s; const v=$('add-video'); v.srcObject=s; await v.play().catch(()=>{}); show('add-cam-wrap');
+  }catch(e){ hide('add-cam-wrap'); toast('カメラを起動できません',true); }
 }
-
 function resetAddScanUI(){
   hide('add-result-card'); hide('add-fail-card'); hide('add-analyzing');
-  show('add-cam-wrap');
-  $('add-file').value='';
-  addScanData=null;
+  show('add-cam-wrap'); $('add-file').value=''; addScanData=null;
 }
 function resetAddScan(){ resetAddScanUI(); if(!addStream) startAddCamera(); }
 
 async function captureAdd(){
   const v=$('add-video'), c=$('add-canvas');
   if(!v.videoWidth){ toast('カメラ準備中です…',true); return; }
-  c.width=v.videoWidth; c.height=v.videoHeight;
-  c.getContext('2d').drawImage(v,0,0);
-  // Stop camera stream after capture to free resources
-  cleanupCam('add-video',addStream); addStream=null;
-  hide('add-cam-wrap');
+  c.width=v.videoWidth; c.height=v.videoHeight; c.getContext('2d').drawImage(v,0,0);
+  cleanupCam('add-video',addStream); addStream=null; hide('add-cam-wrap');
   await analyzeAddCanvas(c);
 }
-
 function onAddFileChange(inp){
   if(!inp.files?.[0]) return;
   const img=new Image(), url=URL.createObjectURL(inp.files[0]);
   img.onload=async()=>{
-    const c=$('add-canvas');
-    c.width=img.naturalWidth; c.height=img.naturalHeight;
-    c.getContext('2d').drawImage(img,0,0);
-    URL.revokeObjectURL(url);
-    hide('add-cam-wrap');
-    await analyzeAddCanvas(c);
-  };
-  img.src=url;
+    const c=$('add-canvas'); c.width=img.naturalWidth; c.height=img.naturalHeight; c.getContext('2d').drawImage(img,0,0);
+    URL.revokeObjectURL(url); hide('add-cam-wrap'); await analyzeAddCanvas(c);
+  }; img.src=url;
 }
 
 async function analyzeAddCanvas(c){
   show('add-analyzing'); hide('add-fail-card'); hide('add-result-card');
-  let decoded;
-  try{
-    decoded = await dbrDecode(c);
-  }catch(e){ hide('add-analyzing'); show('add-fail-card'); return; }
-  hide('add-analyzing');
+  let pn;
+  try{ pn = await decodeBarcodeImage(c); } catch(e){ hide('add-analyzing'); show('add-fail-card'); return; }
+  hide('add-analyzing'); $('add-res-pno').textContent=pn;
 
-  const pn           = decoded.part_no;
-  const name_scanned = decoded.name;
-
-  $('add-res-pno').textContent = pn;
-
-  // Cache lookup first
-  let r = cacheGet(pn);
+  let r=cacheGet(pn);
   if(!r && API){
-    try{ r = await apiFetch(`/stock/search?part_no=${encodeURIComponent(pn)}`); }catch(e){ toast(e.message,true); resetAddScanUI(); return; }
+    try{ r=await apiFetch(`/stock/search?part_no=${encodeURIComponent(pn)}`); }catch(e){ toast(e.message,true); resetAddScanUI(); return; }
   }
   if(r?.part_no){
-    $('add-res-label').textContent = '既存品番 — 在庫に加算されます';
-    $('add-res-name').textContent  = r.name;
-    $('add-res-qty').textContent   = r.qty;
-    hide('add-res-newname');
-    addScanData = {part_no:pn, name:r.name, qty:r.qty, is_new:false};
+    $('add-res-label').textContent='既存品番 — 在庫に加算されます'; $('add-res-name').textContent=r.name; $('add-res-qty').textContent=r.qty;
+    hide('add-res-newname'); addScanData={part_no:pn,name:r.name,qty:r.qty,is_new:false};
   }else{
-    $('add-res-label').textContent = '未登録品番 — 新規追加されます';
-    const nameFromScan = name_scanned || '';
-    $('add-res-name').textContent  = nameFromScan || '（未登録）';
-    $('add-res-qty').textContent   = '0';
-    show('add-res-newname');
-    $('add-res-name-inp').value = nameFromScan;
-    addScanData = {part_no:pn, name:nameFromScan, qty:0, is_new:true};
+    $('add-res-label').textContent='未登録品番 — 新規追加されます'; $('add-res-name').textContent='（未登録）'; $('add-res-qty').textContent='0';
+    show('add-res-newname'); $('add-res-name-inp').value=''; addScanData={part_no:pn,name:'',qty:0,is_new:true};
   }
-  $('add-res-qty-inp').value='';
-  show('add-result-card');
-  $('add-result-card').scrollIntoView({behavior:'smooth',block:'nearest'});
+  $('add-res-qty-inp').value=''; show('add-result-card'); $('add-result-card').scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
 async function submitScanAdd(){
@@ -972,13 +916,12 @@ async function submitScanAdd(){
   try{
     await apiFetch('/stock/add',{method:'POST',body:JSON.stringify({part_no:addScanData.part_no,name,qty,user:currentUser||'ゲスト'})});
     toast(`✓ ${addScanData.part_no} に ${qty} 追加しました`);
-    await refreshCache(true);
-    resetAddScan();
+    await refreshCache(true); resetAddScan();
   }catch(e){ toast(e.message,true); }
 }
 
 // ════════════════════════════════════════════════
-// 部材使用
+// 部材使用 (USE) + Giỏ hàng Xuất file (Cart)
 // ════════════════════════════════════════════════
 function initUse(){
   $('use-tab-pno').classList.add('active');
@@ -986,6 +929,7 @@ function initUse(){
   show('use-pno-area');
   ['name','scan','multi'].forEach(m=>hide('use-'+m+'-area'));
   hide('use-confirm'); useConfirmData=null;
+  updateSessionCartUI();
 }
 
 function setUseMode(mode){
@@ -998,25 +942,19 @@ function setUseMode(mode){
   if(mode==='scan') startUseCamera();
 }
 
-// Search from cache (no API call)
 function searchUsePno(){
   const pn=($('use-pno-inp').value||'').trim();
   if(!pn){ $('use-pno-list').innerHTML=''; return; }
-  const res=cacheSearch(pn,false);
-  renderUseList('use-pno-list', res);
+  renderUseList('use-pno-list', cacheSearch(pn,false));
 }
-
 function searchUseName(){
   const q=($('use-name-inp').value||'').trim();
   if(!q){ $('use-name-list').innerHTML=''; return; }
-  const res=cacheSearch(q,true);
-  renderUseList('use-name-list', res);
+  renderUseList('use-name-list', cacheSearch(q,true));
 }
-
 function renderUseList(cid, items){
   const c=$(cid);
-  if(!items?.length){ c.innerHTML=emptyMsg(cacheIsValid()?'該当なし':'キャッシュが空です。ホームで更新してください'); return; }
-  // Limit render to RENDER_PAGE items
+  if(!items?.length){ c.innerHTML=emptyMsg(cacheIsValid()?'該当なし':'キャッシュが空です'); return; }
   const show50=items.slice(0,RENDER_PAGE);
   c.innerHTML=show50.map(it=>`
     <div class="item-card" onclick="openUseConfirm('${esc(it.part_no)}','${esc(it.name)}',${it.qty})" style="cursor:pointer;">
@@ -1029,15 +967,13 @@ function renderUseList(cid, items){
         <div style="font-size:10px;color:#9ca3af;">在庫</div>
       </div>
     </div>`).join('');
-  if(items.length>RENDER_PAGE) c.innerHTML+=`<p style="font-size:12px;color:#9ca3af;text-align:center;padding:8px;">… 他 ${items.length-RENDER_PAGE} 件（絞り込んでください）</p>`;
+  if(items.length>RENDER_PAGE) c.innerHTML+=`<p style="font-size:12px;color:#9ca3af;text-align:center;padding:8px;">… 他 ${items.length-RENDER_PAGE} 件</p>`;
 }
 
 function openUseConfirm(part_no,name,stock){
   useConfirmData={part_no,name,stock};
   setText('uc-pno',part_no); setText('uc-name',name); setText('uc-stock',stock);
-  $('uc-qty').value=''; hide('uc-err');
-  show('use-confirm');
-  $('use-confirm').scrollIntoView({behavior:'smooth',block:'nearest'});
+  $('uc-qty').value=''; hide('uc-err'); show('use-confirm'); $('use-confirm').scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 function closeUseConfirm(){ hide('use-confirm'); useConfirmData=null; }
 
@@ -1051,79 +987,90 @@ async function submitUse(){
   try{
     await apiFetch('/stock/use',{method:'POST',body:JSON.stringify({part_no:useConfirmData.part_no,qty,user:currentUser||'ゲスト'})});
     toast(`✓ ${useConfirmData.part_no} を ${qty} 使用しました`);
-    await refreshCache(true);   // cache refresh after mutation
-    closeUseConfirm();
-    // Re-render search results from updated cache
+    
+    // TÍNH NĂNG MỚI: Thêm vào danh sách xuất file
+    sessionCart.push({ part_no: useConfirmData.part_no, name: useConfirmData.name, qty: qty, time: new Date().toLocaleTimeString('ja-JP').slice(0,5) });
+    updateSessionCartUI();
+
+    await refreshCache(true); closeUseConfirm();
     const mode=document.querySelector('#page-use .mode-tab.active')?.id?.replace('use-tab-','');
-    if(mode==='pno') searchUsePno();
-    if(mode==='name') searchUseName();
+    if(mode==='pno') searchUsePno(); if(mode==='name') searchUseName();
   }catch(e){ show('uc-err'); $('uc-err').textContent=e.message; }
+}
+
+// ── Tính năng xuất file Excel cho đồ đã dùng ──
+function updateSessionCartUI(){
+  if(sessionCart.length > 0){
+    show('session-cart-panel');
+    $('cart-count').textContent = `${sessionCart.length} アイテム`;
+  } else {
+    hide('session-cart-panel');
+  }
+}
+
+function exportSessionCartCSV(){
+  if(sessionCart.length === 0){ toast('データがありません',true); return; }
+  
+  // Tạo chuỗi CSV (có BOM để Excel ko bị lỗi font tiếng Nhật)
+  let csv = '\uFEFF'; 
+  csv += '品番,品名,使用数量,時間\n'; // Header
+  
+  sessionCart.forEach(item => {
+    // Đảm bảo escape chuỗi an toàn
+    const safeName = item.name.replace(/"/g, '""');
+    csv += `"${item.part_no}","${safeName}","${item.qty}","${item.time}"\n`;
+  });
+
+  // Tải file về
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", `使用リスト_${new Date().toISOString().slice(0,10)}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 
 // ── Camera (Use) ──
 async function startUseCamera(){
   resetUseScanUI();
   try{
-    const s=await navigator.mediaDevices.getUserMedia({
-      video:{ facingMode:'environment', width:{ideal:1920,min:1280}, height:{ideal:1080,min:720}, focusMode:'continuous' }
-    });
-    useStream=s;
-    const v=$('use-video'); v.srcObject=s;
-    await v.play().catch(()=>{});
-    show('use-cam-wrap');
-  }catch(e){
-    hide('use-cam-wrap');
-    toast('カメラを起動できません。ギャラリーから選択してください',true);
-  }
+    const s=await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment', width:{ideal:1920}, height:{ideal:1080}, focusMode:'continuous' } });
+    useStream=s; const v=$('use-video'); v.srcObject=s; await v.play().catch(()=>{}); show('use-cam-wrap');
+  }catch(e){ hide('use-cam-wrap'); toast('カメラを起動できません',true); }
 }
-
 function resetUseScanUI(){
-  hide('use-scan-result'); hide('use-fail-card'); hide('use-analyzing');
-  $('use-scan-item').innerHTML='';
-  show('use-cam-wrap'); $('use-file').value='';
-  hide('use-confirm'); useConfirmData=null;
+  hide('use-scan-result'); hide('use-fail-card'); hide('use-analyzing'); $('use-scan-item').innerHTML='';
+  show('use-cam-wrap'); $('use-file').value=''; hide('use-confirm'); useConfirmData=null;
 }
 function resetUseScan(){ resetUseScanUI(); if(!useStream) startUseCamera(); }
 
 async function captureUse(){
   const v=$('use-video'), c=$('use-canvas');
   if(!v.videoWidth){ toast('カメラ準備中です…',true); return; }
-  c.width=v.videoWidth; c.height=v.videoHeight;
-  c.getContext('2d').drawImage(v,0,0);
-  // Stop stream after capture
-  cleanupCam('use-video',useStream); useStream=null;
-  hide('use-cam-wrap');
+  c.width=v.videoWidth; c.height=v.videoHeight; c.getContext('2d').drawImage(v,0,0);
+  cleanupCam('use-video',useStream); useStream=null; hide('use-cam-wrap');
   await analyzeUseCanvas(c);
 }
-
 function onUseFileChange(inp){
   if(!inp.files?.[0]) return;
   const img=new Image(), url=URL.createObjectURL(inp.files[0]);
   img.onload=async()=>{
-    const c=$('use-canvas');
-    c.width=img.naturalWidth; c.height=img.naturalHeight;
-    c.getContext('2d').drawImage(img,0,0);
-    URL.revokeObjectURL(url);
-    hide('use-cam-wrap');
-    await analyzeUseCanvas(c);
-  };
-  img.src=url;
+    const c=$('use-canvas'); c.width=img.naturalWidth; c.height=img.naturalHeight; c.getContext('2d').drawImage(img,0,0);
+    URL.revokeObjectURL(url); hide('use-cam-wrap'); await analyzeUseCanvas(c);
+  }; img.src=url;
 }
 
 async function analyzeUseCanvas(c){
   show('use-analyzing'); hide('use-fail-card'); hide('use-scan-result');
-  let decoded;
-  try{ decoded = await dbrDecode(c); }
-  catch(e){ hide('use-analyzing'); show('use-fail-card'); return; }
+  let pn;
+  try{ pn=await decodeBarcodeImage(c); } catch(e){ hide('use-analyzing'); show('use-fail-card'); return; }
   hide('use-analyzing');
 
-  const pn = decoded.part_no;
-  const name_scanned = decoded.name;
-
-  // Cache lookup first
-  let r = cacheGet(pn);
+  let r=cacheGet(pn);
   if(!r && API){
-    try{ r = await apiFetch(`/stock/search?part_no=${encodeURIComponent(pn)}`); }catch(e){ toast(e.message,true); resetUseScanUI(); return; }
+    try{ r=await apiFetch(`/stock/search?part_no=${encodeURIComponent(pn)}`); }catch(e){ toast(e.message,true); resetUseScanUI(); return; }
   }
   if(r?.part_no){
     show('use-scan-result');
@@ -1132,7 +1079,6 @@ async function analyzeUseCanvas(c){
         <div style="flex:1;min-width:0;">
           <div style="font-size:11px;color:#6b7280;">${esc(r.part_no)}</div>
           <div style="font-size:14px;font-weight:600;color:#111827;">${esc(r.name)}</div>
-          <div style="font-size:10px;color:#a78bfa;margin-top:2px;">形式: ${esc(decoded.format)}</div>
         </div>
         <div style="text-align:right;flex-shrink:0;">
           <div style="font-size:22px;font-weight:700;color:${qtyColor(r.qty)};">${r.qty}</div>
@@ -1140,32 +1086,18 @@ async function analyzeUseCanvas(c){
         </div>
       </div>`;
     $('use-scan-result').scrollIntoView({behavior:'smooth',block:'nearest'});
-    openUseConfirm(r.part_no, r.name, r.qty);
-  }else if(pn){
-    // 未登録でもスキャンデータは表示 (Data Matrixから品名取得できていれば表示)
-    show('use-scan-result');
-    $('use-scan-item').innerHTML=`
-      <div class="fail-card" style="margin-top:0;">
-        <div style="font-size:13px;font-weight:600;color:#ef4444;margin-bottom:4px;">品番 "${esc(pn)}" は未登録です</div>
-        ${name_scanned?`<div style="font-size:12px;color:#6b7280;margin-bottom:6px;">ラベル品名: ${esc(name_scanned)}</div>`:''}
-        <div style="font-size:11px;color:#9ca3af;">「部材追加」ページから登録してください</div>
-      </div>`;
+    openUseConfirm(r.part_no,r.name,r.qty);
   }else{
-    show('use-fail-card');
+    show('use-fail-card'); $('use-fail-card').querySelector('div').textContent=`品番 "${pn}" は未登録です`;
   }
 }
 
 async function searchMulti(){
   const pnos=[...new Set($('use-multi-inp').value.split('\n').map(s=>s.trim()).filter(Boolean))];
   if(!pnos.length){ toast('品番を入力してください',true); return; }
-  // Cache-first, then API for missing
   if(cacheIsValid()){
-    const results=pnos.map(pn=>{
-      const it=cacheGet(pn);
-      return it?{...it,found:true}:{part_no:pn,found:false};
-    });
-    renderMultiResults(results);
-    return;
+    const results=pnos.map(pn=>{ const it=cacheGet(pn); return it?{...it,found:true}:{part_no:pn,found:false}; });
+    renderMultiResults(results); return;
   }
   if(!API){ $('use-multi-list').innerHTML=emptyMsg('APIが設定されていません'); return; }
   try{
@@ -1177,7 +1109,7 @@ async function searchMulti(){
 function renderMultiResults(res){
   if(!res.length){ $('use-multi-list').innerHTML=emptyMsg('該当なし'); return; }
   $('use-multi-list').innerHTML=res.map(it=>it.found
-    ?`<div class="item-card multi-reg">
+    ?`<div class="item-card multi-reg" onclick="openUseConfirm('${esc(it.part_no)}','${esc(it.name)}',${it.qty})" style="cursor:pointer;">
         <div style="flex:1;min-width:0;"><div style="font-size:11px;color:#6b7280;">${esc(it.part_no)}</div>
         <div style="font-size:14px;font-weight:600;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.name)}</div></div>
         <div style="text-align:right;flex-shrink:0;">
@@ -1191,30 +1123,19 @@ function renderMultiResults(res){
 }
 
 // ════════════════════════════════════════════════
-// 在庫確認 (virtual scroll — RENDER_PAGE rows at a time)
+// 在庫確認
 // ════════════════════════════════════════════════
 async function initStock(){
   $('stock-q').value='';
   if(!cacheIsValid()) await refreshCache(false);
-  _stockFiltered=_cache.data;
-  _stockRenderOffset=0;
-  updateStockHeader();
-  renderStockPage();
-  show('stock-cache-badge');
+  _stockFiltered=_cache.data; _stockRenderOffset=0; updateStockHeader(); renderStockPage(); show('stock-cache-badge');
 }
-
 function filterStock(){
   const q=($('stock-q').value||'').toLowerCase().trim();
   _stockFiltered=q?_cache.data.filter(it=>(it.part_no+it.name).toLowerCase().includes(q)):_cache.data;
-  _stockRenderOffset=0;
-  updateStockHeader();
-  renderStockPage();
+  _stockRenderOffset=0; updateStockHeader(); renderStockPage();
 }
-
-function updateStockHeader(){
-  $('stock-count').textContent=`${_stockFiltered.length} / ${_cache.data.length} 件`;
-}
-
+function updateStockHeader(){ $('stock-count').textContent=`${_stockFiltered.length} / ${_cache.data.length} 件`; }
 function renderStockPage(){
   const slice=_stockFiltered.slice(0,_stockRenderOffset+RENDER_PAGE);
   $('stock-list').innerHTML=slice.length ? slice.map(it=>`
@@ -1222,7 +1143,6 @@ function renderStockPage(){
       <div style="flex:1;min-width:0;">
         <div style="font-size:11px;color:#6b7280;">${esc(it.part_no)}</div>
         <div style="font-size:14px;font-weight:600;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.name)}</div>
-        <div style="font-size:10px;color:#9ca3af;margin-top:1px;">更新: ${esc(it.updated_at||'')}</div>
       </div>
       <div style="text-align:right;flex-shrink:0;">
         <div style="font-size:20px;font-weight:700;color:${qtyColor(it.qty)};">${it.qty}</div>
@@ -1230,29 +1150,21 @@ function renderStockPage(){
       </div>
     </div>`).join('') : emptyMsg('データなし');
   _stockRenderOffset+=RENDER_PAGE;
-  if(_stockFiltered.length>_stockRenderOffset) show('stock-more-btn');
-  else hide('stock-more-btn');
+  if(_stockFiltered.length>_stockRenderOffset) show('stock-more-btn'); else hide('stock-more-btn');
 }
-
 function renderMoreStock(){ renderStockPage(); }
 
 // ════════════════════════════════════════════════
 // 履歴確認
 // ════════════════════════════════════════════════
 function initHistory(){ if(!_allHistory.length) loadHistory(false); else filterHistory(); }
-
 async function loadHistory(force=false){
   if(!force && _allHistory.length){ filterHistory(); return; }
   if(!API){ $('hist-list').innerHTML=emptyMsg('APIが設定されていません'); return; }
-  try{
-    _allHistory=await apiFetch('/history');
-    filterHistory();
-  }catch(e){ $('hist-list').innerHTML=errMsg(e.message); }
+  try{ _allHistory=await apiFetch('/history'); filterHistory(); }catch(e){ $('hist-list').innerHTML=errMsg(e.message); }
 }
-
 function filterHistory(){
-  const f=$('hist-filter').value;
-  const data=(f?_allHistory.filter(h=>h.action===f):_allHistory).slice(0,100); // limit 100
+  const f=$('hist-filter').value; const data=(f?_allHistory.filter(h=>h.action===f):_allHistory).slice(0,100);
   $('hist-list').innerHTML=data.map(h=>{
     const bc=h.action==='add'?'b-add':h.action==='use'?'b-use':'b-edit';
     const lb=h.action==='add'?'追加':h.action==='use'?'使用':'編集';
@@ -1275,7 +1187,6 @@ function initAdmin(){
   if(token&&isAdmin){ hide('admin-login-box'); show('admin-panel'); switchAtab('stock'); }
   else              { show('admin-login-box'); hide('admin-panel'); }
 }
-
 async function adminLogin(){
   hide('a-err');
   if(!API){ $('a-err').style.display=''; $('a-err').textContent='APIが設定されていません'; return; }
@@ -1286,22 +1197,13 @@ async function adminLogin(){
     updateUserUI(); hide('admin-login-box'); show('admin-panel'); switchAtab('stock');
   }catch(e){ $('a-err').style.display=''; $('a-err').textContent=e.message; }
 }
-
 function switchAtab(tab){
-  ['stock','export','users','cache'].forEach(t=>{
-    $('atab-'+t).classList.toggle('active',t===tab);
-    $('asec-'+t).style.display=t===tab?'':'none';
-  });
-  if(tab==='stock') loadAdminStock();
-  if(tab==='users') loadAdminUsers();
-  if(tab==='cache') updateCacheInfo();
+  ['stock','export','users','cache'].forEach(t=>{ $('atab-'+t).classList.toggle('active',t===tab); $('asec-'+t).style.display=t===tab?'':'none'; });
+  if(tab==='stock') loadAdminStock(); if(tab==='users') loadAdminUsers(); if(tab==='cache') updateCacheInfo();
 }
-
 async function loadAdminStock(){
   _allAdminStock=cacheIsValid()?_cache.data:[];
-  if(!_allAdminStock.length && API){
-    try{ _allAdminStock=await apiFetch('/stock'); }catch(e){ $('admin-stock-list').innerHTML=errMsg(e.message); return; }
-  }
+  if(!_allAdminStock.length && API){ try{ _allAdminStock=await apiFetch('/stock'); }catch(e){ $('admin-stock-list').innerHTML=errMsg(e.message); return; } }
   filterAdminStock();
 }
 function filterAdminStock(){
@@ -1328,28 +1230,16 @@ function renderAdminStock(items){
     </div>`;
   }).join('')||emptyMsg('データなし');
 }
-
 async function saveAdminQty(part_no,name,sid){
   const qty=parseInt($('eq-'+sid).value);
   if(isNaN(qty)||qty<0){ toast('数量を入力してください',true); return; }
   if(!API){ toast('APIが設定されていません',true); return; }
-  try{
-    await apiFetch('/admin/stock/edit',{method:'PUT',body:JSON.stringify({part_no,name,qty,user:currentUser})});
-    toast(`✓ ${part_no} → ${qty}`);
-    await refreshCache(true); filterAdminStock();
-  }catch(e){ toast(e.message,true); }
+  try{ await apiFetch('/admin/stock/edit',{method:'PUT',body:JSON.stringify({part_no,name,qty,user:currentUser})}); toast(`✓ ${part_no} → ${qty}`); await refreshCache(true); filterAdminStock(); }catch(e){ toast(e.message,true); }
 }
-
 async function deleteStockItem(part_no){
   if(!confirm(`品番 ${part_no} を削除しますか？`)) return;
-  if(!API){ toast('APIが設定されていません',true); return; }
-  try{
-    await apiFetch(`/admin/stock/${encodeURIComponent(part_no)}`,{method:'DELETE'});
-    toast(`✓ ${part_no} を削除しました`);
-    await refreshCache(true); filterAdminStock();
-  }catch(e){ toast(e.message,true); }
+  try{ await apiFetch(`/admin/stock/${encodeURIComponent(part_no)}`,{method:'DELETE'}); toast(`✓ ${part_no} を削除しました`); await refreshCache(true); filterAdminStock(); }catch(e){ toast(e.message,true); }
 }
-
 async function exportCSV(type){
   if(!API){ toast('APIが設定されていません',true); return; }
   try{
@@ -1360,7 +1250,6 @@ async function exportCSV(type){
     a.click(); URL.revokeObjectURL(url);
   }catch(e){ toast(e.message,true); }
 }
-
 async function loadAdminUsers(){
   if(!API){ $('users-list').innerHTML=emptyMsg('APIが設定されていません'); return; }
   try{
@@ -1375,39 +1264,22 @@ async function loadAdminUsers(){
       </div>`).join('');
   }catch(e){ $('users-list').innerHTML=errMsg(e.message); }
 }
-
 async function createUser(){
   const username=$('nu-name').value.trim(), password=$('nu-pass').value.trim(), is_admin=$('nu-admin').checked;
   if(!username||!password){ toast('ユーザー名とパスワードを入力してください',true); return; }
-  if(!API){ toast('APIが設定されていません',true); return; }
-  try{
-    await apiFetch('/admin/users',{method:'POST',body:JSON.stringify({username,password,is_admin})});
-    toast(`✓ ${username} を追加しました`);
-    $('nu-name').value=''; $('nu-pass').value=''; $('nu-admin').checked=false;
-    loadAdminUsers();
-  }catch(e){ toast(e.message,true); }
+  try{ await apiFetch('/admin/users',{method:'POST',body:JSON.stringify({username,password,is_admin})}); toast(`✓ ${username} を追加しました`); $('nu-name').value=''; $('nu-pass').value=''; $('nu-admin').checked=false; loadAdminUsers(); }catch(e){ toast(e.message,true); }
 }
-
 async function deleteUser(username){
   if(!confirm(`${username} を削除しますか？`)) return;
-  if(!API){ toast('APIが設定されていません',true); return; }
-  try{
-    await apiFetch(`/admin/users/${encodeURIComponent(username)}`,{method:'DELETE'});
-    toast(`✓ ${username} を削除しました`); loadAdminUsers();
-  }catch(e){ toast(e.message,true); }
+  try{ await apiFetch(`/admin/users/${encodeURIComponent(username)}`,{method:'DELETE'}); toast(`✓ ${username} を削除しました`); loadAdminUsers(); }catch(e){ toast(e.message,true); }
 }
 
 // ════════════════════════════════════════════════
-// 起動 — 既存セッションチェック
+// 起動
 // ════════════════════════════════════════════════
 (function init(){
   updateUserUI();
-  // 既存JWT or ゲストユーザーがいればログイン画面をスキップ
-  if(token||currentUser){
-    hide('login-overlay');
-    refreshCache(false).then(()=>go('home'));
-  }
-  // それ以外はlogin-overlayを表示したまま（デフォルト）
+  if(token||currentUser){ hide('login-overlay'); refreshCache(false).then(()=>go('home')); }
 })();
 </script>
 </body>
