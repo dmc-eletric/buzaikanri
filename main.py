@@ -1,3 +1,4 @@
+"""
 部材・補材管理システム — FastAPI バックエンド
 Google Sheets をリアルタイムDBとして使用
 Render Web Service にデプロイする構成
