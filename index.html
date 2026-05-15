@@ -77,8 +77,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .cam-box{position:relative;width:100%;background:#000;border-radius:14px;overflow:hidden;border:2px solid #7c3aed;}
 .cam-box video{width:100%;display:block;height:240px;object-fit:cover;}
 .cam-guide{position:absolute;inset:0;pointer-events:none;display:flex;align-items:center;justify-content:center;}
-/* Khung vuông to hơn cho Data Matrix */
-.cam-guide-rect{border:2px solid rgba(255,255,255,.8);border-radius:12px;width:220px;height:220px;box-shadow:0 0 0 9999px rgba(0,0,0,.4);}
+.cam-guide-rect{border:2px solid rgba(255,255,255,.8);border-radius:8px;width:220px;height:220px;box-shadow:0 0 0 9999px rgba(0,0,0,.4);}
 .shutter{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);width:58px;height:58px;border-radius:50%;background:#fff;border:4px solid #7c3aed;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(124,58,237,.4);transition:transform .1s;z-index:5;}
 .shutter:active{transform:translateX(-50%) scale(.9);}
 .shutter svg{width:24px;height:24px;}
@@ -161,7 +160,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 <!-- ══════ MAIN ══════ -->
 <div id="main-content">
 
-  <!-- HOME -->
+  <!-- HOME (compact dashboard) -->
   <div id="page-home" class="page">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
       <div>
@@ -170,14 +169,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
       </div>
       <button onclick="refreshCache(true)" style="background:#ede9fe;color:#5b21b6;border:none;padding:7px 13px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">更新</button>
     </div>
+    <!-- 4-stat row -->
     <div class="dash-row">
       <div class="dash-card"><div id="stat-total" class="dash-num" style="color:#111827;">—</div><div class="dash-lbl">品番数</div></div>
       <div class="dash-card"><div id="stat-low"   class="dash-num" style="color:#f59e0b;">—</div><div class="dash-lbl">在庫少</div></div>
       <div class="dash-card"><div id="stat-zero"  class="dash-num" style="color:#ef4444;">—</div><div class="dash-lbl">ゼロ</div></div>
       <div class="dash-card"><div id="stat-today" class="dash-num" style="color:#7c3aed;">—</div><div class="dash-lbl">今日操作</div></div>
     </div>
+    <!-- Top3 critical -->
     <div style="font-size:13px;font-weight:700;color:#374151;margin-bottom:8px;">⚠️ 要補充 TOP3</div>
     <div id="home-top3"></div>
+    <!-- Quick actions -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px;">
       <button onclick="go('add')" style="background:#7c3aed;color:#fff;border:none;border-radius:12px;padding:14px;font-size:14px;font-weight:600;cursor:pointer;">＋ 部材追加</button>
       <button onclick="go('use')" style="background:#1d4ed8;color:#fff;border:none;border-radius:12px;padding:14px;font-size:14px;font-weight:600;cursor:pointer;">－ 部材使用</button>
@@ -196,7 +198,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
       <div style="margin-bottom:12px;">
         <label style="font-size:13px;color:#4b5563;display:block;margin-bottom:4px;">品番 *</label>
         <div style="display:flex;gap:8px;">
-          <input id="add-pno" type="text" class="form-input" placeholder="例: MTNS000437AA" style="flex:1;" oninput="onAddPnoInput()"/>
+          <input id="add-pno" type="text" class="form-input" placeholder="例: ABC-001" style="flex:1;" oninput="onAddPnoInput()"/>
           <button onclick="searchAddPno()" style="background:#7c3aed;color:#fff;padding:10px 14px;border-radius:8px;font-size:14px;font-weight:600;border:none;cursor:pointer;">検索</button>
         </div>
       </div>
@@ -672,6 +674,7 @@ function go(page){
   if(page!=='add'){ cleanupCam('add-video',addStream); addStream=null; }
   if(page!=='use'){ cleanupCam('use-video',useStream); useStream=null; }
 
+  // Ẩn/Hiện Giỏ hàng nổi
   if(page==='use') updateSessionCartUI(); else hide('session-cart-panel');
 
   if(page==='home') initHome(); if(page==='add') initAdd(); if(page==='use') initUse();
@@ -815,7 +818,7 @@ function toggleInlineUse(part_no, name, stock, sid) {
   }
   const panel = $('inline-' + sid); const card = $('card-' + sid);
   
-  // FIX: Dùng style.display = 'block' để ép nó hiện ra, chứ không dùng display='' vì sẽ bị class display:none ghi đè
+  // FIX: Dùng style.display = 'block' để ép nó hiện ra
   if (panel.style.display === 'none' || panel.style.display === '') {
     panel.style.display = 'block'; 
     card.classList.add('has-inline'); 
@@ -933,6 +936,7 @@ function renderMultiResults(res){
     }
   }).join('');
 }
+
 
 // ════════════════════════════════════════════════
 // 簿外管理 (BOGAI) - THÊM VÀ SỬ DỤNG
