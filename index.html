@@ -144,6 +144,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
     <div class="sl" id="sl-use"     onclick="go('use')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:16px;height:16px;flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/></svg>部材使用</div>
     <div class="sl" id="sl-stock"   onclick="go('stock')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:16px;height:16px;flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>在庫確認</div>
     <div class="sl" id="sl-history" onclick="go('history')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:16px;height:16px;flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>履歴確認</div>
+    
+    <!-- MỚI THÊM: Menu 簿外 -->
+    <div style="font-size:11px;font-weight:600;color:#9ca3af;padding:4px 8px;margin:8px 0 2px;">簿外管理 (Off-book)</div>
+    <div class="sl" id="sl-bogai-add" onclick="go('bogai-add')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:16px;height:16px;flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>簿外追加</div>
+    <div class="sl" id="sl-bogai-use" onclick="go('bogai-use')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:16px;height:16px;flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>簿外使用</div>
+
     <div style="font-size:11px;font-weight:600;color:#9ca3af;padding:4px 8px;margin:8px 0 2px;">ADMIN</div>
     <div class="sl" id="sl-admin"   onclick="go('admin')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:16px;height:16px;flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>管理（Admin）</div>
   </nav>
@@ -351,21 +357,50 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
         <button onclick="closeUseConfirm()" class="btn-g">キャンセル</button>
       </div>
     </div>
+  </div>
 
-    <!-- TÍNH NĂNG MỚI: Bảng xuất dữ liệu các sản phẩm ĐÃ DÙNG trong phiên -->
-    <div class="cart-panel" id="session-cart-panel" style="display:none;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-        <div>
-          <div style="font-size:14px;font-weight:700;color:#166534;">✅ 今回使用したアイテム</div>
-          <div style="font-size:11px;color:#15803d;margin-top:2px;" id="cart-count">0 件</div>
-        </div>
-        <button onclick="exportSessionCartCSV()" style="background:#16a34a;color:#fff;border:none;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;">
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:14px;height:14px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-          CSV出力
-        </button>
+  <!-- ══════ 簿外追加 (BOGAI ADD) ══════ -->
+  <div id="page-bogai-add" class="page hidden">
+    <div style="font-size:18px;font-weight:700;color:#111827;margin-bottom:14px;">簿外追加 (Off-book Add)</div>
+    <div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;">
+      <div style="margin-bottom:12px;">
+        <label style="font-size:13px;color:#4b5563;font-weight:600;display:block;margin-bottom:4px;">在庫品 (Item Name) *</label>
+        <input id="ba-name" type="text" class="form-input" placeholder="例: 1001Nノズル"/>
       </div>
+      <div style="margin-bottom:12px;display:flex;gap:10px;">
+        <div style="flex:1;">
+          <label style="font-size:13px;color:#4b5563;font-weight:600;display:block;margin-bottom:4px;">区分 (Category)</label>
+          <input id="ba-category" type="text" class="form-input" placeholder="例: ノズル"/>
+        </div>
+        <div style="flex:1;">
+          <label style="font-size:13px;color:#4b5563;font-weight:600;display:block;margin-bottom:4px;">状態 (Condition)</label>
+          <input id="ba-condition" type="text" class="form-input" placeholder="例: 新品"/>
+        </div>
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:13px;color:#4b5563;font-weight:600;display:block;margin-bottom:4px;">数量 (Quantity) *</label>
+        <input id="ba-qty" type="number" min="1" class="form-input" placeholder="0" style="width:120px;"/>
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:13px;color:#4b5563;font-weight:600;display:block;margin-bottom:4px;">保管場所 (Location)</label>
+        <input id="ba-location" type="text" class="form-input" placeholder="例: 別館2階..."/>
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="font-size:13px;color:#4b5563;font-weight:600;display:block;margin-bottom:4px;">備考 (Remarks)</label>
+        <input id="ba-remarks" type="text" class="form-input" placeholder="備考を入力"/>
+      </div>
+      <button onclick="submitBogaiAdd()" class="btn-p">簿外リストに追加</button>
     </div>
+  </div>
 
+  <!-- ══════ 簿外使用 (BOGAI USE) ══════ -->
+  <div id="page-bogai-use" class="page hidden">
+    <div style="font-size:18px;font-weight:700;color:#111827;margin-bottom:14px;">簿外使用 (Off-book Use)</div>
+    <div class="search-wrap">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/></svg>
+      <input id="bu-search-inp" class="search-bar" type="text" placeholder="在庫品名で検索 (Search Item Name)" oninput="debounce('bogai',()=>searchBogaiUse())"/>
+    </div>
+    <div id="bu-list" style="display:flex;flex-direction:column;gap:8px;"></div>
   </div>
 
   <!-- 在庫確認 -->
@@ -469,6 +504,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 </nav>
 <div id="drawer-overlay" onclick="closeDrawer()"></div>
 <div id="more-drawer">
+  <div style="font-size:11px;font-weight:600;color:#9ca3af;padding:10px 20px 4px;">簿外管理 (Off-book)</div>
+  <div class="drawer-item" onclick="go('bogai-add');closeDrawer()"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>簿外追加</div>
+  <div class="drawer-item" onclick="go('bogai-use');closeDrawer()"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>簿外使用</div>
+  <div style="height:1px;background:#f3f4f6;margin:4px 20px;"></div>
   <div class="drawer-item" onclick="go('history');closeDrawer()"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>履歴確認</div>
   <div class="drawer-item" onclick="go('admin');closeDrawer()"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>管理（Admin）</div>
   <div style="padding:8px 20px;border-top:1px solid #f3f4f6;margin-top:4px;display:flex;align-items:center;gap:8px;">
@@ -481,7 +520,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 // ════════════════════════════════════════════════
 // CONFIG — RenderのURLを設定してください
 // ════════════════════════════════════════════════
-const API = "https://buzaikanri.onrender.com";  // <--- Hãy chắc chắn link ở đây CHƯA BỊ CÓ DẤU / Ở CUỐI.
+const API = "https://buzaikanri.onrender.com";  
 const CACHE_TTL_MS   = 3 * 60 * 1000;  // 在庫キャッシュ有効期限 3分
 const RENDER_PAGE    = 40;              // 一度にレンダリングする行数
 
@@ -596,6 +635,7 @@ let _allHistory = [];
 let _stockFiltered = [];
 let _stockRenderOffset = 0;
 let _allAdminStock = [];
+let activeBogaiInline = null;
 
 const _dbt = {};
 function debounce(key, fn, ms=300){
@@ -611,6 +651,7 @@ const show= id => { const e=$(id); if(e) e.style.display=''; };
 const hide= id => { const e=$(id); if(e) e.style.display='none'; };
 const setText=(id,v)=>{ const e=$(id); if(e) e.textContent=v??''; };
 function esc(s){ return s==null?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escJS(s){ return s==null?'':String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'\\"'); }
 function qtyColor(q){ return q<=0?'#ef4444':q<=5?'#f59e0b':'#059669'; }
 function emptyMsg(m){ return `<p style="color:#9ca3af;font-size:13px;text-align:center;padding:16px 0;">${esc(m)}</p>`; }
 function errMsg(m)  { return `<p style="color:#ef4444;font-size:12px;padding:8px;">${esc(m)}</p>`; }
@@ -767,6 +808,8 @@ function go(page){
     if(page==='stock')   initStock();
     if(page==='history') initHistory();
     if(page==='admin')   initAdmin();
+    if(page==='bogai-add') initBogaiAdd();
+    if(page==='bogai-use') initBogaiUse();
   }catch(e){ console.error('page init error:',e); }
 }
 
@@ -921,7 +964,7 @@ async function submitScanAdd(){
 }
 
 // ════════════════════════════════════════════════
-// 部材使用 (USE) + Giỏ hàng Xuất file (Cart)
+// 部材使用 (USE)
 // ════════════════════════════════════════════════
 function initUse(){
   $('use-tab-pno').classList.add('active');
@@ -929,7 +972,6 @@ function initUse(){
   show('use-pno-area');
   ['name','scan','multi'].forEach(m=>hide('use-'+m+'-area'));
   hide('use-confirm'); useConfirmData=null;
-  updateSessionCartUI();
 }
 
 function setUseMode(mode){
@@ -957,7 +999,7 @@ function renderUseList(cid, items){
   if(!items?.length){ c.innerHTML=emptyMsg(cacheIsValid()?'該当なし':'キャッシュが空です'); return; }
   const show50=items.slice(0,RENDER_PAGE);
   c.innerHTML=show50.map(it=>`
-    <div class="item-card" onclick="openUseConfirm('${esc(it.part_no)}','${esc(it.name)}',${it.qty})" style="cursor:pointer;">
+    <div class="item-card" onclick="openUseConfirm('${esc(it.part_no)}','${escJS(it.name)}',${it.qty})" style="cursor:pointer;">
       <div style="flex:1;min-width:0;">
         <div style="font-size:11px;color:#6b7280;">${esc(it.part_no)}</div>
         <div style="font-size:14px;font-weight:600;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.name)}</div>
@@ -987,49 +1029,10 @@ async function submitUse(){
   try{
     await apiFetch('/stock/use',{method:'POST',body:JSON.stringify({part_no:useConfirmData.part_no,qty,user:currentUser||'ゲスト'})});
     toast(`✓ ${useConfirmData.part_no} を ${qty} 使用しました`);
-    
-    // TÍNH NĂNG MỚI: Thêm vào danh sách xuất file
-    sessionCart.push({ part_no: useConfirmData.part_no, name: useConfirmData.name, qty: qty, time: new Date().toLocaleTimeString('ja-JP').slice(0,5) });
-    updateSessionCartUI();
-
     await refreshCache(true); closeUseConfirm();
     const mode=document.querySelector('#page-use .mode-tab.active')?.id?.replace('use-tab-','');
     if(mode==='pno') searchUsePno(); if(mode==='name') searchUseName();
   }catch(e){ show('uc-err'); $('uc-err').textContent=e.message; }
-}
-
-// ── Tính năng xuất file Excel cho đồ đã dùng ──
-function updateSessionCartUI(){
-  if(sessionCart.length > 0){
-    show('session-cart-panel');
-    $('cart-count').textContent = `${sessionCart.length} アイテム`;
-  } else {
-    hide('session-cart-panel');
-  }
-}
-
-function exportSessionCartCSV(){
-  if(sessionCart.length === 0){ toast('データがありません',true); return; }
-  
-  // Tạo chuỗi CSV (có BOM để Excel ko bị lỗi font tiếng Nhật)
-  let csv = '\uFEFF'; 
-  csv += '品番,品名,使用数量,時間\n'; // Header
-  
-  sessionCart.forEach(item => {
-    // Đảm bảo escape chuỗi an toàn
-    const safeName = item.name.replace(/"/g, '""');
-    csv += `"${item.part_no}","${safeName}","${item.qty}","${item.time}"\n`;
-  });
-
-  // Tải file về
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.setAttribute("href", url);
-  link.setAttribute("download", `使用リスト_${new Date().toISOString().slice(0,10)}.csv`);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
 }
 
 // ── Camera (Use) ──
@@ -1075,7 +1078,7 @@ async function analyzeUseCanvas(c){
   if(r?.part_no){
     show('use-scan-result');
     $('use-scan-item').innerHTML=`
-      <div class="item-card" onclick="openUseConfirm('${esc(r.part_no)}','${esc(r.name)}',${r.qty})" style="cursor:pointer;">
+      <div class="item-card" onclick="openUseConfirm('${esc(r.part_no)}','${escJS(r.name)}',${r.qty})" style="cursor:pointer;">
         <div style="flex:1;min-width:0;">
           <div style="font-size:11px;color:#6b7280;">${esc(r.part_no)}</div>
           <div style="font-size:14px;font-weight:600;color:#111827;">${esc(r.name)}</div>
@@ -1109,7 +1112,7 @@ async function searchMulti(){
 function renderMultiResults(res){
   if(!res.length){ $('use-multi-list').innerHTML=emptyMsg('該当なし'); return; }
   $('use-multi-list').innerHTML=res.map(it=>it.found
-    ?`<div class="item-card multi-reg" onclick="openUseConfirm('${esc(it.part_no)}','${esc(it.name)}',${it.qty})" style="cursor:pointer;">
+    ?`<div class="item-card multi-reg" onclick="openUseConfirm('${esc(it.part_no)}','${escJS(it.name)}',${it.qty})" style="cursor:pointer;">
         <div style="flex:1;min-width:0;"><div style="font-size:11px;color:#6b7280;">${esc(it.part_no)}</div>
         <div style="font-size:14px;font-weight:600;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.name)}</div></div>
         <div style="text-align:right;flex-shrink:0;">
@@ -1120,6 +1123,131 @@ function renderMultiResults(res){
         <div style="font-size:13px;font-weight:600;color:#9ca3af;">未登録</div></div>
         <span style="background:#fee2e2;color:#991b1b;font-size:11px;padding:3px 8px;border-radius:99px;flex-shrink:0;">未登録</span></div>`
   ).join('');
+}
+
+
+// ════════════════════════════════════════════════
+// 簿外追加 (BOGAI ADD)
+// ════════════════════════════════════════════════
+function initBogaiAdd(){
+  $('ba-name').value = ''; $('ba-category').value = ''; $('ba-condition').value = '';
+  $('ba-qty').value = ''; $('ba-location').value = ''; $('ba-remarks').value = '';
+}
+
+async function submitBogaiAdd(){
+  const name = $('ba-name').value.trim();
+  const category = $('ba-category').value.trim();
+  const condition = $('ba-condition').value.trim();
+  const qty = parseInt($('ba-qty').value);
+  const location = $('ba-location').value.trim();
+  const remarks = $('ba-remarks').value.trim();
+
+  if(!name) { toast('在庫品名を入力してください', true); return; }
+  if(isNaN(qty) || qty < 1) { toast('数量を正しく入力してください', true); return; }
+
+  const payload = { item_name: name, category, condition, qty, location, remarks, user: currentUser };
+
+  if(!API){ toast('APIが設定されていません',true); return; }
+  
+  try{ 
+    await apiFetch('/bogai/add', { method:'POST', body:JSON.stringify(payload) }); 
+    toast(`✓ 簿外アイテムを追加しました`); 
+    initBogaiAdd(); 
+  } catch(e) { 
+    toast(e.message, true); 
+  }
+}
+
+// ════════════════════════════════════════════════
+// 簿外使用 (BOGAI USE)
+// ════════════════════════════════════════════════
+function initBogaiUse(){
+  $('bu-search-inp').value = '';
+  $('bu-list').innerHTML = emptyMsg('在庫品名で検索してください');
+}
+
+async function searchBogaiUse(){
+  const q = $('bu-search-inp').value.trim();
+  if(!q) { $('bu-list').innerHTML = emptyMsg('在庫品名で検索してください'); return; }
+  
+  if(!API){ toast('APIが設定されていません',true); return; }
+
+  try {
+    const res = await apiFetch(`/bogai/search?query=${encodeURIComponent(q)}`);
+    renderBogaiList(res || []);
+  } catch(e) {
+    $('bu-list').innerHTML = errMsg(e.message);
+  }
+}
+
+function renderBogaiList(items){
+  if(!items?.length){ $('bu-list').innerHTML = emptyMsg('該当なし'); return; }
+  
+  $('bu-list').innerHTML = items.map(it => {
+    const safeId = it.item_name.replace(/[^a-zA-Z0-9]/g,'_');
+    const safeNameJS = escJS(it.item_name);
+    return `
+    <div>
+      <div class="item-card" id="bcard-${safeId}" onclick="toggleBogaiInline('${safeId}', '${safeNameJS}', ${it.qty})" style="cursor:pointer; z-index:2; position:relative;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:11px;color:#6b7280;">${esc(it.category)} | ${esc(it.condition)}</div>
+          <div style="font-size:14px;font-weight:600;color:#111827;">${esc(it.item_name)}</div>
+          <div style="font-size:10px;color:#9ca3af;margin-top:2px;">${esc(it.location)}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:20px;font-weight:700;color:${qtyColor(it.qty)};">${it.qty}</div>
+          <div style="font-size:10px;color:#9ca3af;">在庫</div>
+        </div>
+      </div>
+      <div class="inline-panel" id="binline-${safeId}">
+        <div style="display:flex;gap:8px;align-items:center;">
+          <div style="flex:1;">
+            <label style="font-size:11px;color:#6b7280;display:block;margin-bottom:4px;">使用数量を入力</label>
+            <input id="binline-qty-${safeId}" type="number" min="1" class="form-input" style="padding:8px 12px;font-size:15px;background:#fff;" placeholder="0"/>
+          </div>
+          <button onclick="submitBogaiUse('${safeId}', '${safeNameJS}', ${it.qty})" style="background:#059669;color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer;margin-top:16px;">簿外使用</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleBogaiInline(id, name, stock) {
+  if (activeBogaiInline && activeBogaiInline !== id) {
+    const oldPanel = $('binline-' + activeBogaiInline);
+    if(oldPanel) oldPanel.style.display = 'none';
+    const oldCard = $('bcard-' + activeBogaiInline);
+    if(oldCard) oldCard.classList.remove('has-inline');
+  }
+  const panel = $('binline-' + id);
+  const card = $('bcard-' + id);
+  if (panel.style.display === 'none' || panel.style.display === '') {
+    panel.style.display = 'block'; 
+    card.classList.add('has-inline'); 
+    activeBogaiInline = id;
+    setTimeout(() => { const inp = $('binline-qty-'+id); if(inp) inp.focus(); }, 100);
+  } else {
+    panel.style.display = 'none'; 
+    card.classList.remove('has-inline'); 
+    activeBogaiInline = null;
+  }
+}
+
+async function submitBogaiUse(id, name, stock){
+  const qtyInp = $('binline-qty-'+id); if(!qtyInp) return;
+  const qty = parseInt(qtyInp.value);
+  if(isNaN(qty)||qty<1){ toast('数量を入力してください', true); return; }
+  if(qty>stock){ toast(`在庫数 (${stock}) を超えています`, true); return; }
+  
+  qtyInp.disabled = true;
+  try{
+    await apiFetch('/bogai/use',{method:'POST',body:JSON.stringify({item_name: name, qty: qty, user: currentUser})});
+    toast(`✓ 簿外 ${name} を ${qty} 使用しました`);
+    searchBogaiUse(); // Refresh
+  }catch(e){ 
+    toast(e.message, true); 
+    qtyInp.disabled = false; 
+  }
 }
 
 // ════════════════════════════════════════════════
@@ -1243,44 +1371,4 @@ async function deleteStockItem(part_no){
 async function exportCSV(type){
   if(!API){ toast('APIが設定されていません',true); return; }
   try{
-    const r=await fetch(API+`/admin/export/${type}`,{headers:token?{'Authorization':`Bearer ${token}`}:{}});
-    if(!r.ok) throw new Error('エクスポート失敗');
-    const blob=await r.blob(), url=URL.createObjectURL(blob);
-    const a=document.createElement('a'); a.href=url; a.download=`${type}_${new Date().toISOString().slice(0,10)}.csv`;
-    a.click(); URL.revokeObjectURL(url);
-  }catch(e){ toast(e.message,true); }
-}
-async function loadAdminUsers(){
-  if(!API){ $('users-list').innerHTML=emptyMsg('APIが設定されていません'); return; }
-  try{
-    const u=await apiFetch('/admin/users');
-    $('users-list').innerHTML=u.map(u=>`
-      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:8px;">
-        <div style="flex:1;">
-          <div style="font-size:14px;font-weight:600;color:#111827;">${esc(u.username)}</div>
-          <div style="font-size:11px;color:#6b7280;">${u.is_admin?'管理者':'一般'}</div>
-        </div>
-        ${u.username!=='admin'?`<button onclick="deleteUser('${esc(u.username)}')" class="btn-d" style="padding:5px 10px;font-size:12px;">削除</button>`:''}
-      </div>`).join('');
-  }catch(e){ $('users-list').innerHTML=errMsg(e.message); }
-}
-async function createUser(){
-  const username=$('nu-name').value.trim(), password=$('nu-pass').value.trim(), is_admin=$('nu-admin').checked;
-  if(!username||!password){ toast('ユーザー名とパスワードを入力してください',true); return; }
-  try{ await apiFetch('/admin/users',{method:'POST',body:JSON.stringify({username,password,is_admin})}); toast(`✓ ${username} を追加しました`); $('nu-name').value=''; $('nu-pass').value=''; $('nu-admin').checked=false; loadAdminUsers(); }catch(e){ toast(e.message,true); }
-}
-async function deleteUser(username){
-  if(!confirm(`${username} を削除しますか？`)) return;
-  try{ await apiFetch(`/admin/users/${encodeURIComponent(username)}`,{method:'DELETE'}); toast(`✓ ${username} を削除しました`); loadAdminUsers(); }catch(e){ toast(e.message,true); }
-}
-
-// ════════════════════════════════════════════════
-// 起動
-// ════════════════════════════════════════════════
-(function init(){
-  updateUserUI();
-  if(token||currentUser){ hide('login-overlay'); refreshCache(false).then(()=>go('home')); }
-})();
-</script>
-</body>
-</html>
+    const r=await fe
