@@ -76,7 +76,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .cam-box video{width:100%;display:block;height:220px;object-fit:cover;}
 /* Guide overlay inside camera */
 .cam-guide{position:absolute;inset:0;pointer-events:none;display:flex;align-items:center;justify-content:center;}
-.cam-guide-rect{border:2px solid rgba(255,255,255,.7);border-radius:6px;width:80%;height:38%;box-shadow:0 0 0 9999px rgba(0,0,0,.35);}
+.cam-guide-rect{border:2px solid rgba(255,255,255,.8);border-radius:12px;width:220px;height:220px;box-shadow:0 0 0 9999px rgba(0,0,0,.4);}
 .shutter{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);width:58px;height:58px;border-radius:50%;background:#fff;border:4px solid #7c3aed;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(124,58,237,.4);transition:transform .1s;z-index:5;}
 .shutter:active{transform:translateX(-50%) scale(.9);}
 .shutter svg{width:24px;height:24px;}
@@ -464,12 +464,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 // ════════════════════════════════════════════════
 // CONFIG — RenderのURLを設定してください
 // ════════════════════════════════════════════════
-const API = "";  // 例: "https://your-app.onrender.com"
+const API = "https://buzaikanri.onrender.com/";  // 例: "https://your-app.onrender.com"
 const CACHE_TTL_MS   = 3 * 60 * 1000;  // 在庫キャッシュ有効期限 3分
 const RENDER_PAGE    = 40;              // 一度にレンダリングする行数
 
 // ════════════════════════════════════════════════
-// ZXing 遅延ロード（CODE_128 / EAN_13 専用設定）
+// ZXing 遅延ロード（DATA_MATRIX 等対応）
 // ════════════════════════════════════════════════
 let _zxingReady = false;
 function loadZXing(){
@@ -483,22 +483,26 @@ function loadZXing(){
   });
 }
 
-// ZXing デコード — CODE_128 / EAN_13 のみ、高精度設定
+// ZXing デコード — DATA_MATRIX / QR_CODE / CODE_128 対応
 async function zxingDecode(canvas){
   await loadZXing();
   const hints = new Map();
-  const formats = [ZXing.BarcodeFormat.CODE_128, ZXing.BarcodeFormat.EAN_13];
+  const formats = [
+    ZXing.BarcodeFormat.DATA_MATRIX,
+    ZXing.BarcodeFormat.QR_CODE,
+    ZXing.BarcodeFormat.CODE_128,
+    ZXing.BarcodeFormat.EAN_13
+  ];
   hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
   hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
 
-  // まず通常向き、次に水平flip、次にコントラスト強調で3回試みる
   const reader = new ZXing.MultiFormatReader();
   reader.setHints(hints);
 
   const tries = [
-    ()=> _canvasToBinaryBitmap(canvas, false, false),
-    ()=> _canvasToBinaryBitmap(canvas, false, true),
-    ()=> _canvasToBinaryBitmap(canvas, true,  false),
+    ()=> _canvasToBinaryBitmap(canvas, false, false), // Normal
+    ()=> _canvasToBinaryBitmap(canvas, true,  false), // High Contrast (Tốt cho Data Matrix)
+    ()=> _canvasToBinaryBitmap(canvas, false, true),  // Flip H
   ];
   for(const fn of tries){
     try{
@@ -532,9 +536,18 @@ function _canvasToBinaryBitmap(canvas, highContrast, flipH){
   return new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(lumi));
 }
 
-// バーコード正規化: trim + 連続空白除去 + * 除去
+// バーコード正規化: データマトリックスの制御文字や改行を除去
 function normalizeBarcode(raw){
-  return raw.replace(/\*/g,'').replace(/\s+/g,' ').trim();
+  // Xóa ký tự điều khiển (ASCII 0-31) thường có trong Data Matrix
+  let text = raw.replace(/[\x00-\x1F\x7F-\x9F]/g, ""); 
+  text = text.replace(/\*/g,'').trim();
+  
+  // Nếu trả về nhiều dòng, lấy dòng đầu tiên (thường là Part No)
+  if (text.includes('\n') || text.includes('\r')) {
+    let parts = text.split(/[\n\r]+/);
+    text = parts[0]; 
+  }
+  return text.replace(/\s+/g,' ').trim();
 }
 
 // ════════════════════════════════════════════════
