@@ -9,12 +9,12 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f9fafb;min-height:100vh;display:flex;}
 #sidebar{width:220px;flex-shrink:0;height:100vh;overflow-y:auto;border-right:1px solid #e5e7eb;background:#fff;display:flex;flex-direction:column;z-index:90;}
-#main-content{flex:1;overflow-y:auto;height:100vh;position:relative;padding-bottom:90px;}
+#main-content{flex:1;overflow-y:auto;height:100vh;position:relative;padding-bottom:100px;}
 @media(max-width:640px){
   body{display:block!important;}
   #sidebar{display:none!important;}
   #mobile-bottom-nav{display:flex!important;}
-  #main-content{height:calc(100vh - 64px);overflow-y:auto;padding-bottom:90px;}
+  #main-content{height:calc(100vh - 64px);overflow-y:auto;padding-bottom:100px;}
   .page{padding:14px!important;}
 }
 /* Login overlay */
@@ -97,7 +97,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .dash-lbl{font-size:10px;color:#6b7280;margin-top:3px;}
 .top3-item{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px;margin-bottom:6px;}
 .cache-badge{display:inline-block;background:#ede9fe;color:#5b21b6;font-size:10px;padding:2px 7px;border-radius:99px;margin-left:6px;vertical-align:middle;}
-/* Floating Cart Panel */
+/* Floating Cart Panel (Đã sửa lỗi CSS hiển thị) */
 .cart-floating{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);width:calc(100% - 40px);max-width:600px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:12px 16px;display:none;justify-content:space-between;align-items:center;box-shadow:0 10px 25px rgba(0,0,0,.1);z-index:80;}
 @media(max-width:640px){ .cart-floating{bottom:74px; width:calc(100% - 24px);} }
 </style>
@@ -259,7 +259,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
     </div>
   </div>
 
-  <!-- 部材使用 (Sử dụng hàng chuẩn - INLINE FLOW) -->
+  <!-- 部材使用 (Sử dụng hàng chuẩn) -->
   <div id="page-use" class="page hidden">
     <div style="font-size:18px;font-weight:700;color:#111827;margin-bottom:14px;">部材使用</div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:16px;">
@@ -494,14 +494,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 
 <script>
 // ════════════════════════════════════════════════
-// CONFIG — RenderのURLを設定してください
+// CONFIG
 // ════════════════════════════════════════════════
 const API = "https://buzaikanri.onrender.com";  // <--- LƯU Ý KHÔNG CÓ DẤU / Ở CUỐI
 const CACHE_TTL_MS   = 3 * 60 * 1000;
 const RENDER_PAGE    = 40;
 
 // ════════════════════════════════════════════════
-// Camera & Barcode Decoder (CODE_128 & Fix Regex M/N/K)
+// Camera & Barcode Decoder
 // ════════════════════════════════════════════════
 let _zxingReady = false;
 function loadZXing(){
@@ -543,13 +543,12 @@ function _canvasToBinaryBitmap(canvas, highContrast, flipH){
   return new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(lumi));
 }
 
-// FIX: Tìm chuỗi bắt đầu bằng M, N hoặc K (Dài >= 8 ký tự, chỉ chứa chữ hoa và số)
+// Lọc ký tự M/N/K
 function normalizeBarcode(raw){
   let text = raw.replace(/[\x00-\x1F\x7F-\x9F]/g, "").replace(/\*/g,'').trim();
   if (text.includes('\n') || text.includes('\r')) text = text.split(/[\n\r]+/)[0]; 
   
-  // Regex tìm đúng đoạn bắt đầu bằng M, N, K
-  let match = text.match(/[MNK][A-Z0-9-]{7,20}/);
+  let match = text.match(/[MNK][A-Z0-9-]{5,}/i);
   if (match) {
       return match[0].trim();
   }
@@ -662,7 +661,6 @@ function go(page){
   if(page!=='add'){ cleanupCam('add-video',addStream); addStream=null; }
   if(page!=='use'){ cleanupCam('use-video',useStream); useStream=null; }
 
-  // Ẩn/Hiện Giỏ hàng nổi
   if(page==='use') updateSessionCartUI(); else hide('session-cart-panel');
 
   if(page==='home') initHome(); if(page==='add') initAdd(); if(page==='use') initUse();
@@ -764,7 +762,6 @@ function setUseMode(mode){
 function searchUsePno(){ const pn=($('use-pno-inp').value||'').trim(); if(!pn){ $('use-pno-list').innerHTML=''; return; } renderUseList('use-pno-list', cacheSearch(pn,false)); }
 function searchUseName(){ const q=($('use-name-inp').value||'').trim(); if(!q){ $('use-name-list').innerHTML=''; return; } renderUseList('use-name-list', cacheSearch(q,true)); }
 
-// INLINE PANEL
 function renderUseList(cid, items){
   const c=$(cid); if(!items?.length){ c.innerHTML=emptyMsg(cacheIsValid()?'該当なし':'キャッシュが空です'); return; }
   const show50=items.slice(0,RENDER_PAGE);
@@ -831,8 +828,13 @@ async function submitInlineUse(part_no, name, stock, sid){
 
 // ── GIỎ HÀNG XUẤT CSV ──
 function updateSessionCartUI(){
-  if(sessionCart.length > 0){ show('session-cart-panel'); $('cart-count').textContent = `${sessionCart.length} 件`; } 
-  else { hide('session-cart-panel'); }
+  const p = $('session-cart-panel');
+  if(!p) return;
+  if(sessionCart.length > 0){ 
+    p.style.display = 'flex'; // KHÔNG ĐƯỢC XÓA DISPLAY FLEX
+    $('cart-count').textContent = `${sessionCart.length} 件`; 
+  } 
+  else { p.style.display = 'none'; }
 }
 function exportSessionCartCSV(){
   if(sessionCart.length === 0){ toast('データがありません',true); return; }
@@ -906,7 +908,7 @@ function renderMultiResults(res){
 
 
 // ════════════════════════════════════════════════
-// 簿外管理 (BOGAI) - THÊM MỚI VÀ SỬ DỤNG
+// 簿外管理 (BOGAI)
 // ════════════════════════════════════════════════
 function initBogaiAdd(){
   $('ba-name').value = ''; $('ba-category').value = ''; $('ba-condition').value = '';
@@ -986,7 +988,7 @@ async function submitBogaiUse(id, name, stock){
   try{
     await apiFetch('/bogai/use',{method:'POST',body:JSON.stringify({item_name: name, qty: qty, user: currentUser})});
     toast(`✓ 簿外 ${name} を ${qty} 使用しました`);
-    searchBogaiUse(); // Refresh
+    searchBogaiUse(); 
   }catch(e){ toast(e.message, true); qtyInp.disabled = false; }
 }
 

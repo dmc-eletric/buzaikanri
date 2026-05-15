@@ -26,13 +26,12 @@ from pydantic import BaseModel
 # ══════════════════════════════════════════════════
 # 環境変数
 # ══════════════════════════════════════════════════
-GOOGLE_SHEET_ID  = os.environ["GOOGLE_SHEET_ID"]       # スプレッドシートID
-GOOGLE_WORKSHEET = os.getenv("GOOGLE_WORKSHEET", "在庫")  # シート名（デフォルト: 在庫）
-SECRET_KEY       = os.environ["SECRET_KEY"]             # JWT署名キー
+GOOGLE_SHEET_ID  = os.environ["GOOGLE_SHEET_ID"]
+GOOGLE_WORKSHEET = os.getenv("GOOGLE_WORKSHEET", "在庫")
+SECRET_KEY       = os.environ["SECRET_KEY"]
 ALGORITHM        = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7              # 7日間
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7
 
-# credentials.json は同ディレクトリに配置 or 環境変数 GOOGLE_CREDENTIALS_JSON で渡す
 CREDENTIALS_JSON = os.getenv("GOOGLE_CREDENTIALS_JSON")
 
 # ══════════════════════════════════════════════════
@@ -60,14 +59,13 @@ def open_sheet(sheet_name: str) -> gspread.Worksheet:
         ws = sh.add_worksheet(title=sheet_name, rows=1000, cols=20)
         return ws
 
-
 # ──────────────────────────────────────────────────
 # シート名定数
 # ──────────────────────────────────────────────────
 WS_STOCK   = os.getenv("GOOGLE_WORKSHEET", "在庫")
 WS_HISTORY = "history"
 WS_USERS   = "ユーザー"
-WS_BOGAI   = "簿外"  # シート名: 簿外 (Mới thêm)
+WS_BOGAI   = "簿外"  # シート名: 簿外
 
 # ══════════════════════════════════════════════════
 # シートヘッダー初期化
@@ -75,7 +73,7 @@ WS_BOGAI   = "簿外"  # シート名: 簿外 (Mới thêm)
 STOCK_HEADERS   = ["品番", "品名", "数量", "更新日時"]
 HISTORY_HEADERS = ["操作日時", "操作ユーザー", "品番", "品名", "数量", "区分"]
 USERS_HEADERS   = ["ユーザー名", "パスワードハッシュ", "管理者"]
-BOGAI_HEADERS   = ["在庫品", "区分", "状態", "数量", "更新日", "保管場所", "備考"]  # 簿外ヘッダー
+BOGAI_HEADERS   = ["在庫品", "区分", "状態", "数量", "更新日", "保管場所", "備考"]
 
 def ensure_headers(ws: gspread.Worksheet, headers: List[str]) -> None:
     existing = ws.row_values(1)
@@ -125,7 +123,6 @@ def append_history(user: str, part_no: str, name: str, qty: int, action: str) ->
     ws = open_sheet(WS_HISTORY)
     ensure_headers(ws, HISTORY_HEADERS)
     ws.append_row([jst_now(), user, part_no, name, str(qty), action])
-
 
 # ══════════════════════════════════════════════════
 # 在庫 (STOCK) CRUD ヘルパー
@@ -215,10 +212,10 @@ def get_all_history() -> List[Dict[str, Any]]:
 
 
 # ══════════════════════════════════════════════════
-# 簿外 (BOGAI) CRUD ヘルパー  <--- TÍNH NĂNG MỚI
+# 簿外 (BOGAI) CRUD ヘルパー 
 # ══════════════════════════════════════════════════
 def find_bogai_row(ws: gspread.Worksheet, item_name: str) -> Optional[int]:
-    col_a = ws.col_values(1)  # Cột "在庫品"
+    col_a = ws.col_values(1)
     for i, val in enumerate(col_a[1:], start=2):
         if str(val).strip() == str(item_name).strip(): return i
     return None
@@ -252,21 +249,17 @@ def upsert_bogai(item_name: str, category: str, condition: str, delta: int, loca
         new_qty = current_qty + delta
         if new_qty < 0: raise HTTPException(status_code=400, detail=f"簿外在庫不足: 現在 {current_qty}, 使用 {abs(delta)}")
         
-        # Update Row: Nếu truyền lên rỗng thì lấy giá trị cũ
         cat = category if category else (row[1] if len(row)>1 else "")
         cond = condition if condition else (row[2] if len(row)>2 else "")
         loc = location if location else (row[5] if len(row)>5 else "")
         rem = remarks if remarks else (row[6] if len(row)>6 else "")
-        
         ws.update(f"B{row_no}:G{row_no}", [[cat, cond, str(new_qty), now, loc, rem]])
     else:
         if delta < 0: raise HTTPException(status_code=404, detail="アイテムが見つかりません")
         ws.append_row([item_name, category, condition, str(delta), now, location, remarks])
 
-    # Ghi vào History với tiền tố [簿外]
     append_history(user, "[簿外]", item_name, abs(delta), action)
     return {"message": "Success"}
-
 
 # ──────────────────────────────────────────────────
 # ユーザー管理
@@ -313,7 +306,6 @@ def ensure_admin_user() -> None:
             ws.append_row(["admin", hash_password("admin123"), "True"])
             print("[INFO] デフォルト admin ユーザーを作成しました（PW: admin123）")
     except Exception as e: print(f"[WARN] ensure_admin_user: {e}")
-
 
 # ══════════════════════════════════════════════════
 # Pydantic スキーマ
@@ -394,7 +386,7 @@ def use_stock(body: UseRequest):
     if body.qty < 1: raise HTTPException(status_code=400, detail="数量は1以上を入力してください")
     return upsert_stock(body.part_no, "", -body.qty, body.user, "use")
 
-# ── BOGAI API (Mới thêm) ──
+# ── BOGAI API ──
 @app.post("/bogai/add")
 def add_bogai(body: BogaiAddRequest):
     if body.qty < 1: raise HTTPException(status_code=400, detail="数量は1以上を入力してください")
@@ -411,7 +403,6 @@ def search_bogai(query: str = ""):
 def use_bogai(body: BogaiUseRequest):
     if body.qty < 1: raise HTTPException(status_code=400, detail="数量は1以上を入力してください")
     return upsert_bogai(body.item_name, "", "", -body.qty, "", "", body.user, "bogai_use")
-
 
 # ── STATS & HISTORY ──
 @app.get("/stats")
@@ -466,4 +457,3 @@ def admin_delete_user(username: str, _=Depends(get_admin_user)):
 def health(): return {"status": "ok", "time": jst_now()}
 @app.get("/")
 def root(): return {"message": "API", "docs": "/docs"}
-
