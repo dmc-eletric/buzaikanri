@@ -8,13 +8,13 @@
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f9fafb;min-height:100vh;display:flex;}
-#sidebar{width:220px;flex-shrink:0;height:100vh;overflow-y:auto;border-right:1px solid #e5e7eb;background:#fff;display:flex;flex-direction:column;z-index:90;}
-#main-content{flex:1;overflow-y:auto;height:100vh;position:relative;padding-bottom:100px;}
+#sidebar{width:220px;flex-shrink:0;height:100vh;overflow-y:auto;border-right:1px solid #e5e7eb;background:#fff;display:flex;flex-direction:column;}
+#main-content{flex:1;overflow-y:auto;height:100vh;}
 @media(max-width:640px){
   body{display:block!important;}
   #sidebar{display:none!important;}
   #mobile-bottom-nav{display:flex!important;}
-  #main-content{height:calc(100vh - 64px);overflow-y:auto;padding-bottom:100px;}
+  #main-content{height:calc(100vh - 64px);overflow-y:auto;padding-bottom:8px;}
   .page{padding:14px!important;}
 }
 /* Login overlay */
@@ -26,7 +26,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .bnav-btn.active{color:#7c3aed;}
 .bnav-btn svg{width:22px;height:22px;}
 /* More drawer */
-#more-drawer{display:none;position:fixed;bottom:64px;left:0;right:0;background:#fff;border-top:1px solid #e5e7eb;z-index:99;padding:8px 0;max-height:60vh;overflow-y:auto;}
+#more-drawer{display:none;position:fixed;bottom:64px;left:0;right:0;background:#fff;border-top:1px solid #e5e7eb;z-index:99;padding:8px 0;}
 #more-drawer.open{display:block;}
 #drawer-overlay{display:none;position:fixed;inset:0;z-index:98;}
 #drawer-overlay.open{display:block;}
@@ -41,12 +41,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .page.hidden{display:none!important;}
 /* Cards */
 .stat-card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:14px 10px;text-align:center;}
-.item-card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:12px;display:flex;align-items:center;gap:10px;transition:all 0.2s;}
-.item-card.has-inline{border-radius:12px 12px 0 0;border-bottom-color:transparent;}
+.item-card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:12px;display:flex;align-items:center;gap:10px;}
 .item-card.multi-reg{border-left:4px solid #7c3aed;}
 .item-card.multi-unreg{border-left:4px solid #f87171;opacity:.75;}
-/* Inline Panel */
-.inline-panel{background:#faf5ff;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px;padding:12px;margin-bottom:10px;display:none;animation:fsu .2s ease;}
 /* Forms */
 .form-input{width:100%;border:1px solid #d1d5db;border-radius:8px;padding:10px 14px;font-size:14px;outline:none;background:#fff;}
 .form-input:focus{border-color:#a78bfa;box-shadow:0 0 0 3px rgba(167,139,250,.15);}
@@ -69,15 +66,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .b-add{background:#d1fae5;color:#065f46;font-size:11px;padding:3px 8px;border-radius:99px;white-space:nowrap;}
 .b-use{background:#dbeafe;color:#1e40af;font-size:11px;padding:3px 8px;border-radius:99px;white-space:nowrap;}
 .b-edit{background:#fef3c7;color:#92400e;font-size:11px;padding:3px 8px;border-radius:99px;white-space:nowrap;}
+.b-low{background:#fee2e2;color:#991b1b;font-size:11px;padding:3px 8px;border-radius:99px;white-space:nowrap;}
 /* Toast */
 .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:#1f2937;color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:999;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap;max-width:90vw;text-align:center;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-/* Camera */
+/* Camera / Photo scan */
 .photo-wrap{max-width:380px;margin:0 auto;}
 .cam-box{position:relative;width:100%;background:#000;border-radius:14px;overflow:hidden;border:2px solid #7c3aed;}
-.cam-box video{width:100%;display:block;height:240px;object-fit:cover;}
+.cam-box video{width:100%;display:block;height:220px;object-fit:cover;}
+/* Guide overlay inside camera */
 .cam-guide{position:absolute;inset:0;pointer-events:none;display:flex;align-items:center;justify-content:center;}
-.cam-guide-rect{border:2px solid rgba(255,255,255,.8);border-radius:8px;width:220px;height:220px;box-shadow:0 0 0 9999px rgba(0,0,0,.4);}
+.cam-guide-rect{border:2px solid rgba(255,255,255,.8);border-radius:12px;width:220px;height:220px;box-shadow:0 0 0 9999px rgba(0,0,0,.4);}
 .shutter{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);width:58px;height:58px;border-radius:50%;background:#fff;border:4px solid #7c3aed;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(124,58,237,.4);transition:transform .1s;z-index:5;}
 .shutter:active{transform:translateX(-50%) scale(.9);}
 .shutter svg{width:24px;height:24px;}
@@ -88,18 +87,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .spin{animation:sp .75s linear infinite;width:20px;height:20px;}
 @keyframes sp{to{transform:rotate(360deg)}}
 .upload-zone{border:2px dashed #c4b5fd;border-radius:12px;padding:20px 16px;text-align:center;cursor:pointer;background:#faf8ff;transition:background .15s;margin-top:10px;}
+.upload-zone:hover,.upload-zone:active{background:#ede9fe;}
 .fail-card{background:#fff7f7;border:1.5px solid #fca5a5;border-radius:12px;padding:14px;text-align:center;margin-top:8px;}
 .qty-inp{width:76px;border:1px solid #d1d5db;border-radius:8px;padding:8px 8px;font-size:15px;text-align:center;outline:none;}
-/* Dashboard */
+.qty-inp:focus{border-color:#a78bfa;}
+/* Dashboard compact */
 .dash-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;}
 .dash-card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:10px 6px;text-align:center;}
 .dash-num{font-size:22px;font-weight:800;line-height:1.1;}
 .dash-lbl{font-size:10px;color:#6b7280;margin-top:3px;}
 .top3-item{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px;margin-bottom:6px;}
+/* Cache badge */
 .cache-badge{display:inline-block;background:#ede9fe;color:#5b21b6;font-size:10px;padding:2px 7px;border-radius:99px;margin-left:6px;vertical-align:middle;}
-/* Floating Cart Panel */
-.cart-floating{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);width:calc(100% - 40px);max-width:600px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:12px 16px;display:none;justify-content:space-between;align-items:center;box-shadow:0 10px 25px rgba(0,0,0,.1);z-index:80;}
-@media(max-width:640px){ .cart-floating{bottom:74px; width:calc(100% - 24px);} }
+/* Session Cart Panel */
+.cart-panel{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:14px;margin-top:20px;}
 </style>
 </head>
 <body>
@@ -137,17 +138,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
     <div style="font-size:11px;color:#9ca3af;margin-top:2px;">在庫管理システム</div>
   </div>
   <nav style="flex:1;padding:12px 10px;display:flex;flex-direction:column;gap:2px;">
-    <div style="font-size:11px;font-weight:600;color:#9ca3af;padding:4px 8px;margin-bottom:2px;">メインメニュー</div>
+    <div style="font-size:11px;font-weight:600;color:#9ca3af;padding:4px 8px;margin-bottom:2px;">メニュー</div>
     <div class="sl" id="sl-home"    onclick="go('home')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:16px;height:16px;flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>ホーム</div>
     <div class="sl" id="sl-add"     onclick="go('add')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:16px;height:16px;flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>部材追加</div>
     <div class="sl" id="sl-use"     onclick="go('use')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:16px;height:16px;flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/></svg>部材使用</div>
     <div class="sl" id="sl-stock"   onclick="go('stock')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:16px;height:16px;flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>在庫確認</div>
     <div class="sl" id="sl-history" onclick="go('history')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:16px;height:16px;flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>履歴確認</div>
-    
-    <div style="font-size:11px;font-weight:600;color:#9ca3af;padding:4px 8px;margin:8px 0 2px;">簿外管理 (Off-book)</div>
-    <div class="sl" id="sl-bogai-add" onclick="go('bogai-add')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:16px;height:16px;flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>簿外追加</div>
-    <div class="sl" id="sl-bogai-use" onclick="go('bogai-use')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:16px;height:16px;flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>簿外使用</div>
-
     <div style="font-size:11px;font-weight:600;color:#9ca3af;padding:4px 8px;margin:8px 0 2px;">ADMIN</div>
     <div class="sl" id="sl-admin"   onclick="go('admin')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:16px;height:16px;flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>管理（Admin）</div>
   </nav>
@@ -191,7 +187,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
     <div style="font-size:18px;font-weight:700;color:#111827;margin-bottom:14px;">部材追加</div>
     <div style="display:flex;gap:8px;margin-bottom:16px;">
       <button id="add-tab-manual" class="mode-tab active" onclick="setAddMode('manual')">手入力</button>
-      <button id="add-tab-scan"   class="mode-tab"        onclick="setAddMode('scan')">カメラで読取</button>
+      <button id="add-tab-scan"   class="mode-tab"        onclick="setAddMode('scan')">バーコード撮影</button>
     </div>
     <!-- 手入力 -->
     <div id="add-manual">
@@ -217,7 +213,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
       </div>
       <button onclick="submitManualAdd()" class="btn-p">追加する</button>
     </div>
-    <!-- カメラ撮影 -->
+    <!-- バーコード撮影 -->
     <div id="add-scan" style="display:none;">
       <div id="add-cam-wrap" class="photo-wrap" style="margin-bottom:10px;">
         <div class="cam-box">
@@ -227,15 +223,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
             <svg fill="none" stroke="#7c3aed" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
           </button>
         </div>
-        <div style="font-size:11px;color:#9ca3af;text-align:center;margin-top:5px;">バーコードを枠内に合わせて撮影してください</div>
+        <div style="font-size:11px;color:#9ca3af;text-align:center;margin-top:5px;">バーコードを枠内に合わせてシャッターを押してください</div>
+      </div>
+      <div class="upload-zone" onclick="document.getElementById('add-file').click()">
+        <svg fill="none" stroke="#a78bfa" viewBox="0 0 24 24" style="width:28px;height:28px;margin:0 auto 5px;display:block;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        <div style="font-size:13px;color:#7c3aed;font-weight:600;">ギャラリーから選択</div>
+        <div style="font-size:11px;color:#9ca3af;margin-top:2px;">カメラが使えない場合はこちら</div>
+        <input id="add-file" type="file" accept="image/*" capture="environment" style="display:none;" onchange="onAddFileChange(this)"/>
       </div>
       <canvas id="add-canvas" class="photo-canvas"></canvas>
       <div id="add-analyzing" style="display:none;" class="analyzing">
         <svg class="spin" fill="none" stroke="#7c3aed" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-        解析中…
+        バーコードを解析中…
       </div>
       <div id="add-result-card" style="display:none;" class="result-card">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+          <svg fill="none" stroke="#7c3aed" viewBox="0 0 24 24" style="width:17px;height:17px;flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
           <span id="add-res-label" style="font-size:12px;color:#7c3aed;font-weight:700;flex:1;"></span>
           <button onclick="resetAddScan()" style="background:#ede9fe;color:#5b21b6;border:none;padding:4px 10px;border-radius:7px;font-size:11px;font-weight:600;cursor:pointer;">再撮影</button>
         </div>
@@ -257,21 +260,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
       </div>
       <div id="add-fail-card" style="display:none;" class="fail-card">
         <div style="font-size:14px;font-weight:600;color:#ef4444;margin-bottom:6px;">読み取れませんでした</div>
+        <div style="font-size:12px;color:#6b7280;margin-bottom:10px;">明るい場所でバーコードを枠内に合わせて再撮影してください</div>
         <button onclick="resetAddScan()" style="background:#ef4444;color:#fff;border:none;padding:8px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">再撮影する</button>
       </div>
     </div>
   </div>
 
-  <!-- 部材使用 (Sử dụng hàng chuẩn - INLINE FLOW) -->
+  <!-- 部材使用 -->
   <div id="page-use" class="page hidden">
     <div style="font-size:18px;font-weight:700;color:#111827;margin-bottom:14px;">部材使用</div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:16px;">
       <button id="use-tab-pno"   class="mode-tab active" onclick="setUseMode('pno')"   style="font-size:11px;padding:8px 4px;">品番</button>
       <button id="use-tab-name"  class="mode-tab"        onclick="setUseMode('name')"  style="font-size:11px;padding:8px 4px;">品名</button>
-      <button id="use-tab-scan"  class="mode-tab"        onclick="setUseMode('scan')"  style="font-size:11px;padding:8px 4px;">カメラ</button>
+      <button id="use-tab-scan"  class="mode-tab"        onclick="setUseMode('scan')"  style="font-size:11px;padding:8px 4px;">バーコード</button>
       <button id="use-tab-multi" class="mode-tab"        onclick="setUseMode('multi')" style="font-size:11px;padding:8px 4px;">複数</button>
     </div>
-    
+    <!-- 品番検索 -->
     <div id="use-pno-area">
       <div class="search-wrap">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/></svg>
@@ -279,6 +283,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
       </div>
       <div id="use-pno-list" style="display:flex;flex-direction:column;gap:8px;"></div>
     </div>
+    <!-- 品名検索 -->
     <div id="use-name-area" style="display:none;">
       <div class="search-wrap">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/></svg>
@@ -286,8 +291,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
       </div>
       <div id="use-name-list" style="display:flex;flex-direction:column;gap:8px;"></div>
     </div>
-
-    <!-- Scanner -->
+    <!-- バーコード撮影 -->
     <div id="use-scan-area" style="display:none;">
       <div id="use-cam-wrap" class="photo-wrap" style="margin-bottom:10px;">
         <div class="cam-box">
@@ -297,75 +301,71 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
             <svg fill="none" stroke="#7c3aed" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
           </button>
         </div>
+        <div style="font-size:11px;color:#9ca3af;text-align:center;margin-top:5px;">バーコードを枠内に合わせてシャッターを押してください</div>
+      </div>
+      <div class="upload-zone" onclick="document.getElementById('use-file').click()">
+        <svg fill="none" stroke="#a78bfa" viewBox="0 0 24 24" style="width:28px;height:28px;margin:0 auto 5px;display:block;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        <div style="font-size:13px;color:#7c3aed;font-weight:600;">ギャラリーから選択</div>
+        <div style="font-size:11px;color:#9ca3af;margin-top:2px;">カメラが使えない場合はこちら</div>
+        <input id="use-file" type="file" accept="image/*" capture="environment" style="display:none;" onchange="onUseFileChange(this)"/>
       </div>
       <canvas id="use-canvas" class="photo-canvas"></canvas>
       <div id="use-analyzing" style="display:none;" class="analyzing">
         <svg class="spin" fill="none" stroke="#7c3aed" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-        解析中…
+        バーコードを解析中…
       </div>
-      <div id="use-scan-result" style="display:none;margin-top:10px;">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+      <div id="use-scan-result" style="display:none;" class="result-card">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+          <svg fill="none" stroke="#7c3aed" viewBox="0 0 24 24" style="width:17px;height:17px;flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
           <span style="font-size:12px;color:#7c3aed;font-weight:700;flex:1;">解析完了</span>
           <button onclick="resetUseScan()" style="background:#ede9fe;color:#5b21b6;border:none;padding:4px 10px;border-radius:7px;font-size:11px;font-weight:600;cursor:pointer;">再撮影</button>
         </div>
-        <div id="use-scan-item-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+        <div id="use-scan-item"></div>
       </div>
       <div id="use-fail-card" style="display:none;" class="fail-card">
         <div style="font-size:14px;font-weight:600;color:#ef4444;margin-bottom:6px;">読み取れませんでした</div>
+        <div style="font-size:12px;color:#6b7280;margin-bottom:10px;">明るい場所でバーコードを枠内に合わせて再撮影してください</div>
         <button onclick="resetUseScan()" style="background:#ef4444;color:#fff;border:none;padding:8px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">再撮影する</button>
       </div>
     </div>
-
+    <!-- 複数品番 -->
     <div id="use-multi-area" style="display:none;">
       <label style="font-size:13px;color:#4b5563;display:block;margin-bottom:4px;">品番を貼り付け（1行に1品番）</label>
-      <textarea id="use-multi-inp" rows="5" class="form-input" style="resize:vertical;margin-bottom:10px;" placeholder="MTNS000437AA"></textarea>
+      <textarea id="use-multi-inp" rows="5" class="form-input" style="resize:vertical;margin-bottom:10px;" placeholder="ABC-001&#10;XYZ-002&#10;DEF-003"></textarea>
       <button onclick="searchMulti()" style="background:#7c3aed;color:#fff;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;border:none;cursor:pointer;margin-bottom:14px;">検索する</button>
       <div id="use-multi-list" style="display:flex;flex-direction:column;gap:8px;"></div>
     </div>
-  </div>
-
-  <!-- ══════ 簿外追加 (BOGAI ADD) ══════ -->
-  <div id="page-bogai-add" class="page hidden">
-    <div style="font-size:18px;font-weight:700;color:#111827;margin-bottom:14px;">簿外追加 (Off-book Add)</div>
-    <div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;">
-      <div style="margin-bottom:12px;">
-        <label style="font-size:13px;color:#4b5563;font-weight:600;display:block;margin-bottom:4px;">在庫品 (Item Name) *</label>
-        <input id="ba-name" type="text" class="form-input" placeholder="例: 1001Nノズル"/>
+    <!-- 使用確定パネル -->
+    <div id="use-confirm" style="display:none;background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-top:14px;">
+      <div style="font-size:13px;color:#7c3aed;font-weight:600;margin-bottom:4px;">使用対象</div>
+      <div id="uc-pno"  style="font-size:15px;font-weight:700;color:#111827;word-break:break-all;"></div>
+      <div id="uc-name" style="font-size:14px;color:#374151;margin-top:2px;"></div>
+      <div style="font-size:13px;color:#6b7280;margin-top:4px;">在庫数: <span id="uc-stock" style="font-weight:700;color:#111827;"></span></div>
+      <div style="margin-top:12px;">
+        <label style="font-size:13px;color:#4b5563;display:block;margin-bottom:4px;">使用数量 *</label>
+        <input id="uc-qty" type="number" min="1" class="form-input" style="width:110px;" placeholder="0"/>
       </div>
-      <div style="margin-bottom:12px;display:flex;gap:10px;">
-        <div style="flex:1;">
-          <label style="font-size:13px;color:#4b5563;font-weight:600;display:block;margin-bottom:4px;">区分 (Category)</label>
-          <input id="ba-category" type="text" class="form-input" placeholder="例: ノズル"/>
-        </div>
-        <div style="flex:1;">
-          <label style="font-size:13px;color:#4b5563;font-weight:600;display:block;margin-bottom:4px;">状態 (Condition)</label>
-          <input id="ba-condition" type="text" class="form-input" placeholder="例: 新品"/>
-        </div>
+      <div id="uc-err" style="display:none;color:#ef4444;font-size:12px;margin-top:6px;font-weight:600;"></div>
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button onclick="submitUse()" class="btn-p" style="flex:1;">使用する</button>
+        <button onclick="closeUseConfirm()" class="btn-g">キャンセル</button>
       </div>
-      <div style="margin-bottom:12px;">
-        <label style="font-size:13px;color:#4b5563;font-weight:600;display:block;margin-bottom:4px;">数量 (Quantity) *</label>
-        <input id="ba-qty" type="number" min="1" class="form-input" placeholder="0" style="width:120px;"/>
-      </div>
-      <div style="margin-bottom:12px;">
-        <label style="font-size:13px;color:#4b5563;font-weight:600;display:block;margin-bottom:4px;">保管場所 (Location)</label>
-        <input id="ba-location" type="text" class="form-input" placeholder="例: 別館2階..."/>
-      </div>
-      <div style="margin-bottom:16px;">
-        <label style="font-size:13px;color:#4b5563;font-weight:600;display:block;margin-bottom:4px;">備考 (Remarks)</label>
-        <input id="ba-remarks" type="text" class="form-input" placeholder="備考を入力"/>
-      </div>
-      <button onclick="submitBogaiAdd()" class="btn-p">簿外リストに追加</button>
     </div>
-  </div>
 
-  <!-- ══════ 簿外使用 (BOGAI USE) ══════ -->
-  <div id="page-bogai-use" class="page hidden">
-    <div style="font-size:18px;font-weight:700;color:#111827;margin-bottom:14px;">簿外使用 (Off-book Use)</div>
-    <div class="search-wrap">
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/></svg>
-      <input id="bu-search-inp" class="search-bar" type="text" placeholder="在庫品名で検索 (Search Item Name)" oninput="debounce('bogai',()=>searchBogaiUse())"/>
+    <!-- TÍNH NĂNG MỚI: Bảng xuất dữ liệu các sản phẩm ĐÃ DÙNG trong phiên -->
+    <div class="cart-panel" id="session-cart-panel" style="display:none;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div>
+          <div style="font-size:14px;font-weight:700;color:#166534;">✅ 今回使用したアイテム</div>
+          <div style="font-size:11px;color:#15803d;margin-top:2px;" id="cart-count">0 件</div>
+        </div>
+        <button onclick="exportSessionCartCSV()" style="background:#16a34a;color:#fff;border:none;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:14px;height:14px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+          CSV出力
+        </button>
+      </div>
     </div>
-    <div id="bu-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+
   </div>
 
   <!-- 在庫確認 -->
@@ -396,8 +396,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
         <option value="">全て</option>
         <option value="add">追加のみ</option>
         <option value="use">使用のみ</option>
-        <option value="bogai_add">簿外追加のみ</option>
-        <option value="bogai_use">簿外使用のみ</option>
         <option value="edit">管理者編集</option>
       </select>
       <button onclick="loadHistory(true)" style="background:#f3f4f6;color:#374151;border:none;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">更新</button>
@@ -461,18 +459,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 
 </div><!-- /main-content -->
 
-<!-- Bảng xuất dữ liệu các sản phẩm ĐÃ DÙNG trong phiên (Luôn nổi ở dưới cùng) -->
-<div class="cart-floating" id="session-cart-panel">
-  <div>
-    <div style="font-size:14px;font-weight:800;color:#166534;">✅ 今回使用したアイテム</div>
-    <div style="font-size:11px;color:#15803d;margin-top:2px;" id="cart-count">0 件</div>
-  </div>
-  <button onclick="exportSessionCartCSV()" style="background:#16a34a;color:#fff;border:none;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;box-shadow:0 2px 8px rgba(22,163,74,.3);">
-    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:16px;height:16px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-    CSV出力
-  </button>
-</div>
-
 <!-- ══════ MOBILE BOTTOM NAV ══════ -->
 <nav id="mobile-bottom-nav">
   <button class="bnav-btn" id="bnav-home"  onclick="go('home')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>ホーム</button>
@@ -483,10 +469,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 </nav>
 <div id="drawer-overlay" onclick="closeDrawer()"></div>
 <div id="more-drawer">
-  <div style="font-size:11px;font-weight:600;color:#9ca3af;padding:10px 20px 4px;">簿外管理 (Off-book)</div>
-  <div class="drawer-item" onclick="go('bogai-add');closeDrawer()"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>簿外追加</div>
-  <div class="drawer-item" onclick="go('bogai-use');closeDrawer()"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>簿外使用</div>
-  <div style="height:1px;background:#f3f4f6;margin:4px 20px;"></div>
   <div class="drawer-item" onclick="go('history');closeDrawer()"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>履歴確認</div>
   <div class="drawer-item" onclick="go('admin');closeDrawer()"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>管理（Admin）</div>
   <div style="padding:8px 20px;border-top:1px solid #f3f4f6;margin-top:4px;display:flex;align-items:center;gap:8px;">
@@ -497,169 +479,266 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 
 <script>
 // ════════════════════════════════════════════════
-// CONFIG
+// CONFIG — RenderのURLを設定してください
 // ════════════════════════════════════════════════
-const API = "https://buzaikanri.onrender.com";  // <--- LƯU Ý KHÔNG CÓ DẤU / Ở CUỐI
-const CACHE_TTL_MS   = 3 * 60 * 1000;
-const RENDER_PAGE    = 40;
+const API = "https://buzaikanri.onrender.com";  // <--- Hãy chắc chắn link ở đây CHƯA BỊ CÓ DẤU / Ở CUỐI.
+const CACHE_TTL_MS   = 3 * 60 * 1000;  // 在庫キャッシュ有効期限 3分
+const RENDER_PAGE    = 40;              // 一度にレンダリングする行数
 
 // ════════════════════════════════════════════════
-// Camera & Barcode Decoder
+// Camera & Barcode Decoder (Native API + ZXing Fallback)
 // ════════════════════════════════════════════════
 let _zxingReady = false;
 function loadZXing(){
   return new Promise(res=>{
     if(_zxingReady){ res(); return; }
-    const s=document.createElement('script'); s.src='https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js';
-    s.onload=()=>{ _zxingReady=true; res(); }; s.onerror=()=>res(); document.head.appendChild(s);
+    const s=document.createElement('script');
+    s.src='https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js';
+    s.onload=()=>{ _zxingReady=true; res(); };
+    s.onerror=()=>res();
+    document.head.appendChild(s);
   });
 }
 
+// Hàm cốt lõi đọc ảnh: Tự động chọn thuật toán tốt nhất
 async function decodeBarcodeImage(canvas) {
-  // Ưu tiên Native API
+  // 1. THỬ NATIVE API TRƯỚC (Rất mạnh, đọc được Data Matrix tí hon)
   if ('BarcodeDetector' in window) {
     try {
-      const detector = new BarcodeDetector({ formats: ['data_matrix', 'qr_code', 'code_128'] });
+      const detector = new BarcodeDetector({ formats: ['data_matrix', 'qr_code', 'code_128', 'ean_13', 'code_39'] });
       const barcodes = await detector.detect(canvas);
-      if (barcodes.length > 0) return normalizeBarcode(barcodes[0].rawValue);
-    } catch(e) {}
+      if (barcodes.length > 0) {
+        console.log("Đọc bằng Native API thành công!");
+        return normalizeBarcode(barcodes[0].rawValue);
+      }
+    } catch(e) { console.warn("Native Detector failed, falling back to ZXing...", e); }
   }
-  // Fallback ZXing
+
+  // 2. NẾU NATIVE API KHÔNG CÓ/KHÔNG NHẬN ĐƯỢC -> DÙNG ZXING DỰ PHÒNG
   await loadZXing();
   const hints = new Map();
   hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
-      ZXing.BarcodeFormat.DATA_MATRIX, 
-      ZXing.BarcodeFormat.QR_CODE, 
-      ZXing.BarcodeFormat.CODE_128
+    ZXing.BarcodeFormat.DATA_MATRIX, ZXing.BarcodeFormat.QR_CODE, 
+    ZXing.BarcodeFormat.CODE_128, ZXing.BarcodeFormat.EAN_13
   ]);
   hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
 
-  const reader = new ZXing.MultiFormatReader(); reader.setHints(hints);
-  const tries = [ ()=>_canvasToBinaryBitmap(canvas, false, false), ()=>_canvasToBinaryBitmap(canvas, true, false) ];
+  const reader = new ZXing.MultiFormatReader();
+  reader.setHints(hints);
+
+  const tries = [
+    ()=> _canvasToBinaryBitmap(canvas, false, false), // Bình thường
+    ()=> _canvasToBinaryBitmap(canvas, true,  false), // Tăng độ tương phản
+    ()=> _canvasToBinaryBitmap(canvas, false, true),  // Lật ngược
+  ];
   for(const fn of tries){
-    try{ const bmp = fn(); const result = reader.decode(bmp); if(result) return normalizeBarcode(result.getText()); }catch(_){}
+    try{
+      const bmp = fn();
+      const result = reader.decode(bmp);
+      if(result) return normalizeBarcode(result.getText());
+    }catch(_){}
   }
   throw new Error('decode_failed');
 }
 
 function _canvasToBinaryBitmap(canvas, highContrast, flipH){
-  const w=canvas.width, h=canvas.height; const ctx=canvas.getContext('2d'); let imgData = ctx.getImageData(0,0,w,h);
+  const w=canvas.width, h=canvas.height;
+  const ctx=canvas.getContext('2d');
+  let imgData = ctx.getImageData(0,0,w,h);
   if(highContrast){
     const d=imgData.data;
-    for(let i=0;i<d.length;i+=4){ const gray=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2]; const v=gray<128?0:255; d[i]=d[i+1]=d[i+2]=v; }
+    for(let i=0;i<d.length;i+=4){
+      const gray=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];
+      const v=gray<128?0:255;
+      d[i]=d[i+1]=d[i+2]=v;
+    }
+  }
+  if(flipH){
+    const tmp=document.createElement('canvas'); tmp.width=w; tmp.height=h;
+    const tc=tmp.getContext('2d');
+    tc.scale(-1,1); tc.drawImage(canvas,-w,0);
+    imgData=tc.getImageData(0,0,w,h);
   }
   const lumi = new ZXing.RGBLuminanceSource(imgData.data, w, h);
   return new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(lumi));
 }
 
-// Hàm lọc lấy Part No chuẩn xác (Bắt đầu bằng M, N hoặc K)
+// Xóa ký tự rác từ Data Matrix
 function normalizeBarcode(raw){
-  let text = raw.replace(/[\x00-\x1F\x7F-\x9F]/g, "").replace(/\*/g,'').trim();
-  if (text.includes('\n') || text.includes('\r')) text = text.split(/[\n\r]+/)[0]; 
-  
-  // Tìm chuỗi có độ dài tối thiểu 6 ký tự, bắt đầu bằng M, N hoặc K, chứa chữ hoa, số và dấu gạch ngang
-  let match = text.match(/[MNK][A-Z0-9-]{5,30}/i);
-  if (match) {
-      return match[0].toUpperCase().trim();
+  let text = raw.replace(/[\x00-\x1F\x7F-\x9F]/g, ""); 
+  text = text.replace(/\*/g,'').trim();
+  if (text.includes('\n') || text.includes('\r')) {
+    let parts = text.split(/[\n\r]+/);
+    text = parts[0]; 
   }
-  return text.toUpperCase().trim();
+  return text.replace(/\s+/g,' ').trim();
 }
 
 // ════════════════════════════════════════════════
-// States & Utils
+// 状態 (States)
 // ════════════════════════════════════════════════
-let token = localStorage.getItem('pm_token') || null;
-let isAdmin = localStorage.getItem('pm_admin') === 'true';
-let currentUser = localStorage.getItem('pm_user') || '';
+let token       = localStorage.getItem('pm_token') || null;
+let isAdmin     = localStorage.getItem('pm_admin') === 'true';
+let currentUser = localStorage.getItem('pm_user')  || '';
 
-let addStream = null, useStream = null;
-let addScanData = null, _manualData = null;
+let addStream   = null;
+let useStream   = null;
+let addScanData = null;
+let useConfirmData = null;
+let _manualData = null;
 
+// TÍNH NĂNG MỚI: Mảng lưu trữ các item đã dùng trong phiên
 let sessionCart = []; 
-let _cache = { data:[], ts:0, map:{} };  
-let _allHistory = [], _stockFiltered = [], _stockRenderOffset = 0, _allAdminStock = [];
-let activeInlinePno = null, activeBogaiInline = null;
+
+// Frontend inventory cache
+let _cache = { data:[], ts:0, map:{} };  // map: part_no → item
+let _allHistory = [];
+let _stockFiltered = [];
+let _stockRenderOffset = 0;
+let _allAdminStock = [];
 
 const _dbt = {};
-function debounce(key, fn, ms=300){ clearTimeout(_dbt[key]); _dbt[key]=setTimeout(fn, ms); }
-const $ = id => document.getElementById(id);
+function debounce(key, fn, ms=300){
+  clearTimeout(_dbt[key]);
+  _dbt[key]=setTimeout(fn, ms);
+}
+
+// ════════════════════════════════════════════════
+// Utilities
+// ════════════════════════════════════════════════
+const $   = id => document.getElementById(id);
 const show= id => { const e=$(id); if(e) e.style.display=''; };
 const hide= id => { const e=$(id); if(e) e.style.display='none'; };
 const setText=(id,v)=>{ const e=$(id); if(e) e.textContent=v??''; };
 function esc(s){ return s==null?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-// Hàm esc đặc biệt để dùng an toàn trong các chuỗi JS nhúng (onclick="")
-function escJS(s){ return s==null?'':String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'\\"'); }
-
 function qtyColor(q){ return q<=0?'#ef4444':q<=5?'#f59e0b':'#059669'; }
 function emptyMsg(m){ return `<p style="color:#9ca3af;font-size:13px;text-align:center;padding:16px 0;">${esc(m)}</p>`; }
 function errMsg(m)  { return `<p style="color:#ef4444;font-size:12px;padding:8px;">${esc(m)}</p>`; }
 
 function toast(msg, err=false){
-  const t=$('toast'); t.textContent=msg; t.style.background=err?'#ef4444':'#1f2937';
-  t.classList.add('show'); clearTimeout(t._tm); t._tm=setTimeout(()=>t.classList.remove('show'),2800);
+  const t=$('toast');
+  t.textContent=msg;
+  t.style.background=err?'#ef4444':'#1f2937';
+  t.classList.add('show');
+  clearTimeout(t._tm);
+  t._tm=setTimeout(()=>t.classList.remove('show'),2800);
 }
 
 async function apiFetch(path, opts={}){
   if(!API) throw new Error('__NO_API__');
-  const h={'Content-Type':'application/json'}; if(token) h['Authorization']=`Bearer ${token}`;
+  const h={'Content-Type':'application/json'};
+  if(token) h['Authorization']=`Bearer ${token}`;
   const r=await fetch(API+path,{...opts,headers:{...h,...(opts.headers||{})}});
   if(!r.ok){
-    if(r.status===401){ logout(); throw new Error('セッション切れです'); }
-    let msg='エラーが発生しました'; try{ const j=await r.json(); msg=j.detail||j.message||msg; }catch(_){} throw new Error(msg);
+    if(r.status===401){ logout(); throw new Error('セッション切れです。再ログインしてください。'); }
+    let msg='エラーが発生しました';
+    try{ const j=await r.json(); msg=j.detail||j.message||msg; }catch(_){}
+    throw new Error(msg);
   }
   return r.json();
 }
 
-function stopStream(s){ if(!s) return; try{ s.getTracks().forEach(t=>{ t.stop(); }); }catch(_){} }
-function cleanupCam(videoId, stream){ try{ const v=$(videoId); if(v){ v.srcObject=null; } stopStream(stream); }catch(_){} }
+function stopStream(s){
+  if(!s) return;
+  try{ s.getTracks().forEach(t=>{ t.stop(); }); }catch(_){}
+}
+function cleanupCam(videoId, stream){
+  try{
+    const v=$(videoId);
+    if(v){ v.srcObject=null; }
+    stopStream(stream);
+  }catch(_){}
+}
 
 // ════════════════════════════════════════════════
-// LOGIN & CACHE
+// LOGIN
 // ════════════════════════════════════════════════
 async function doLogin(){
   const user=$('li-user').value.trim(), pass=$('li-pass').value;
-  if(!user||!pass){ $('li-err').style.display=''; $('li-err').textContent='入力してください'; return; }
-  hide('li-err'); const btn=$('li-btn'); btn.disabled=true; btn.textContent='ログイン中…';
-  if(!API){ token=null; isAdmin=false; currentUser=user; localStorage.setItem('pm_user',user); btn.disabled=false; btn.textContent='ログイン'; finalizeLogin(); return; }
+  if(!user||!pass){ $('li-err').style.display=''; $('li-err').textContent='ユーザー名とパスワードを入力してください'; return; }
+  hide('li-err');
+  const btn=$('li-btn'); btn.disabled=true; btn.textContent='ログイン中…';
+  if(!API){
+    token=null; isAdmin=false; currentUser=user;
+    localStorage.setItem('pm_user',user);
+    btn.disabled=false; btn.textContent='ログイン';
+    finalizeLogin();
+    return;
+  }
   try{
     const r=await apiFetch('/auth/login',{method:'POST',body:JSON.stringify({username:user,password:pass})});
     token=r.access_token; isAdmin=r.is_admin; currentUser=user;
-    localStorage.setItem('pm_token',token); localStorage.setItem('pm_admin',String(r.is_admin)); localStorage.setItem('pm_user',user);
+    localStorage.setItem('pm_token',token);
+    localStorage.setItem('pm_admin',String(r.is_admin));
+    localStorage.setItem('pm_user',user);
     finalizeLogin();
-  }catch(e){ $('li-err').style.display=''; $('li-err').textContent=e.message; }finally{ btn.disabled=false; btn.textContent='ログイン'; }
-}
-function guestLogin(){ currentUser='ゲスト'; token=null; isAdmin=false; finalizeLogin(); }
-function finalizeLogin(){ hide('login-overlay'); updateUserUI(); refreshCache(false).then(()=>go('home')); }
-function logout(){
-  cleanupCam('add-video',addStream); addStream=null; cleanupCam('use-video',useStream); useStream=null;
-  token=null; isAdmin=false; currentUser='';
-  localStorage.removeItem('pm_token'); localStorage.removeItem('pm_admin'); localStorage.removeItem('pm_user');
-  _cache={data:[],ts:0,map:{}}; updateUserUI(); show('login-overlay'); $('li-user').value=''; $('li-pass').value=''; hide('li-err');
-}
-function updateUserUI(){
-  const name=currentUser||'未ログイン'; setText('user-desk',name); setText('user-mob',name);
-  $('logout-desk').style.display=currentUser?'':'none'; $('logout-mob').style.display=currentUser?'':'none';
+  }catch(e){
+    $('li-err').style.display=''; $('li-err').textContent=e.message;
+  }finally{ btn.disabled=false; btn.textContent='ログイン'; }
 }
 
+function guestLogin(){
+  currentUser='ゲスト'; token=null; isAdmin=false;
+  finalizeLogin();
+}
+
+function finalizeLogin(){
+  hide('login-overlay');
+  updateUserUI();
+  refreshCache(false).then(()=>go('home'));
+}
+
+function logout(){
+  cleanupCam('add-video',addStream); addStream=null;
+  cleanupCam('use-video',useStream); useStream=null;
+  token=null; isAdmin=false; currentUser='';
+  localStorage.removeItem('pm_token'); localStorage.removeItem('pm_admin'); localStorage.removeItem('pm_user');
+  _cache={data:[],ts:0,map:{}};
+  updateUserUI();
+  show('login-overlay');
+  $('li-user').value=''; $('li-pass').value=''; hide('li-err');
+}
+
+function updateUserUI(){
+  const name=currentUser||'未ログイン';
+  setText('user-desk',name); setText('user-mob',name);
+  $('logout-desk').style.display=currentUser?'':'none';
+  $('logout-mob').style.display =currentUser?'':'none';
+}
+
+// ════════════════════════════════════════════════
+// INVENTORY CACHE
+// ════════════════════════════════════════════════
 function cacheIsValid(){ return _cache.data.length>0 && (Date.now()-_cache.ts)<CACHE_TTL_MS; }
+
 async function refreshCache(force=false){
   if(!force && cacheIsValid()) return _cache.data;
   if(!API) return [];
   try{
-    const data = await apiFetch('/stock'); const map={}; data.forEach(it=>{ map[it.part_no]=it; });
-    _cache={data,ts:Date.now(),map}; return data;
-  }catch(e){ return _cache.data; }
+    const data = await apiFetch('/stock');
+    const map  = {};
+    data.forEach(it=>{ map[it.part_no]=it; });
+    _cache = { data, ts:Date.now(), map };
+    return data;
+  }catch(e){ console.warn('cache refresh failed',e); return _cache.data; }
 }
-function cacheGet(pn){ return _cache.map[pn]||null; }
-function cacheSearch(q, byName=false){
-  q=q.toLowerCase().trim(); if(!q) return [];
+function cacheGet(part_no){ return _cache.map[part_no]||null; }
+function cacheSearch(query, byName=false){
+  const q=query.toLowerCase().trim();
+  if(!q) return [];
   return _cache.data.filter(it=> byName ? it.name.toLowerCase().includes(q) : it.part_no.toLowerCase().includes(q));
 }
-function clearCache(){ _cache={data:[],ts:0,map:{}}; toast('キャッシュをクリアしました'); updateCacheInfo(); }
+function clearCache(){
+  _cache={data:[],ts:0,map:{}};
+  toast('キャッシュをクリアしました');
+  updateCacheInfo();
+}
 function updateCacheInfo(){
-  const el=$('cache-info'); if(!el) return;
+  const el=$('cache-info');
+  if(!el) return;
   if(_cache.ts===0){ el.textContent='キャッシュなし'; return; }
-  el.textContent=`${_cache.data.length}件 / ${Math.round((Date.now()-_cache.ts)/1000)}秒前に取得`;
+  const age=Math.round((Date.now()-_cache.ts)/1000);
+  el.textContent=`${_cache.data.length}件 / ${age}秒前に取得 / 有効期限 ${Math.round(CACHE_TTL_MS/1000)}秒`;
 }
 
 // ════════════════════════════════════════════════
@@ -667,49 +746,93 @@ function updateCacheInfo(){
 // ════════════════════════════════════════════════
 function go(page){
   document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));
-  const target=$('page-'+page); if(!target) return; target.classList.remove('hidden');
-  document.querySelectorAll('.sl').forEach(l=>l.classList.remove('active')); const sl=$('sl-'+page); if(sl) sl.classList.add('active');
-  document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.remove('active')); const bn=$('bnav-'+page); if(bn) bn.classList.add('active');
-  
+  const target=$('page-'+page);
+  if(!target) return;
+  target.classList.remove('hidden');
+
+  document.querySelectorAll('.sl').forEach(l=>l.classList.remove('active'));
+  const sl=$('sl-'+page); if(sl) sl.classList.add('active');
+
+  document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.remove('active'));
+  const bn=$('bnav-'+page); if(bn) bn.classList.add('active');
+  if(['history','admin'].includes(page)){ const bm=$('bnav-more'); if(bm) bm.classList.add('active'); }
+
   if(page!=='add'){ cleanupCam('add-video',addStream); addStream=null; }
   if(page!=='use'){ cleanupCam('use-video',useStream); useStream=null; }
 
-  // Ẩn/Hiện Giỏ hàng nổi
-  if(page==='use') updateSessionCartUI(); else hide('session-cart-panel');
-
-  if(page==='home') initHome(); if(page==='add') initAdd(); if(page==='use') initUse();
-  if(page==='stock') initStock(); if(page==='history') initHistory(); if(page==='admin') initAdmin();
-  if(page==='bogai-add') initBogaiAdd(); if(page==='bogai-use') initBogaiUse();
+  try{
+    if(page==='home')    initHome();
+    if(page==='add')     initAdd();
+    if(page==='use')     initUse();
+    if(page==='stock')   initStock();
+    if(page==='history') initHistory();
+    if(page==='admin')   initAdmin();
+  }catch(e){ console.error('page init error:',e); }
 }
+
 function toggleDrawer(){ $('more-drawer').classList.toggle('open'); $('drawer-overlay').classList.toggle('open'); }
 function closeDrawer()  { $('more-drawer').classList.remove('open'); $('drawer-overlay').classList.remove('open'); }
 
 // ════════════════════════════════════════════════
-// HOME & ADD
+// HOME
 // ════════════════════════════════════════════════
 function initHome(){
-  const data=_cache.data; setText('stat-total', data.length||'—'); setText('stat-low', data.filter(it=>it.qty>0&&it.qty<=5).length||'—');
-  setText('stat-zero', data.filter(it=>it.qty<=0).length||'—'); setText('stat-today', '…');
-  setText('home-updated', _cache.ts?'キャッシュ: '+new Date(_cache.ts).toLocaleTimeString('ja-JP'):'');
-  const cr = [...data].filter(it=>it.qty<=5).sort((a,b)=>a.qty-b.qty).slice(0,3);
-  $('home-top3').innerHTML = cr.length ? cr.map(it=>`<div class="top3-item"><div style="flex:1;min-width:0;"><div style="font-size:11px;color:#6b7280;">${esc(it.part_no)}</div><div style="font-size:14px;font-weight:600;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.name)}</div></div><div style="font-size:22px;font-weight:800;color:${qtyColor(it.qty)};">${it.qty}</div></div>`).join('') : emptyMsg('在庫少のアイテムはありません ✓');
-  if(API) apiFetch('/stats').then(s=>{ setText('stat-total', s.total); setText('stat-low', s.low_stock); setText('stat-zero', s.zero_stock); setText('stat-today', s.today_ops??'—'); }).catch(()=>{});
+  const data = _cache.data;
+  const total = data.length;
+  const low   = data.filter(it=>it.qty>0&&it.qty<=5).length;
+  const zero  = data.filter(it=>it.qty<=0).length;
+
+  setText('stat-total', total||'—'); setText('stat-low',   low||'—');
+  setText('stat-zero',  zero||'—');  setText('stat-today', '…');
+
+  if(_cache.ts){ setText('home-updated','キャッシュ: '+new Date(_cache.ts).toLocaleTimeString('ja-JP')); }
+  else          { setText('home-updated',''); }
+
+  const critical = [...data].filter(it=>it.qty<=5).sort((a,b)=>a.qty-b.qty).slice(0,3);
+  $('home-top3').innerHTML = critical.length
+    ? critical.map(it=>`<div class="top3-item">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:11px;color:#6b7280;">${esc(it.part_no)}</div>
+          <div style="font-size:14px;font-weight:600;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.name)}</div>
+        </div>
+        <div style="font-size:22px;font-weight:800;color:${qtyColor(it.qty)};min-width:36px;text-align:right;">${it.qty}</div>
+      </div>`).join('')
+    : emptyMsg('在庫少のアイテムはありません ✓');
+
+  if(API){
+    apiFetch('/stats').then(s=>{
+      setText('stat-total', s.total); setText('stat-low',   s.low_stock);
+      setText('stat-zero',  s.zero_stock); setText('stat-today', s.today_ops??'—');
+    }).catch(()=>{});
+  }
 }
 
+// ════════════════════════════════════════════════
+// 部材追加 (ADD)
+// ════════════════════════════════════════════════
 function initAdd(){
   $('add-tab-manual').classList.add('active'); $('add-tab-scan').classList.remove('active');
-  show('add-manual'); hide('add-scan'); $('add-pno').value=''; hide('add-info'); hide('add-new-name-wrap'); $('add-qty').value=''; _manualData=null;
+  show('add-manual'); hide('add-scan');
+  $('add-pno').value=''; hide('add-info'); hide('add-new-name-wrap'); $('add-qty').value='';
+  _manualData=null;
 }
 function setAddMode(mode){
-  $('add-tab-manual').classList.toggle('active',mode==='manual'); $('add-tab-scan').classList.toggle('active',mode==='scan');
-  $('add-manual').style.display=mode==='manual'?'':'none'; $('add-scan').style.display=mode==='scan'?'':'none';
+  $('add-tab-manual').classList.toggle('active',mode==='manual');
+  $('add-tab-scan').classList.toggle('active',  mode==='scan');
+  $('add-manual').style.display=mode==='manual'?'':'none';
+  $('add-scan').style.display  =mode==='scan'  ?'':'none';
   if(mode!=='scan'){ cleanupCam('add-video',addStream); addStream=null; }
   if(mode==='scan') startAddCamera();
 }
 function onAddPnoInput(){ hide('add-info'); hide('add-new-name-wrap'); _manualData=null; }
+
 async function searchAddPno(){
-  const pn=$('add-pno').value.trim(); if(!pn){ toast('品番を入力してください',true); return; }
-  let r=cacheGet(pn); if(!r && API){ try{ r=await apiFetch(`/stock/search?part_no=${encodeURIComponent(pn)}`); }catch(e){ if(e.message!=='__NO_API__') toast(e.message,true); return; } }
+  const pn=$('add-pno').value.trim();
+  if(!pn){ toast('品番を入力してください',true); return; }
+  let r=cacheGet(pn);
+  if(!r && API){
+    try{ r=await apiFetch(`/stock/search?part_no=${encodeURIComponent(pn)}`); }catch(e){ if(e.message!=='__NO_API__') toast(e.message,true); return; }
+  }
   show('add-info');
   if(r?.part_no){
     $('add-info-label').textContent='既存品番 — 在庫に加算されます'; $('add-info-name').textContent=r.name; $('add-info-qty').textContent=r.qty;
@@ -719,30 +842,60 @@ async function searchAddPno(){
     show('add-new-name-wrap'); $('add-new-name').value=''; _manualData={part_no:pn,name:'',qty:0,is_new:true};
   }
 }
+
 async function submitManualAdd(){
   if(!_manualData){ toast('品番を検索してください',true); return; }
-  const qty=parseInt($('add-qty').value); if(isNaN(qty)||qty<1){ toast('数量を入力してください',true); return; }
-  let name=_manualData.name; if(_manualData.is_new){ name=$('add-new-name').value.trim(); if(!name){toast('品名を入力してください',true);return;} }
-  try{ await apiFetch('/stock/add',{method:'POST',body:JSON.stringify({part_no:_manualData.part_no,name,qty,user:currentUser||'ゲスト'})}); toast(`✓ ${_manualData.part_no} に ${qty} 追加しました`); await refreshCache(true); initAdd(); }catch(e){ toast(e.message,true); }
+  const qty=parseInt($('add-qty').value);
+  if(isNaN(qty)||qty<1){ toast('数量を入力してください',true); return; }
+  let name=_manualData.name;
+  if(_manualData.is_new){ name=$('add-new-name').value.trim(); if(!name){toast('品名を入力してください',true);return;} }
+  if(!API){ toast('APIが設定されていません',true); return; }
+  try{
+    await apiFetch('/stock/add',{method:'POST',body:JSON.stringify({part_no:_manualData.part_no,name,qty,user:currentUser||'ゲスト'})});
+    toast(`✓ ${_manualData.part_no} に ${qty} 追加しました`);
+    await refreshCache(true); initAdd();
+  }catch(e){ toast(e.message,true); }
 }
 
 async function startAddCamera(){
   resetAddScanUI();
-  try{ const s=await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment', width:{ideal:1920}, height:{ideal:1080}, focusMode:'continuous' } }); addStream=s; const v=$('add-video'); v.srcObject=s; await v.play().catch(()=>{}); show('add-cam-wrap'); }catch(e){ hide('add-cam-wrap'); toast('カメラを起動できません',true); }
+  try{
+    const s=await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment', width:{ideal:1920}, height:{ideal:1080}, focusMode:'continuous' } });
+    addStream=s; const v=$('add-video'); v.srcObject=s; await v.play().catch(()=>{}); show('add-cam-wrap');
+  }catch(e){ hide('add-cam-wrap'); toast('カメラを起動できません',true); }
 }
-function resetAddScanUI(){ hide('add-result-card'); hide('add-fail-card'); hide('add-analyzing'); show('add-cam-wrap'); addScanData=null; }
+function resetAddScanUI(){
+  hide('add-result-card'); hide('add-fail-card'); hide('add-analyzing');
+  show('add-cam-wrap'); $('add-file').value=''; addScanData=null;
+}
 function resetAddScan(){ resetAddScanUI(); if(!addStream) startAddCamera(); }
+
 async function captureAdd(){
-  const v=$('add-video'), c=$('add-canvas'); if(!v.videoWidth){ toast('カメラ準備中です…',true); return; }
+  const v=$('add-video'), c=$('add-canvas');
+  if(!v.videoWidth){ toast('カメラ準備中です…',true); return; }
   c.width=v.videoWidth; c.height=v.videoHeight; c.getContext('2d').drawImage(v,0,0);
-  cleanupCam('add-video',addStream); addStream=null; hide('add-cam-wrap'); await analyzeAddCanvas(c);
+  cleanupCam('add-video',addStream); addStream=null; hide('add-cam-wrap');
+  await analyzeAddCanvas(c);
 }
+function onAddFileChange(inp){
+  if(!inp.files?.[0]) return;
+  const img=new Image(), url=URL.createObjectURL(inp.files[0]);
+  img.onload=async()=>{
+    const c=$('add-canvas'); c.width=img.naturalWidth; c.height=img.naturalHeight; c.getContext('2d').drawImage(img,0,0);
+    URL.revokeObjectURL(url); hide('add-cam-wrap'); await analyzeAddCanvas(c);
+  }; img.src=url;
+}
+
 async function analyzeAddCanvas(c){
   show('add-analyzing'); hide('add-fail-card'); hide('add-result-card');
-  let pn; try{ pn = await decodeBarcodeImage(c); } catch(e){ hide('add-analyzing'); show('add-fail-card'); return; }
+  let pn;
+  try{ pn = await decodeBarcodeImage(c); } catch(e){ hide('add-analyzing'); show('add-fail-card'); return; }
   hide('add-analyzing'); $('add-res-pno').textContent=pn;
+
   let r=cacheGet(pn);
-  if(!r && API){ try{ r=await apiFetch(`/stock/search?part_no=${encodeURIComponent(pn)}`); }catch(e){ toast(e.message,true); resetAddScanUI(); return; } }
+  if(!r && API){
+    try{ r=await apiFetch(`/stock/search?part_no=${encodeURIComponent(pn)}`); }catch(e){ toast(e.message,true); resetAddScanUI(); return; }
+  }
   if(r?.part_no){
     $('add-res-label').textContent='既存品番 — 在庫に加算されます'; $('add-res-name').textContent=r.name; $('add-res-qty').textContent=r.qty;
     hide('add-res-newname'); addScanData={part_no:pn,name:r.name,qty:r.qty,is_new:false};
@@ -752,156 +905,188 @@ async function analyzeAddCanvas(c){
   }
   $('add-res-qty-inp').value=''; show('add-result-card'); $('add-result-card').scrollIntoView({behavior:'smooth',block:'nearest'});
 }
+
 async function submitScanAdd(){
   if(!addScanData) return;
-  const qty=parseInt($('add-res-qty-inp').value); if(isNaN(qty)||qty<1){ toast('数量を入力してください',true); return; }
-  let name=addScanData.name; if(addScanData.is_new){ name=$('add-res-name-inp').value.trim(); if(!name){toast('品名を入力してください',true);return;} }
-  try{ await apiFetch('/stock/add',{method:'POST',body:JSON.stringify({part_no:addScanData.part_no,name,qty,user:currentUser||'ゲスト'})}); toast(`✓ ${addScanData.part_no} に ${qty} 追加しました`); await refreshCache(true); resetAddScan(); }catch(e){ toast(e.message,true); }
+  const qty=parseInt($('add-res-qty-inp').value);
+  if(isNaN(qty)||qty<1){ toast('数量を入力してください',true); return; }
+  let name=addScanData.name;
+  if(addScanData.is_new){ name=$('add-res-name-inp').value.trim(); if(!name){toast('品名を入力してください',true);return;} }
+  if(!API){ toast('APIが設定されていません',true); return; }
+  try{
+    await apiFetch('/stock/add',{method:'POST',body:JSON.stringify({part_no:addScanData.part_no,name,qty,user:currentUser||'ゲスト'})});
+    toast(`✓ ${addScanData.part_no} に ${qty} 追加しました`);
+    await refreshCache(true); resetAddScan();
+  }catch(e){ toast(e.message,true); }
 }
 
 // ════════════════════════════════════════════════
-// 部材使用 (USE) & INLINE PANEL
+// 部材使用 (USE) + Giỏ hàng Xuất file (Cart)
 // ════════════════════════════════════════════════
 function initUse(){
-  $('use-tab-pno').classList.add('active'); ['name','scan','multi'].forEach(m=>$('use-tab-'+m).classList.remove('active'));
-  show('use-pno-area'); ['name','scan','multi'].forEach(m=>hide('use-'+m+'-area'));
-  activeInlinePno = null; updateSessionCartUI();
+  $('use-tab-pno').classList.add('active');
+  ['name','scan','multi'].forEach(m=>$('use-tab-'+m).classList.remove('active'));
+  show('use-pno-area');
+  ['name','scan','multi'].forEach(m=>hide('use-'+m+'-area'));
+  hide('use-confirm'); useConfirmData=null;
+  updateSessionCartUI();
 }
+
 function setUseMode(mode){
-  ['pno','name','scan','multi'].forEach(m=>{ $('use-tab-'+m).classList.toggle('active',m===mode); $('use-'+m+'-area').style.display=m===mode?'':'none'; });
+  ['pno','name','scan','multi'].forEach(m=>{
+    $('use-tab-'+m).classList.toggle('active',m===mode);
+    $('use-'+m+'-area').style.display=m===mode?'':'none';
+  });
   if(mode!=='scan'){ cleanupCam('use-video',useStream); useStream=null; }
-  activeInlinePno = null; if(mode==='scan') startUseCamera();
+  hide('use-confirm'); useConfirmData=null;
+  if(mode==='scan') startUseCamera();
 }
 
-function searchUsePno(){ const pn=($('use-pno-inp').value||'').trim(); if(!pn){ $('use-pno-list').innerHTML=''; return; } renderUseList('use-pno-list', cacheSearch(pn,false)); }
-function searchUseName(){ const q=($('use-name-inp').value||'').trim(); if(!q){ $('use-name-list').innerHTML=''; return; } renderUseList('use-name-list', cacheSearch(q,true)); }
-
-// TÍNH NĂNG INLINE PANEL: FIX LỖI CLICK VÀ HIỂN THỊ
+function searchUsePno(){
+  const pn=($('use-pno-inp').value||'').trim();
+  if(!pn){ $('use-pno-list').innerHTML=''; return; }
+  renderUseList('use-pno-list', cacheSearch(pn,false));
+}
+function searchUseName(){
+  const q=($('use-name-inp').value||'').trim();
+  if(!q){ $('use-name-list').innerHTML=''; return; }
+  renderUseList('use-name-list', cacheSearch(q,true));
+}
 function renderUseList(cid, items){
-  const c=$(cid); if(!items?.length){ c.innerHTML=emptyMsg(cacheIsValid()?'該当なし':'キャッシュが空です'); return; }
+  const c=$(cid);
+  if(!items?.length){ c.innerHTML=emptyMsg(cacheIsValid()?'該当なし':'キャッシュが空です'); return; }
   const show50=items.slice(0,RENDER_PAGE);
-  c.innerHTML=show50.map(it=>{
-    const safePn = esc(it.part_no); const sid = safePn.replace(/[^a-zA-Z0-9]/g,'_');
-    // Dùng escJS để đảm bảo tên có chứa ngoặc kép hoặc nháy đơn không làm gãy sự kiện onclick
-    const safeNameJS = escJS(it.name);
-    return `
-    <div>
-      <div class="item-card" id="card-${sid}" onclick="toggleInlineUse('${safePn}', '${safeNameJS}', ${it.qty}, '${sid}')" style="cursor:pointer; z-index:2; position:relative;">
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:11px;color:#6b7280;">${safePn}</div>
-          <div style="font-size:14px;font-weight:600;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.name)}</div>
-        </div>
-        <div style="text-align:right;flex-shrink:0;">
-          <div style="font-size:20px;font-weight:700;color:${qtyColor(it.qty)};">${it.qty}</div>
-          <div style="font-size:10px;color:#9ca3af;">在庫</div>
-        </div>
+  c.innerHTML=show50.map(it=>`
+    <div class="item-card" onclick="openUseConfirm('${esc(it.part_no)}','${esc(it.name)}',${it.qty})" style="cursor:pointer;">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:11px;color:#6b7280;">${esc(it.part_no)}</div>
+        <div style="font-size:14px;font-weight:600;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.name)}</div>
       </div>
-      <div class="inline-panel" id="inline-${sid}">
-        <div style="display:flex;gap:8px;align-items:center;">
-          <div style="flex:1;">
-            <label style="font-size:11px;color:#6b7280;display:block;margin-bottom:4px;">使用数量を入力</label>
-            <input id="inline-qty-${sid}" type="number" min="1" class="form-input" style="padding:8px 12px;font-size:15px;background:#fff;" placeholder="0"/>
-          </div>
-          <button onclick="submitInlineUse('${safePn}', '${safeNameJS}', ${it.qty}, '${sid}')" style="background:#7c3aed;color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer;margin-top:16px;">使用確定</button>
-        </div>
+      <div style="text-align:right;flex-shrink:0;">
+        <div style="font-size:20px;font-weight:700;color:${qtyColor(it.qty)};">${it.qty}</div>
+        <div style="font-size:10px;color:#9ca3af;">在庫</div>
       </div>
-    </div>`;
-  }).join('');
+    </div>`).join('');
+  if(items.length>RENDER_PAGE) c.innerHTML+=`<p style="font-size:12px;color:#9ca3af;text-align:center;padding:8px;">… 他 ${items.length-RENDER_PAGE} 件</p>`;
 }
 
-function toggleInlineUse(part_no, name, stock, sid) {
-  if (activeInlinePno && activeInlinePno !== sid) {
-    const oldPanel = $('inline-' + activeInlinePno);
-    if(oldPanel) oldPanel.style.display = 'none'; // Ẩn panel cũ
-    const oldCard = $('card-' + activeInlinePno); 
-    if(oldCard) oldCard.classList.remove('has-inline');
-  }
-  const panel = $('inline-' + sid); const card = $('card-' + sid);
-  
-  // FIX: Dùng style.display = 'block' để ép nó hiện ra
-  if (panel.style.display === 'none' || panel.style.display === '') {
-    panel.style.display = 'block'; 
-    card.classList.add('has-inline'); 
-    activeInlinePno = sid;
-    setTimeout(() => { const inp = $('inline-qty-'+sid); if(inp) inp.focus(); }, 100);
-  } else {
-    panel.style.display = 'none'; 
-    card.classList.remove('has-inline'); 
-    activeInlinePno = null;
-  }
+function openUseConfirm(part_no,name,stock){
+  useConfirmData={part_no,name,stock};
+  setText('uc-pno',part_no); setText('uc-name',name); setText('uc-stock',stock);
+  $('uc-qty').value=''; hide('uc-err'); show('use-confirm'); $('use-confirm').scrollIntoView({behavior:'smooth',block:'nearest'});
 }
+function closeUseConfirm(){ hide('use-confirm'); useConfirmData=null; }
 
-async function submitInlineUse(part_no, name, stock, sid){
-  const qtyInp = $('inline-qty-'+sid); if(!qtyInp) return;
-  const qty = parseInt(qtyInp.value);
-  if(isNaN(qty)||qty<1){ toast('数量を入力してください', true); return; }
-  if(qty>stock){ toast(`在庫数 (${stock}) を超えています`, true); return; }
-  
-  qtyInp.disabled = true;
+async function submitUse(){
+  if(!useConfirmData) return;
+  const qty=parseInt($('uc-qty').value);
+  if(isNaN(qty)||qty<1){ show('uc-err'); $('uc-err').textContent='数量を入力してください'; return; }
+  if(qty>useConfirmData.stock){ show('uc-err'); $('uc-err').textContent=`在庫数 (${useConfirmData.stock}) を超えています`; return; }
+  if(!API){ show('uc-err'); $('uc-err').textContent='APIが設定されていません'; return; }
+  hide('uc-err');
   try{
-    await apiFetch('/stock/use',{method:'POST',body:JSON.stringify({part_no,qty,user:currentUser||'ゲスト'})});
-    toast(`✓ ${part_no} を ${qty} 使用しました`);
+    await apiFetch('/stock/use',{method:'POST',body:JSON.stringify({part_no:useConfirmData.part_no,qty,user:currentUser||'ゲスト'})});
+    toast(`✓ ${useConfirmData.part_no} を ${qty} 使用しました`);
     
-    sessionCart.push({ part_no: part_no, name: name, qty: qty, time: new Date().toLocaleTimeString('ja-JP').slice(0,5) });
+    // TÍNH NĂNG MỚI: Thêm vào danh sách xuất file
+    sessionCart.push({ part_no: useConfirmData.part_no, name: useConfirmData.name, qty: qty, time: new Date().toLocaleTimeString('ja-JP').slice(0,5) });
     updateSessionCartUI();
 
-    await refreshCache(true); 
+    await refreshCache(true); closeUseConfirm();
     const mode=document.querySelector('#page-use .mode-tab.active')?.id?.replace('use-tab-','');
     if(mode==='pno') searchUsePno(); if(mode==='name') searchUseName();
-    if(mode==='scan' || mode==='multi') { 
-        const p = $('inline-'+sid); if(p) p.style.display = 'none'; 
-        $('card-'+sid).classList.remove('has-inline'); 
-    }
-  }catch(e){ toast(e.message, true); qtyInp.disabled = false; }
+  }catch(e){ show('uc-err'); $('uc-err').textContent=e.message; }
 }
 
-// ── GIỎ HÀNG XUẤT CSV ──
+// ── Tính năng xuất file Excel cho đồ đã dùng ──
 function updateSessionCartUI(){
-  const p = $('session-cart-panel');
-  if(!p) return;
-  if(sessionCart.length > 0){ 
-    p.style.display = 'flex'; // Ép kiểu Flexbox để panel nằm ngang đẹp
-    $('cart-count').textContent = `${sessionCart.length} 件`; 
-  } 
-  else { 
-    p.style.display = 'none'; 
+  if(sessionCart.length > 0){
+    show('session-cart-panel');
+    $('cart-count').textContent = `${sessionCart.length} アイテム`;
+  } else {
+    hide('session-cart-panel');
   }
 }
+
 function exportSessionCartCSV(){
   if(sessionCart.length === 0){ toast('データがありません',true); return; }
-  let csv = '\uFEFF品番,品名,使用数量,時間\n'; 
-  sessionCart.forEach(item => { const safeName = item.name.replace(/"/g, '""'); csv += `"${item.part_no}","${safeName}","${item.qty}","${item.time}"\n`; });
+  
+  // Tạo chuỗi CSV (có BOM để Excel ko bị lỗi font tiếng Nhật)
+  let csv = '\uFEFF'; 
+  csv += '品番,品名,使用数量,時間\n'; // Header
+  
+  sessionCart.forEach(item => {
+    // Đảm bảo escape chuỗi an toàn
+    const safeName = item.name.replace(/"/g, '""');
+    csv += `"${item.part_no}","${safeName}","${item.qty}","${item.time}"\n`;
+  });
+
+  // Tải file về
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob); const link = document.createElement("a");
-  link.setAttribute("href", url); link.setAttribute("download", `使用リスト_${new Date().toISOString().slice(0,10)}.csv`);
-  document.body.appendChild(link); link.click(); document.body.removeChild(link);
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", `使用リスト_${new Date().toISOString().slice(0,10)}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 
 // ── Camera (Use) ──
 async function startUseCamera(){
   resetUseScanUI();
-  try{ const s=await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment', width:{ideal:1920}, height:{ideal:1080}, focusMode:'continuous' } }); useStream=s; const v=$('use-video'); v.srcObject=s; await v.play().catch(()=>{}); show('use-cam-wrap'); }catch(e){ hide('use-cam-wrap'); toast('カメラを起動できません',true); }
+  try{
+    const s=await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment', width:{ideal:1920}, height:{ideal:1080}, focusMode:'continuous' } });
+    useStream=s; const v=$('use-video'); v.srcObject=s; await v.play().catch(()=>{}); show('use-cam-wrap');
+  }catch(e){ hide('use-cam-wrap'); toast('カメラを起動できません',true); }
 }
-function resetUseScanUI(){ hide('use-scan-result'); hide('use-fail-card'); hide('use-analyzing'); $('use-scan-item-list').innerHTML=''; show('use-cam-wrap'); activeInlinePno=null; }
+function resetUseScanUI(){
+  hide('use-scan-result'); hide('use-fail-card'); hide('use-analyzing'); $('use-scan-item').innerHTML='';
+  show('use-cam-wrap'); $('use-file').value=''; hide('use-confirm'); useConfirmData=null;
+}
 function resetUseScan(){ resetUseScanUI(); if(!useStream) startUseCamera(); }
+
 async function captureUse(){
-  const v=$('use-video'), c=$('use-canvas'); if(!v.videoWidth){ toast('カメラ準備中です…',true); return; }
+  const v=$('use-video'), c=$('use-canvas');
+  if(!v.videoWidth){ toast('カメラ準備中です…',true); return; }
   c.width=v.videoWidth; c.height=v.videoHeight; c.getContext('2d').drawImage(v,0,0);
-  cleanupCam('use-video',useStream); useStream=null; hide('use-cam-wrap'); await analyzeUseCanvas(c);
+  cleanupCam('use-video',useStream); useStream=null; hide('use-cam-wrap');
+  await analyzeUseCanvas(c);
+}
+function onUseFileChange(inp){
+  if(!inp.files?.[0]) return;
+  const img=new Image(), url=URL.createObjectURL(inp.files[0]);
+  img.onload=async()=>{
+    const c=$('use-canvas'); c.width=img.naturalWidth; c.height=img.naturalHeight; c.getContext('2d').drawImage(img,0,0);
+    URL.revokeObjectURL(url); hide('use-cam-wrap'); await analyzeUseCanvas(c);
+  }; img.src=url;
 }
 
 async function analyzeUseCanvas(c){
   show('use-analyzing'); hide('use-fail-card'); hide('use-scan-result');
-  let pn; try{ pn=await decodeBarcodeImage(c); } catch(e){ hide('use-analyzing'); show('use-fail-card'); return; }
+  let pn;
+  try{ pn=await decodeBarcodeImage(c); } catch(e){ hide('use-analyzing'); show('use-fail-card'); return; }
   hide('use-analyzing');
+
   let r=cacheGet(pn);
-  if(!r && API){ try{ r=await apiFetch(`/stock/search?part_no=${encodeURIComponent(pn)}`); }catch(e){ toast(e.message,true); resetUseScanUI(); return; } }
-  
+  if(!r && API){
+    try{ r=await apiFetch(`/stock/search?part_no=${encodeURIComponent(pn)}`); }catch(e){ toast(e.message,true); resetUseScanUI(); return; }
+  }
   if(r?.part_no){
     show('use-scan-result');
-    renderUseList('use-scan-item-list', [r]);
+    $('use-scan-item').innerHTML=`
+      <div class="item-card" onclick="openUseConfirm('${esc(r.part_no)}','${esc(r.name)}',${r.qty})" style="cursor:pointer;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:11px;color:#6b7280;">${esc(r.part_no)}</div>
+          <div style="font-size:14px;font-weight:600;color:#111827;">${esc(r.name)}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:22px;font-weight:700;color:${qtyColor(r.qty)};">${r.qty}</div>
+          <div style="font-size:10px;color:#9ca3af;">在庫</div>
+        </div>
+      </div>`;
     $('use-scan-result').scrollIntoView({behavior:'smooth',block:'nearest'});
-    const sid = r.part_no.replace(/[^a-zA-Z0-9]/g,'_'); toggleInlineUse(r.part_no, r.name, r.qty, sid);
+    openUseConfirm(r.part_no,r.name,r.qty);
   }else{
     show('use-fail-card'); $('use-fail-card').querySelector('div').textContent=`品番 "${pn}" は未登録です`;
   }
@@ -910,125 +1095,31 @@ async function analyzeUseCanvas(c){
 async function searchMulti(){
   const pnos=[...new Set($('use-multi-inp').value.split('\n').map(s=>s.trim()).filter(Boolean))];
   if(!pnos.length){ toast('品番を入力してください',true); return; }
-  if(cacheIsValid()){ const results=pnos.map(pn=>{ const it=cacheGet(pn); return it?{...it,found:true}:{part_no:pn,found:false}; }); renderMultiResults(results); return; }
-  try{ const res=await apiFetch('/stock/multi-search',{method:'POST',body:JSON.stringify({part_nos:pnos})}); renderMultiResults(res||[]); }catch(e){ toast(e.message,true); }
+  if(cacheIsValid()){
+    const results=pnos.map(pn=>{ const it=cacheGet(pn); return it?{...it,found:true}:{part_no:pn,found:false}; });
+    renderMultiResults(results); return;
+  }
+  if(!API){ $('use-multi-list').innerHTML=emptyMsg('APIが設定されていません'); return; }
+  try{
+    const res=await apiFetch('/stock/multi-search',{method:'POST',body:JSON.stringify({part_nos:pnos})});
+    renderMultiResults(res||[]);
+  }catch(e){ toast(e.message,true); }
 }
+
 function renderMultiResults(res){
   if(!res.length){ $('use-multi-list').innerHTML=emptyMsg('該当なし'); return; }
-  $('use-multi-list').innerHTML=res.map(it=>{
-    if(it.found){
-       const safePn = esc(it.part_no); const sid = safePn.replace(/[^a-zA-Z0-9]/g,'_') + '_multi'; const safeNameJS = escJS(it.name);
-       return `
-        <div>
-          <div class="item-card multi-reg" id="card-${sid}" onclick="toggleInlineUse('${safePn}', '${safeNameJS}', ${it.qty}, '${sid}')" style="cursor:pointer; z-index:2; position:relative;">
-            <div style="flex:1;min-width:0;"><div style="font-size:11px;color:#6b7280;">${safePn}</div><div style="font-size:14px;font-weight:600;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.name)}</div></div>
-            <div style="text-align:right;flex-shrink:0;"><div style="font-size:18px;font-weight:700;color:${qtyColor(it.qty)};">${it.qty}</div><div style="font-size:10px;color:#9ca3af;">在庫</div></div>
-          </div>
-          <div class="inline-panel" id="inline-${sid}">
-            <div style="display:flex;gap:8px;align-items:center;">
-              <div style="flex:1;"><input id="inline-qty-${sid}" type="number" min="1" class="form-input" placeholder="使用数量" style="padding:8px;"/></div>
-              <button onclick="submitInlineUse('${safePn}', '${safeNameJS}', ${it.qty}, '${sid}')" style="background:#7c3aed;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;">確定</button>
-            </div>
-          </div>
-        </div>`;
-    }else{
-       return `<div class="item-card multi-unreg"><div style="flex:1;"><div style="font-size:11px;color:#6b7280;">${esc(it.part_no)}</div><div style="font-size:13px;font-weight:600;color:#9ca3af;">未登録</div></div><span style="background:#fee2e2;color:#991b1b;font-size:11px;padding:3px 8px;border-radius:99px;flex-shrink:0;">未登録</span></div>`;
-    }
-  }).join('');
-}
-
-
-// ════════════════════════════════════════════════
-// 簿外管理 (BOGAI) - THÊM VÀ SỬ DỤNG
-// ════════════════════════════════════════════════
-function initBogaiAdd(){
-  $('ba-name').value = ''; $('ba-category').value = ''; $('ba-condition').value = '';
-  $('ba-qty').value = ''; $('ba-location').value = ''; $('ba-remarks').value = '';
-}
-
-async function submitBogaiAdd(){
-  const name = $('ba-name').value.trim(), category = $('ba-category').value.trim(), condition = $('ba-condition').value.trim();
-  const qty = parseInt($('ba-qty').value), location = $('ba-location').value.trim(), remarks = $('ba-remarks').value.trim();
-
-  if(!name) { toast('在庫品名を入力してください', true); return; }
-  if(isNaN(qty) || qty < 1) { toast('数量を正しく入力してください', true); return; }
-
-  const payload = { item_name: name, category, condition, qty, location, remarks, user: currentUser };
-  try{ 
-    await apiFetch('/bogai/add', { method:'POST', body:JSON.stringify(payload) }); 
-    toast(`✓ 簿外アイテムを追加しました`); initBogaiAdd(); 
-  } catch(e) { toast(e.message, true); }
-}
-
-function initBogaiUse(){ $('bu-search-inp').value = ''; $('bu-list').innerHTML = emptyMsg('在庫品名で検索してください'); }
-async function searchBogaiUse(){
-  const q = $('bu-search-inp').value.trim();
-  if(!q) { $('bu-list').innerHTML = emptyMsg('在庫品名で検索してください'); return; }
-  try {
-    const res = await apiFetch(`/bogai/search?query=${encodeURIComponent(q)}`);
-    renderBogaiList(res || []);
-  } catch(e) { $('bu-list').innerHTML = errMsg(e.message); }
-}
-
-function renderBogaiList(items){
-  if(!items?.length){ $('bu-list').innerHTML = emptyMsg('該当なし'); return; }
-  $('bu-list').innerHTML = items.map(it => {
-    const safeId = it.item_name.replace(/[^a-zA-Z0-9]/g,'_');
-    const safeNameJS = escJS(it.item_name);
-    return `
-    <div>
-      <div class="item-card" id="bcard-${safeId}" onclick="toggleBogaiInline('${safeId}', '${safeNameJS}', ${it.qty})" style="cursor:pointer; z-index:2; position:relative;">
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:11px;color:#6b7280;">${esc(it.category)} | ${esc(it.condition)}</div>
-          <div style="font-size:14px;font-weight:600;color:#111827;">${esc(it.item_name)}</div>
-          <div style="font-size:10px;color:#9ca3af;margin-top:2px;">${esc(it.location)}</div>
-        </div>
-        <div style="text-align:right;flex-shrink:0;"><div style="font-size:20px;font-weight:700;color:${qtyColor(it.qty)};">${it.qty}</div><div style="font-size:10px;color:#9ca3af;">在庫</div></div>
-      </div>
-      <div class="inline-panel" id="binline-${safeId}">
-        <div style="display:flex;gap:8px;align-items:center;">
-          <div style="flex:1;"><label style="font-size:11px;color:#6b7280;display:block;margin-bottom:4px;">使用数量を入力</label>
-            <input id="binline-qty-${safeId}" type="number" min="1" class="form-input" style="padding:8px 12px;font-size:15px;background:#fff;" placeholder="0"/>
-          </div>
-          <button onclick="submitBogaiUse('${safeId}', '${safeNameJS}', ${it.qty})" style="background:#059669;color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer;margin-top:16px;">簿外使用</button>
-        </div>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function toggleBogaiInline(id, name, stock) {
-  if (activeBogaiInline && activeBogaiInline !== id) {
-    const oldPanel = $('binline-' + activeBogaiInline);
-    if(oldPanel) oldPanel.style.display = 'none';
-    const oldCard = $('bcard-' + activeBogaiInline); 
-    if(oldCard) oldCard.classList.remove('has-inline');
-  }
-  const panel = $('binline-' + id), card = $('bcard-' + id);
-  if (panel.style.display === 'none' || panel.style.display === '') {
-    panel.style.display = 'block'; 
-    card.classList.add('has-inline'); 
-    activeBogaiInline = id;
-    setTimeout(() => { const inp = $('binline-qty-'+id); if(inp) inp.focus(); }, 100);
-  } else {
-    panel.style.display = 'none'; 
-    card.classList.remove('has-inline'); 
-    activeBogaiInline = null;
-  }
-}
-
-async function submitBogaiUse(id, name, stock){
-  const qtyInp = $('binline-qty-'+id); if(!qtyInp) return;
-  const qty = parseInt(qtyInp.value);
-  if(isNaN(qty)||qty<1){ toast('数量を入力してください', true); return; }
-  if(qty>stock){ toast(`在庫数 (${stock}) を超えています`, true); return; }
-  
-  qtyInp.disabled = true;
-  try{
-    await apiFetch('/bogai/use',{method:'POST',body:JSON.stringify({item_name: name, qty: qty, user: currentUser})});
-    toast(`✓ 簿外 ${name} を ${qty} 使用しました`);
-    searchBogaiUse(); // Refresh
-  }catch(e){ toast(e.message, true); qtyInp.disabled = false; }
+  $('use-multi-list').innerHTML=res.map(it=>it.found
+    ?`<div class="item-card multi-reg" onclick="openUseConfirm('${esc(it.part_no)}','${esc(it.name)}',${it.qty})" style="cursor:pointer;">
+        <div style="flex:1;min-width:0;"><div style="font-size:11px;color:#6b7280;">${esc(it.part_no)}</div>
+        <div style="font-size:14px;font-weight:600;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.name)}</div></div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:18px;font-weight:700;color:${qtyColor(it.qty)};">${it.qty}</div>
+          <div style="font-size:10px;color:#9ca3af;">在庫</div></div></div>`
+    :`<div class="item-card multi-unreg">
+        <div style="flex:1;"><div style="font-size:11px;color:#6b7280;">${esc(it.part_no)}</div>
+        <div style="font-size:13px;font-weight:600;color:#9ca3af;">未登録</div></div>
+        <span style="background:#fee2e2;color:#991b1b;font-size:11px;padding:3px 8px;border-radius:99px;flex-shrink:0;">未登録</span></div>`
+  ).join('');
 }
 
 // ════════════════════════════════════════════════
@@ -1048,8 +1139,16 @@ function updateStockHeader(){ $('stock-count').textContent=`${_stockFiltered.len
 function renderStockPage(){
   const slice=_stockFiltered.slice(0,_stockRenderOffset+RENDER_PAGE);
   $('stock-list').innerHTML=slice.length ? slice.map(it=>`
-    <div class="item-card"><div style="flex:1;min-width:0;"><div style="font-size:11px;color:#6b7280;">${esc(it.part_no)}</div><div style="font-size:14px;font-weight:600;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.name)}</div></div>
-      <div style="text-align:right;flex-shrink:0;"><div style="font-size:20px;font-weight:700;color:${qtyColor(it.qty)};">${it.qty}</div><div style="font-size:10px;color:#9ca3af;">在庫数</div></div></div>`).join('') : emptyMsg('データなし');
+    <div class="item-card">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:11px;color:#6b7280;">${esc(it.part_no)}</div>
+        <div style="font-size:14px;font-weight:600;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.name)}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;">
+        <div style="font-size:20px;font-weight:700;color:${qtyColor(it.qty)};">${it.qty}</div>
+        <div style="font-size:10px;color:#9ca3af;">在庫数</div>
+      </div>
+    </div>`).join('') : emptyMsg('データなし');
   _stockRenderOffset+=RENDER_PAGE;
   if(_stockFiltered.length>_stockRenderOffset) show('stock-more-btn'); else hide('stock-more-btn');
 }
@@ -1067,22 +1166,30 @@ async function loadHistory(force=false){
 function filterHistory(){
   const f=$('hist-filter').value; const data=(f?_allHistory.filter(h=>h.action===f):_allHistory).slice(0,100);
   $('hist-list').innerHTML=data.map(h=>{
-    const bc=h.action.includes('add')?'b-add':h.action.includes('use')?'b-use':'b-edit';
-    let lb = '編集'; if (h.action === 'add') lb = '追加'; else if (h.action === 'use') lb = '使用'; else if (h.action === 'bogai_add') lb = '簿外追加'; else if (h.action === 'bogai_use') lb = '簿外使用';
-    const sg=h.action.includes('add')?'+':h.action.includes('use')?'-':'±';
+    const bc=h.action==='add'?'b-add':h.action==='use'?'b-use':'b-edit';
+    const lb=h.action==='add'?'追加':h.action==='use'?'使用':'編集';
+    const sg=h.action==='add'?'+':h.action==='use'?'-':'±';
     return `<div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:10px;display:flex;align-items:flex-start;gap:8px;">
       <span class="${bc}" style="margin-top:2px;flex-shrink:0;">${lb}</span>
-      <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(h.part_no)} ${esc(h.name)}</div><div style="font-size:11px;color:#6b7280;margin-top:1px;">${esc(h.user||'—')} &nbsp;|&nbsp; ${sg}${h.qty}</div></div>
-      <div style="font-size:10px;color:#9ca3af;white-space:nowrap;text-align:right;min-width:60px;">${esc((h.timestamp||'').slice(5,16))}</div></div>`;
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:600;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(h.part_no)} ${esc(h.name)}</div>
+        <div style="font-size:11px;color:#6b7280;margin-top:1px;">${esc(h.user||'—')} &nbsp;|&nbsp; ${sg}${h.qty}</div>
+      </div>
+      <div style="font-size:10px;color:#9ca3af;white-space:nowrap;text-align:right;min-width:60px;">${esc((h.timestamp||'').slice(5,16))}</div>
+    </div>`;
   }).join('')||emptyMsg('履歴なし');
 }
 
 // ════════════════════════════════════════════════
 // 管理
 // ════════════════════════════════════════════════
-function initAdmin(){ if(token&&isAdmin){ hide('admin-login-box'); show('admin-panel'); switchAtab('stock'); } else { show('admin-login-box'); hide('admin-panel'); } }
+function initAdmin(){
+  if(token&&isAdmin){ hide('admin-login-box'); show('admin-panel'); switchAtab('stock'); }
+  else              { show('admin-login-box'); hide('admin-panel'); }
+}
 async function adminLogin(){
-  hide('a-err'); if(!API){ $('a-err').style.display=''; $('a-err').textContent='APIが設定されていません'; return; }
+  hide('a-err');
+  if(!API){ $('a-err').style.display=''; $('a-err').textContent='APIが設定されていません'; return; }
   try{
     const r=await apiFetch('/auth/login',{method:'POST',body:JSON.stringify({username:$('a-user').value,password:$('a-pass').value})});
     token=r.access_token; isAdmin=r.is_admin; currentUser=$('a-user').value;
@@ -1108,13 +1215,25 @@ function renderAdminStock(items){
   $('admin-stock-list').innerHTML=items.map(it=>{
     const sid=it.part_no.replace(/[^a-zA-Z0-9]/g,'_');
     return `<div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:12px;">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><div style="min-width:0;flex:1;"><div style="font-size:11px;color:#6b7280;">${esc(it.part_no)}</div><div style="font-size:13px;font-weight:600;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.name)}</div></div><div style="font-size:16px;font-weight:700;color:${qtyColor(it.qty)};flex-shrink:0;">${it.qty}</div></div>
-      <div style="display:flex;gap:6px;align-items:center;"><input id="eq-${sid}" type="number" value="${it.qty}" min="0" class="qty-inp"/>
-      <button onclick="saveAdminQty('${esc(it.part_no)}','${esc(it.name)}','${sid}')" style="flex:1;background:#7c3aed;color:#fff;padding:8px;border-radius:8px;font-size:12px;font-weight:600;border:none;cursor:pointer;">保存</button><button onclick="deleteStockItem('${esc(it.part_no)}')" style="background:#fee2e2;color:#ef4444;padding:8px 10px;border-radius:8px;font-size:12px;font-weight:600;border:1px solid #fecaca;cursor:pointer;">削除</button></div></div>`;
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <div style="min-width:0;flex:1;">
+          <div style="font-size:11px;color:#6b7280;">${esc(it.part_no)}</div>
+          <div style="font-size:13px;font-weight:600;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.name)}</div>
+        </div>
+        <div style="font-size:16px;font-weight:700;color:${qtyColor(it.qty)};flex-shrink:0;">${it.qty}</div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <input id="eq-${sid}" type="number" value="${it.qty}" min="0" class="qty-inp"/>
+        <button onclick="saveAdminQty('${esc(it.part_no)}','${esc(it.name)}','${sid}')" style="flex:1;background:#7c3aed;color:#fff;padding:8px;border-radius:8px;font-size:12px;font-weight:600;border:none;cursor:pointer;">保存</button>
+        <button onclick="deleteStockItem('${esc(it.part_no)}')" style="background:#fee2e2;color:#ef4444;padding:8px 10px;border-radius:8px;font-size:12px;font-weight:600;border:1px solid #fecaca;cursor:pointer;">削除</button>
+      </div>
+    </div>`;
   }).join('')||emptyMsg('データなし');
 }
 async function saveAdminQty(part_no,name,sid){
-  const qty=parseInt($('eq-'+sid).value); if(isNaN(qty)||qty<0){ toast('数量を入力してください',true); return; }
+  const qty=parseInt($('eq-'+sid).value);
+  if(isNaN(qty)||qty<0){ toast('数量を入力してください',true); return; }
+  if(!API){ toast('APIが設定されていません',true); return; }
   try{ await apiFetch('/admin/stock/edit',{method:'PUT',body:JSON.stringify({part_no,name,qty,user:currentUser})}); toast(`✓ ${part_no} → ${qty}`); await refreshCache(true); filterAdminStock(); }catch(e){ toast(e.message,true); }
 }
 async function deleteStockItem(part_no){
@@ -1122,14 +1241,28 @@ async function deleteStockItem(part_no){
   try{ await apiFetch(`/admin/stock/${encodeURIComponent(part_no)}`,{method:'DELETE'}); toast(`✓ ${part_no} を削除しました`); await refreshCache(true); filterAdminStock(); }catch(e){ toast(e.message,true); }
 }
 async function exportCSV(type){
+  if(!API){ toast('APIが設定されていません',true); return; }
   try{
     const r=await fetch(API+`/admin/export/${type}`,{headers:token?{'Authorization':`Bearer ${token}`}:{}});
-    if(!r.ok) throw new Error('エクスポート失敗'); const blob=await r.blob(), url=URL.createObjectURL(blob);
-    const a=document.createElement('a'); a.href=url; a.download=`${type}_${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(url);
+    if(!r.ok) throw new Error('エクスポート失敗');
+    const blob=await r.blob(), url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download=`${type}_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click(); URL.revokeObjectURL(url);
   }catch(e){ toast(e.message,true); }
 }
 async function loadAdminUsers(){
-  try{ const u=await apiFetch('/admin/users'); $('users-list').innerHTML=u.map(u=>`<div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:8px;"><div style="flex:1;"><div style="font-size:14px;font-weight:600;color:#111827;">${esc(u.username)}</div><div style="font-size:11px;color:#6b7280;">${u.is_admin?'管理者':'一般'}</div></div>${u.username!=='admin'?`<button onclick="deleteUser('${esc(u.username)}')" class="btn-d" style="padding:5px 10px;font-size:12px;">削除</button>`:''}</div>`).join(''); }catch(e){ $('users-list').innerHTML=errMsg(e.message); }
+  if(!API){ $('users-list').innerHTML=emptyMsg('APIが設定されていません'); return; }
+  try{
+    const u=await apiFetch('/admin/users');
+    $('users-list').innerHTML=u.map(u=>`
+      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:8px;">
+        <div style="flex:1;">
+          <div style="font-size:14px;font-weight:600;color:#111827;">${esc(u.username)}</div>
+          <div style="font-size:11px;color:#6b7280;">${u.is_admin?'管理者':'一般'}</div>
+        </div>
+        ${u.username!=='admin'?`<button onclick="deleteUser('${esc(u.username)}')" class="btn-d" style="padding:5px 10px;font-size:12px;">削除</button>`:''}
+      </div>`).join('');
+  }catch(e){ $('users-list').innerHTML=errMsg(e.message); }
 }
 async function createUser(){
   const username=$('nu-name').value.trim(), password=$('nu-pass').value.trim(), is_admin=$('nu-admin').checked;
@@ -1144,7 +1277,10 @@ async function deleteUser(username){
 // ════════════════════════════════════════════════
 // 起動
 // ════════════════════════════════════════════════
-(function init(){ updateUserUI(); if(token||currentUser){ hide('login-overlay'); refreshCache(false).then(()=>go('home')); } })();
+(function init(){
+  updateUserUI();
+  if(token||currentUser){ hide('login-overlay'); refreshCache(false).then(()=>go('home')); }
+})();
 </script>
 </body>
 </html>
