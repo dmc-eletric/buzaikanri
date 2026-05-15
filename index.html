@@ -77,7 +77,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .cam-box{position:relative;width:100%;background:#000;border-radius:14px;overflow:hidden;border:2px solid #7c3aed;}
 .cam-box video{width:100%;display:block;height:240px;object-fit:cover;}
 .cam-guide{position:absolute;inset:0;pointer-events:none;display:flex;align-items:center;justify-content:center;}
-.cam-guide-rect{border:2px solid rgba(255,255,255,.8);border-radius:8px;width:75%;height:45%;box-shadow:0 0 0 9999px rgba(0,0,0,.4);}
+/* Khung vuông to hơn cho Data Matrix */
+.cam-guide-rect{border:2px solid rgba(255,255,255,.8);border-radius:12px;width:220px;height:220px;box-shadow:0 0 0 9999px rgba(0,0,0,.4);}
 .shutter{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);width:58px;height:58px;border-radius:50%;background:#fff;border:4px solid #7c3aed;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(124,58,237,.4);transition:transform .1s;z-index:5;}
 .shutter:active{transform:translateX(-50%) scale(.9);}
 .shutter svg{width:24px;height:24px;}
@@ -97,7 +98,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .dash-lbl{font-size:10px;color:#6b7280;margin-top:3px;}
 .top3-item{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px;margin-bottom:6px;}
 .cache-badge{display:inline-block;background:#ede9fe;color:#5b21b6;font-size:10px;padding:2px 7px;border-radius:99px;margin-left:6px;vertical-align:middle;}
-/* Floating Cart Panel (Đã sửa lỗi CSS hiển thị) */
+/* Floating Cart Panel */
 .cart-floating{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);width:calc(100% - 40px);max-width:600px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:12px 16px;display:none;justify-content:space-between;align-items:center;box-shadow:0 10px 25px rgba(0,0,0,.1);z-index:80;}
 @media(max-width:640px){ .cart-floating{bottom:74px; width:calc(100% - 24px);} }
 </style>
@@ -259,7 +260,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
     </div>
   </div>
 
-  <!-- 部材使用 (Sử dụng hàng chuẩn) -->
+  <!-- 部材使用 (Sử dụng hàng chuẩn - INLINE FLOW) -->
   <div id="page-use" class="page hidden">
     <div style="font-size:18px;font-weight:700;color:#111827;margin-bottom:14px;">部材使用</div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:16px;">
@@ -513,16 +514,22 @@ function loadZXing(){
 }
 
 async function decodeBarcodeImage(canvas) {
+  // Ưu tiên Native API
   if ('BarcodeDetector' in window) {
     try {
-      const detector = new BarcodeDetector({ formats: ['code_128'] });
+      const detector = new BarcodeDetector({ formats: ['data_matrix', 'qr_code', 'code_128'] });
       const barcodes = await detector.detect(canvas);
       if (barcodes.length > 0) return normalizeBarcode(barcodes[0].rawValue);
     } catch(e) {}
   }
+  // Fallback ZXing
   await loadZXing();
   const hints = new Map();
-  hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.CODE_128]);
+  hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+      ZXing.BarcodeFormat.DATA_MATRIX, 
+      ZXing.BarcodeFormat.QR_CODE, 
+      ZXing.BarcodeFormat.CODE_128
+  ]);
   hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
 
   const reader = new ZXing.MultiFormatReader(); reader.setHints(hints);
@@ -543,20 +550,21 @@ function _canvasToBinaryBitmap(canvas, highContrast, flipH){
   return new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(lumi));
 }
 
-// Lọc ký tự M/N/K
+// Hàm lọc lấy Part No chuẩn xác (Bắt đầu bằng M, N hoặc K)
 function normalizeBarcode(raw){
   let text = raw.replace(/[\x00-\x1F\x7F-\x9F]/g, "").replace(/\*/g,'').trim();
   if (text.includes('\n') || text.includes('\r')) text = text.split(/[\n\r]+/)[0]; 
   
-  let match = text.match(/[MNK][A-Z0-9-]{5,}/i);
+  // Tìm chuỗi có độ dài tối thiểu 6 ký tự, bắt đầu bằng M, N hoặc K, chứa chữ hoa, số và dấu gạch ngang
+  let match = text.match(/[MNK][A-Z0-9-]{5,30}/i);
   if (match) {
-      return match[0].trim();
+      return match[0].toUpperCase().trim();
   }
-  return text.trim();
+  return text.toUpperCase().trim();
 }
 
 // ════════════════════════════════════════════════
-// States
+// States & Utils
 // ════════════════════════════════════════════════
 let token = localStorage.getItem('pm_token') || null;
 let isAdmin = localStorage.getItem('pm_admin') === 'true';
@@ -577,6 +585,9 @@ const show= id => { const e=$(id); if(e) e.style.display=''; };
 const hide= id => { const e=$(id); if(e) e.style.display='none'; };
 const setText=(id,v)=>{ const e=$(id); if(e) e.textContent=v??''; };
 function esc(s){ return s==null?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+// Hàm esc đặc biệt để dùng an toàn trong các chuỗi JS nhúng (onclick="")
+function escJS(s){ return s==null?'':String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'\\"'); }
+
 function qtyColor(q){ return q<=0?'#ef4444':q<=5?'#f59e0b':'#059669'; }
 function emptyMsg(m){ return `<p style="color:#9ca3af;font-size:13px;text-align:center;padding:16px 0;">${esc(m)}</p>`; }
 function errMsg(m)  { return `<p style="color:#ef4444;font-size:12px;padding:8px;">${esc(m)}</p>`; }
@@ -762,14 +773,17 @@ function setUseMode(mode){
 function searchUsePno(){ const pn=($('use-pno-inp').value||'').trim(); if(!pn){ $('use-pno-list').innerHTML=''; return; } renderUseList('use-pno-list', cacheSearch(pn,false)); }
 function searchUseName(){ const q=($('use-name-inp').value||'').trim(); if(!q){ $('use-name-list').innerHTML=''; return; } renderUseList('use-name-list', cacheSearch(q,true)); }
 
+// TÍNH NĂNG INLINE PANEL: FIX LỖI CLICK VÀ HIỂN THỊ
 function renderUseList(cid, items){
   const c=$(cid); if(!items?.length){ c.innerHTML=emptyMsg(cacheIsValid()?'該当なし':'キャッシュが空です'); return; }
   const show50=items.slice(0,RENDER_PAGE);
   c.innerHTML=show50.map(it=>{
     const safePn = esc(it.part_no); const sid = safePn.replace(/[^a-zA-Z0-9]/g,'_');
+    // Dùng escJS để đảm bảo tên có chứa ngoặc kép hoặc nháy đơn không làm gãy sự kiện onclick
+    const safeNameJS = escJS(it.name);
     return `
     <div>
-      <div class="item-card" id="card-${sid}" onclick="toggleInlineUse('${safePn}', '${esc(it.name)}', ${it.qty}, '${sid}')" style="cursor:pointer; z-index:2; position:relative;">
+      <div class="item-card" id="card-${sid}" onclick="toggleInlineUse('${safePn}', '${safeNameJS}', ${it.qty}, '${sid}')" style="cursor:pointer; z-index:2; position:relative;">
         <div style="flex:1;min-width:0;">
           <div style="font-size:11px;color:#6b7280;">${safePn}</div>
           <div style="font-size:14px;font-weight:600;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.name)}</div>
@@ -785,7 +799,7 @@ function renderUseList(cid, items){
             <label style="font-size:11px;color:#6b7280;display:block;margin-bottom:4px;">使用数量を入力</label>
             <input id="inline-qty-${sid}" type="number" min="1" class="form-input" style="padding:8px 12px;font-size:15px;background:#fff;" placeholder="0"/>
           </div>
-          <button onclick="submitInlineUse('${safePn}', '${esc(it.name)}', ${it.qty}, '${sid}')" style="background:#7c3aed;color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer;margin-top:16px;">使用確定</button>
+          <button onclick="submitInlineUse('${safePn}', '${safeNameJS}', ${it.qty}, '${sid}')" style="background:#7c3aed;color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer;margin-top:16px;">使用確定</button>
         </div>
       </div>
     </div>`;
@@ -794,14 +808,23 @@ function renderUseList(cid, items){
 
 function toggleInlineUse(part_no, name, stock, sid) {
   if (activeInlinePno && activeInlinePno !== sid) {
-    hide('inline-' + activeInlinePno); const oldCard = $('card-' + activeInlinePno); if(oldCard) oldCard.classList.remove('has-inline');
+    const oldPanel = $('inline-' + activeInlinePno);
+    if(oldPanel) oldPanel.style.display = 'none'; // Ẩn panel cũ
+    const oldCard = $('card-' + activeInlinePno); 
+    if(oldCard) oldCard.classList.remove('has-inline');
   }
   const panel = $('inline-' + sid); const card = $('card-' + sid);
+  
+  // FIX: Dùng style.display = 'block' để ép nó hiện ra, chứ không dùng display='' vì sẽ bị class display:none ghi đè
   if (panel.style.display === 'none' || panel.style.display === '') {
-    show('inline-' + sid); card.classList.add('has-inline'); activeInlinePno = sid;
+    panel.style.display = 'block'; 
+    card.classList.add('has-inline'); 
+    activeInlinePno = sid;
     setTimeout(() => { const inp = $('inline-qty-'+sid); if(inp) inp.focus(); }, 100);
   } else {
-    hide('inline-' + sid); card.classList.remove('has-inline'); activeInlinePno = null;
+    panel.style.display = 'none'; 
+    card.classList.remove('has-inline'); 
+    activeInlinePno = null;
   }
 }
 
@@ -822,7 +845,10 @@ async function submitInlineUse(part_no, name, stock, sid){
     await refreshCache(true); 
     const mode=document.querySelector('#page-use .mode-tab.active')?.id?.replace('use-tab-','');
     if(mode==='pno') searchUsePno(); if(mode==='name') searchUseName();
-    if(mode==='scan' || mode==='multi') { hide('inline-'+sid); $('card-'+sid).classList.remove('has-inline'); }
+    if(mode==='scan' || mode==='multi') { 
+        const p = $('inline-'+sid); if(p) p.style.display = 'none'; 
+        $('card-'+sid).classList.remove('has-inline'); 
+    }
   }catch(e){ toast(e.message, true); qtyInp.disabled = false; }
 }
 
@@ -831,10 +857,12 @@ function updateSessionCartUI(){
   const p = $('session-cart-panel');
   if(!p) return;
   if(sessionCart.length > 0){ 
-    p.style.display = 'flex'; // KHÔNG ĐƯỢC XÓA DISPLAY FLEX
+    p.style.display = 'flex'; // Ép kiểu Flexbox để panel nằm ngang đẹp
     $('cart-count').textContent = `${sessionCart.length} 件`; 
   } 
-  else { p.style.display = 'none'; }
+  else { 
+    p.style.display = 'none'; 
+  }
 }
 function exportSessionCartCSV(){
   if(sessionCart.length === 0){ toast('データがありません',true); return; }
@@ -886,17 +914,17 @@ function renderMultiResults(res){
   if(!res.length){ $('use-multi-list').innerHTML=emptyMsg('該当なし'); return; }
   $('use-multi-list').innerHTML=res.map(it=>{
     if(it.found){
-       const safePn = esc(it.part_no); const sid = safePn.replace(/[^a-zA-Z0-9]/g,'_') + '_multi';
+       const safePn = esc(it.part_no); const sid = safePn.replace(/[^a-zA-Z0-9]/g,'_') + '_multi'; const safeNameJS = escJS(it.name);
        return `
         <div>
-          <div class="item-card multi-reg" id="card-${sid}" onclick="toggleInlineUse('${safePn}', '${esc(it.name)}', ${it.qty}, '${sid}')" style="cursor:pointer; z-index:2; position:relative;">
+          <div class="item-card multi-reg" id="card-${sid}" onclick="toggleInlineUse('${safePn}', '${safeNameJS}', ${it.qty}, '${sid}')" style="cursor:pointer; z-index:2; position:relative;">
             <div style="flex:1;min-width:0;"><div style="font-size:11px;color:#6b7280;">${safePn}</div><div style="font-size:14px;font-weight:600;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.name)}</div></div>
             <div style="text-align:right;flex-shrink:0;"><div style="font-size:18px;font-weight:700;color:${qtyColor(it.qty)};">${it.qty}</div><div style="font-size:10px;color:#9ca3af;">在庫</div></div>
           </div>
           <div class="inline-panel" id="inline-${sid}">
             <div style="display:flex;gap:8px;align-items:center;">
               <div style="flex:1;"><input id="inline-qty-${sid}" type="number" min="1" class="form-input" placeholder="使用数量" style="padding:8px;"/></div>
-              <button onclick="submitInlineUse('${safePn}', '${esc(it.name)}', ${it.qty}, '${sid}')" style="background:#7c3aed;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;">確定</button>
+              <button onclick="submitInlineUse('${safePn}', '${safeNameJS}', ${it.qty}, '${sid}')" style="background:#7c3aed;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;">確定</button>
             </div>
           </div>
         </div>`;
@@ -906,9 +934,8 @@ function renderMultiResults(res){
   }).join('');
 }
 
-
 // ════════════════════════════════════════════════
-// 簿外管理 (BOGAI)
+// 簿外管理 (BOGAI) - THÊM VÀ SỬ DỤNG
 // ════════════════════════════════════════════════
 function initBogaiAdd(){
   $('ba-name').value = ''; $('ba-category').value = ''; $('ba-condition').value = '';
@@ -943,9 +970,10 @@ function renderBogaiList(items){
   if(!items?.length){ $('bu-list').innerHTML = emptyMsg('該当なし'); return; }
   $('bu-list').innerHTML = items.map(it => {
     const safeId = it.item_name.replace(/[^a-zA-Z0-9]/g,'_');
+    const safeNameJS = escJS(it.item_name);
     return `
     <div>
-      <div class="item-card" id="bcard-${safeId}" onclick="toggleBogaiInline('${safeId}', '${esc(it.item_name)}', ${it.qty})" style="cursor:pointer; z-index:2; position:relative;">
+      <div class="item-card" id="bcard-${safeId}" onclick="toggleBogaiInline('${safeId}', '${safeNameJS}', ${it.qty})" style="cursor:pointer; z-index:2; position:relative;">
         <div style="flex:1;min-width:0;">
           <div style="font-size:11px;color:#6b7280;">${esc(it.category)} | ${esc(it.condition)}</div>
           <div style="font-size:14px;font-weight:600;color:#111827;">${esc(it.item_name)}</div>
@@ -958,7 +986,7 @@ function renderBogaiList(items){
           <div style="flex:1;"><label style="font-size:11px;color:#6b7280;display:block;margin-bottom:4px;">使用数量を入力</label>
             <input id="binline-qty-${safeId}" type="number" min="1" class="form-input" style="padding:8px 12px;font-size:15px;background:#fff;" placeholder="0"/>
           </div>
-          <button onclick="submitBogaiUse('${safeId}', '${esc(it.item_name)}', ${it.qty})" style="background:#059669;color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer;margin-top:16px;">簿外使用</button>
+          <button onclick="submitBogaiUse('${safeId}', '${safeNameJS}', ${it.qty})" style="background:#059669;color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer;margin-top:16px;">簿外使用</button>
         </div>
       </div>
     </div>`;
@@ -967,14 +995,21 @@ function renderBogaiList(items){
 
 function toggleBogaiInline(id, name, stock) {
   if (activeBogaiInline && activeBogaiInline !== id) {
-    hide('binline-' + activeBogaiInline); const oldCard = $('bcard-' + activeBogaiInline); if(oldCard) oldCard.classList.remove('has-inline');
+    const oldPanel = $('binline-' + activeBogaiInline);
+    if(oldPanel) oldPanel.style.display = 'none';
+    const oldCard = $('bcard-' + activeBogaiInline); 
+    if(oldCard) oldCard.classList.remove('has-inline');
   }
   const panel = $('binline-' + id), card = $('bcard-' + id);
   if (panel.style.display === 'none' || panel.style.display === '') {
-    show('binline-' + id); card.classList.add('has-inline'); activeBogaiInline = id;
+    panel.style.display = 'block'; 
+    card.classList.add('has-inline'); 
+    activeBogaiInline = id;
     setTimeout(() => { const inp = $('binline-qty-'+id); if(inp) inp.focus(); }, 100);
   } else {
-    hide('binline-' + id); card.classList.remove('has-inline'); activeBogaiInline = null;
+    panel.style.display = 'none'; 
+    card.classList.remove('has-inline'); 
+    activeBogaiInline = null;
   }
 }
 
@@ -988,7 +1023,7 @@ async function submitBogaiUse(id, name, stock){
   try{
     await apiFetch('/bogai/use',{method:'POST',body:JSON.stringify({item_name: name, qty: qty, user: currentUser})});
     toast(`✓ 簿外 ${name} を ${qty} 使用しました`);
-    searchBogaiUse(); 
+    searchBogaiUse(); // Refresh
   }catch(e){ toast(e.message, true); qtyInp.disabled = false; }
 }
 
