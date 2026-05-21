@@ -145,7 +145,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
     <div class="sl" id="sl-stock"   onclick="go('stock')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:16px;height:16px;flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>在庫確認</div>
     <div class="sl" id="sl-history" onclick="go('history')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:16px;height:16px;flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>履歴確認</div>
     
-    <!-- MỚI THÊM: Menu 簿外 -->
+    <!-- Menu 簿外 -->
     <div style="font-size:11px;font-weight:600;color:#9ca3af;padding:4px 8px;margin:8px 0 2px;">簿外管理 (Off-book)</div>
     <div class="sl" id="sl-bogai-add" onclick="go('bogai-add')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:16px;height:16px;flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>簿外追加</div>
     <div class="sl" id="sl-bogai-use" onclick="go('bogai-use')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:16px;height:16px;flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>簿外使用</div>
@@ -226,7 +226,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
           <video id="add-video" autoplay playsinline muted></video>
           <div class="cam-guide"><div class="cam-guide-rect"></div></div>
           <button class="shutter" onclick="captureAdd()">
-            <svg fill="none" stroke="#7c3aed" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            <svg fill="none" stroke="#7c3aed" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812-1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
           </button>
         </div>
         <div style="font-size:11px;color:#9ca3af;text-align:center;margin-top:5px;">バーコードを枠内に合わせてシャッターを押してください</div>
@@ -539,21 +539,19 @@ function loadZXing(){
   });
 }
 
-// Hàm cốt lõi đọc ảnh: Tự động chọn thuật toán tốt nhất
+// 読み取り関数
 async function decodeBarcodeImage(canvas) {
-  // 1. THỬ NATIVE API TRƯỚC (Rất mạnh, đọc được Data Matrix tí hon)
   if ('BarcodeDetector' in window) {
     try {
       const detector = new BarcodeDetector({ formats: ['data_matrix', 'qr_code', 'code_128', 'ean_13', 'code_39'] });
       const barcodes = await detector.detect(canvas);
       if (barcodes.length > 0) {
-        console.log("Đọc bằng Native API thành công!");
+        console.log("Native APIでのデコードに成功しました。");
         return normalizeBarcode(barcodes[0].rawValue);
       }
     } catch(e) { console.warn("Native Detector failed, falling back to ZXing...", e); }
   }
 
-  // 2. NẾU NATIVE API KHÔNG CÓ/KHÔNG NHẬN ĐƯỢC -> DÙNG ZXING DỰ PHÒNG
   await loadZXing();
   const hints = new Map();
   hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
@@ -566,9 +564,9 @@ async function decodeBarcodeImage(canvas) {
   reader.setHints(hints);
 
   const tries = [
-    ()=> _canvasToBinaryBitmap(canvas, false, false), // Bình thường
-    ()=> _canvasToBinaryBitmap(canvas, true,  false), // Tăng độ tương phản
-    ()=> _canvasToBinaryBitmap(canvas, false, true),  // Lật ngược
+    ()=> _canvasToBinaryBitmap(canvas, false, false), 
+    ()=> _canvasToBinaryBitmap(canvas, true,  false), 
+    ()=> _canvasToBinaryBitmap(canvas, false, true),  
   ];
   for(const fn of tries){
     try{
@@ -602,7 +600,6 @@ function _canvasToBinaryBitmap(canvas, highContrast, flipH){
   return new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(lumi));
 }
 
-// Xóa ký tự rác từ Data Matrix
 function normalizeBarcode(raw){
   let text = raw.replace(/[\x00-\x1F\x7F-\x9F]/g, ""); 
   text = text.replace(/\*/g,'').trim();
@@ -626,11 +623,9 @@ let addScanData = null;
 let useConfirmData = null;
 let _manualData = null;
 
-// TÍNH NĂNG MỚI: Mảng lưu trữ các item đã dùng trong phiên
 let sessionCart = []; 
 
-// Frontend inventory cache
-let _cache = { data:[], ts:0, map:{} };  // map: part_no → item
+let _cache = { data:[], ts:0, map:{} };  
 let _allHistory = [];
 let _stockFiltered = [];
 let _stockRenderOffset = 0;
@@ -1084,7 +1079,7 @@ async function analyzeUseCanvas(c){
           <div style="font-size:14px;font-weight:600;color:#111827;">${esc(r.name)}</div>
         </div>
         <div style="text-align:right;flex-shrink:0;">
-          <div style="font-size:22px;font-weight:700;color:${qtyColor(r.qty)};">${r.qty}</div>
+          <div style="font-size:22px;font-weight:700;color:${qtyColor(r.qty)};">${it.qty}</div>
           <div style="font-size:10px;color:#9ca3af;">在庫</div>
         </div>
       </div>`;
@@ -1124,7 +1119,6 @@ function renderMultiResults(res){
         <span style="background:#fee2e2;color:#991b1b;font-size:11px;padding:3px 8px;border-radius:99px;flex-shrink:0;">未登録</span></div>`
   ).join('');
 }
-
 
 // ════════════════════════════════════════════════
 // 簿外追加 (BOGAI ADD)
@@ -1199,7 +1193,7 @@ function renderBogaiList(items){
           <div style="font-size:10px;color:#9ca3af;">在庫</div>
         </div>
       </div>
-      <div class="inline-panel" id="binline-${safeId}">
+      <div class="inline-panel" id="binline-${safeId}" style="display:none; padding: 10px; background: #faf5ff; border: 1px solid #e5e7eb; border-top:none; border-radius:0 0 10px 10px;">
         <div style="display:flex;gap:8px;align-items:center;">
           <div style="flex:1;">
             <label style="font-size:11px;color:#6b7280;display:block;margin-bottom:4px;">使用数量を入力</label>
@@ -1243,7 +1237,7 @@ async function submitBogaiUse(id, name, stock){
   try{
     await apiFetch('/bogai/use',{method:'POST',body:JSON.stringify({item_name: name, qty: qty, user: currentUser})});
     toast(`✓ 簿外 ${name} を ${qty} 使用しました`);
-    searchBogaiUse(); // Refresh
+    searchBogaiUse(); 
   }catch(e){ 
     toast(e.message, true); 
     qtyInp.disabled = false; 
@@ -1301,74 +1295,4 @@ function filterHistory(){
       <span class="${bc}" style="margin-top:2px;flex-shrink:0;">${lb}</span>
       <div style="flex:1;min-width:0;">
         <div style="font-size:13px;font-weight:600;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(h.part_no)} ${esc(h.name)}</div>
-        <div style="font-size:11px;color:#6b7280;margin-top:1px;">${esc(h.user||'—')} &nbsp;|&nbsp; ${sg}${h.qty}</div>
-      </div>
-      <div style="font-size:10px;color:#9ca3af;white-space:nowrap;text-align:right;min-width:60px;">${esc((h.timestamp||'').slice(5,16))}</div>
-    </div>`;
-  }).join('')||emptyMsg('履歴なし');
-}
-
-// ════════════════════════════════════════════════
-// 管理
-// ════════════════════════════════════════════════
-function initAdmin(){
-  if(token&&isAdmin){ hide('admin-login-box'); show('admin-panel'); switchAtab('stock'); }
-  else              { show('admin-login-box'); hide('admin-panel'); }
-}
-async function adminLogin(){
-  hide('a-err');
-  if(!API){ $('a-err').style.display=''; $('a-err').textContent='APIが設定されていません'; return; }
-  try{
-    const r=await apiFetch('/auth/login',{method:'POST',body:JSON.stringify({username:$('a-user').value,password:$('a-pass').value})});
-    token=r.access_token; isAdmin=r.is_admin; currentUser=$('a-user').value;
-    localStorage.setItem('pm_token',token); localStorage.setItem('pm_admin',String(r.is_admin)); localStorage.setItem('pm_user',currentUser);
-    updateUserUI(); hide('admin-login-box'); show('admin-panel'); switchAtab('stock');
-  }catch(e){ $('a-err').style.display=''; $('a-err').textContent=e.message; }
-}
-function switchAtab(tab){
-  ['stock','export','users','cache'].forEach(t=>{ $('atab-'+t).classList.toggle('active',t===tab); $('asec-'+t).style.display=t===tab?'':'none'; });
-  if(tab==='stock') loadAdminStock(); if(tab==='users') loadAdminUsers(); if(tab==='cache') updateCacheInfo();
-}
-async function loadAdminStock(){
-  _allAdminStock=cacheIsValid()?_cache.data:[];
-  if(!_allAdminStock.length && API){ try{ _allAdminStock=await apiFetch('/stock'); }catch(e){ $('admin-stock-list').innerHTML=errMsg(e.message); return; } }
-  filterAdminStock();
-}
-function filterAdminStock(){
-  const q=($('admin-q').value||'').toLowerCase().trim();
-  const items=q?_allAdminStock.filter(it=>(it.part_no+it.name).toLowerCase().includes(q)):_allAdminStock;
-  renderAdminStock(items.slice(0,RENDER_PAGE));
-}
-function renderAdminStock(items){
-  $('admin-stock-list').innerHTML=items.map(it=>{
-    const sid=it.part_no.replace(/[^a-zA-Z0-9]/g,'_');
-    return `<div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:12px;">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-        <div style="min-width:0;flex:1;">
-          <div style="font-size:11px;color:#6b7280;">${esc(it.part_no)}</div>
-          <div style="font-size:13px;font-weight:600;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.name)}</div>
-        </div>
-        <div style="font-size:16px;font-weight:700;color:${qtyColor(it.qty)};flex-shrink:0;">${it.qty}</div>
-      </div>
-      <div style="display:flex;gap:6px;align-items:center;">
-        <input id="eq-${sid}" type="number" value="${it.qty}" min="0" class="qty-inp"/>
-        <button onclick="saveAdminQty('${esc(it.part_no)}','${esc(it.name)}','${sid}')" style="flex:1;background:#7c3aed;color:#fff;padding:8px;border-radius:8px;font-size:12px;font-weight:600;border:none;cursor:pointer;">保存</button>
-        <button onclick="deleteStockItem('${esc(it.part_no)}')" style="background:#fee2e2;color:#ef4444;padding:8px 10px;border-radius:8px;font-size:12px;font-weight:600;border:1px solid #fecaca;cursor:pointer;">削除</button>
-      </div>
-    </div>`;
-  }).join('')||emptyMsg('データなし');
-}
-async function saveAdminQty(part_no,name,sid){
-  const qty=parseInt($('eq-'+sid).value);
-  if(isNaN(qty)||qty<0){ toast('数量を入力してください',true); return; }
-  if(!API){ toast('APIが設定されていません',true); return; }
-  try{ await apiFetch('/admin/stock/edit',{method:'PUT',body:JSON.stringify({part_no,name,qty,user:currentUser})}); toast(`✓ ${part_no} → ${qty}`); await refreshCache(true); filterAdminStock(); }catch(e){ toast(e.message,true); }
-}
-async function deleteStockItem(part_no){
-  if(!confirm(`品番 ${part_no} を削除しますか？`)) return;
-  try{ await apiFetch(`/admin/stock/${encodeURIComponent(part_no)}`,{method:'DELETE'}); toast(`✓ ${part_no} を削除しました`); await refreshCache(true); filterAdminStock(); }catch(e){ toast(e.message,true); }
-}
-async function exportCSV(type){
-  if(!API){ toast('APIが設定されていません',true); return; }
-  try{
-    const r=await fe
+        <div style="font-size:11px;color:#6b7280;margin
