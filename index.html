@@ -1077,7 +1077,7 @@ async function analyzeUseCanvas(c){
           <div style="font-size:14px;font-weight:600;color:#111827;">${esc(r.name)}</div>
         </div>
         <div style="text-align:right;flex-shrink:0;">
-          <div style="font-size:22px;font-weight:700;color:${qtyColor(r.qty)};">${r.qty}</div>
+          <div style="font-size:20px;font-weight:700;color:${qtyColor(r.qty)};">${r.qty}</div>
           <div style="font-size:10px;color:#9ca3af;">在庫</div>
         </div>
       </div>`;
@@ -1184,7 +1184,9 @@ function renderBogaiList(items){
         <div style="flex:1;min-width:0;">
           <div style="font-size:11px;color:#6b7280;">${esc(it.category)} | ${esc(it.condition)}</div>
           <div style="font-size:14px;font-weight:600;color:#111827;">${esc(it.item_name)}</div>
-          <div style="font-size:10px;color:#9ca3af;margin-top:2px;">${esc(it.location)}</div>
+          <div style="font-size:10px;color:#9ca3af;margin-top:2px;">保管場所: ${esc(it.location)}</div>
+          <!-- Hiển thị cột 備考 (Ghi chú) nếu có dữ liệu -->
+          ${it.remarks ? `<div style="font-size:11px;color:#4b5563;margin-top:4px;background:#f3f4f6;padding:2px 6px;border-radius:4px;display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">備考: ${esc(it.remarks)}</div>` : ''}
         </div>
         <div style="text-align:right;flex-shrink:0;">
           <div style="font-size:20px;font-weight:700;color:${qtyColor(it.qty)};">${it.qty}</div>
