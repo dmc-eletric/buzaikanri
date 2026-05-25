@@ -304,7 +304,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
           <video id="use-video" autoplay playsinline muted></video>
           <div class="cam-guide"><div class="cam-guide-rect"></div></div>
           <button class="shutter" onclick="captureUse()">
-            <svg fill="none" stroke="#7c3aed" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            <svg fill="none" stroke="#7c3aed" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812-1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
           </button>
         </div>
         <div style="font-size:11px;color:#9ca3af;text-align:center;margin-top:5px;">バーコードを枠内に合わせてシャッターを押してください</div>
@@ -622,8 +622,6 @@ let useStream   = null;
 let addScanData = null;
 let useConfirmData = null;
 let _manualData = null;
-
-let sessionCart = []; 
 
 let _cache = { data:[], ts:0, map:{} };  
 let _allHistory = [];
@@ -1079,7 +1077,7 @@ async function analyzeUseCanvas(c){
           <div style="font-size:14px;font-weight:600;color:#111827;">${esc(r.name)}</div>
         </div>
         <div style="text-align:right;flex-shrink:0;">
-          <div style="font-size:22px;font-weight:700;color:${qtyColor(r.qty)};">${it.qty}</div>
+          <div style="font-size:22px;font-weight:700;color:${qtyColor(r.qty)};">${r.qty}</div>
           <div style="font-size:10px;color:#9ca3af;">在庫</div>
         </div>
       </div>`;
@@ -1257,7 +1255,9 @@ function filterStock(){
   _stockFiltered=q?_cache.data.filter(it=>(it.part_no+it.name).toLowerCase().includes(q)):_cache.data;
   _stockRenderOffset=0; updateStockHeader(); renderStockPage();
 }
-function updateStockHeader(){ $('stock-count').textContent=`${_stockFiltered.length} / ${_cache.data.length} 件`; }
+function updateStockHeader(){ 
+  $('stock-count').textContent=`${_stockFiltered.length} / ${_cache.data.length} 件`; 
+}
 function renderStockPage(){
   const slice=_stockFiltered.slice(0,_stockRenderOffset+RENDER_PAGE);
   $('stock-list').innerHTML=slice.length ? slice.map(it=>`
@@ -1295,4 +1295,186 @@ function filterHistory(){
       <span class="${bc}" style="margin-top:2px;flex-shrink:0;">${lb}</span>
       <div style="flex:1;min-width:0;">
         <div style="font-size:13px;font-weight:600;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(h.part_no)} ${esc(h.name)}</div>
-        <div style="font-size:11px;color:#6b7280;margin
+        <div style="font-size:11px;color:#6b7280;margin-top:2px;">ユーザー: ${esc(h.user)} | 数量: ${sg}${h.qty} | 日時: ${esc(h.timestamp)}</div>
+      </div>
+    </div>`;
+  }).join('') || emptyMsg('履歴はありません');
+}
+
+// ════════════════════════════════════════════════
+// 管理（ADMIN）
+// ════════════════════════════════════════════════
+function initAdmin(){
+  if(token && isAdmin){
+    hide('admin-login-box');
+    show('admin-panel');
+    switchAtab('stock');
+  } else {
+    show('admin-login-box');
+    hide('admin-panel');
+  }
+}
+
+async function adminLogin(){
+  const user=$('a-user').value.trim(), pass=$('a-pass').value;
+  if(!user||!pass){ $('a-err').style.display=''; $('a-err').textContent='ユーザー名とパスワードを入力してください'; return; }
+  hide('a-err');
+  try{
+    const r=await apiFetch('/auth/login',{method:'POST',body:JSON.stringify({username:user,password:pass})});
+    if(!r.is_admin){ throw new Error('管理者権限が必要です'); }
+    token=r.access_token; isAdmin=true; currentUser=user;
+    localStorage.setItem('pm_token',token);
+    localStorage.setItem('pm_admin','true');
+    localStorage.setItem('pm_user',user);
+    updateUserUI();
+    hide('admin-login-box');
+    show('admin-panel');
+    switchAtab('stock');
+    toast('管理者としてログインしました');
+  }catch(e){
+    $('a-err').style.display=''; $('a-err').textContent=e.message;
+  }
+}
+
+function switchAtab(tab){
+  ['stock','export','users','cache'].forEach(t=>{
+    const tabEl = $(`atab-${t}`);
+    const secEl = $(`asec-${t}`);
+    if(tabEl) tabEl.classList.toggle('active', t===tab);
+    if(secEl) secEl.style.display=t===tab?'':'none';
+  });
+  if(tab==='stock') { $('admin-q').value=''; loadAdminStock(); }
+  if(tab==='users') { loadUsers(); }
+  if(tab==='cache') { updateCacheInfo(); }
+}
+
+async function loadAdminStock(){
+  if(!API) return;
+  try{
+    _allAdminStock = await refreshCache(true);
+    renderAdminStock(_allAdminStock);
+  }catch(e){ toast(e.message,true); }
+}
+
+function filterAdminStock(){
+  const q=$('admin-q').value.toLowerCase().trim();
+  const filtered=q?_allAdminStock.filter(it=>(it.part_no+it.name).toLowerCase().includes(q)):_allAdminStock;
+  renderAdminStock(filtered);
+}
+
+function renderAdminStock(items){
+  const list=$('admin-stock-list');
+  if(!items?.length){ list.innerHTML=emptyMsg('データなし'); return; }
+  list.innerHTML=items.slice(0,RENDER_PAGE).map(it=>{
+    const safePno=escJS(it.part_no);
+    const safeName=escJS(it.name);
+    return `<div class="item-card" style="display:block; margin-bottom: 6px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:11px;color:#6b7280;">${esc(it.part_no)}</div>
+          <div style="font-size:14px;font-weight:600;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.name)}</div>
+        </div>
+        <div style="text-align:right;display:flex;align-items:center;gap:12px;">
+          <div style="font-size:16px;font-weight:700;color:${qtyColor(it.qty)}; margin-right:8px;">${it.qty}</div>
+          <button onclick="editStockQty('${safePno}','${safeName}',${it.qty})" style="background:#ede9fe;color:#5b21b6;border:none;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">編集</button>
+          <button onclick="deleteStockPart('${safePno}')" style="background:#fee2e2;color:#ef4444;border:none;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">削除</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function editStockQty(part_no, name, currentQty){
+  const newQtyStr=prompt(`品番: ${part_no}\n品名: ${name}\n新しい数量を入力してください:`, currentQty);
+  if(newQtyStr===null) return;
+  const newQty=parseInt(newQtyStr);
+  if(isNaN(newQty)||newQty<0){ toast('正しい数量（0以上）を入力してください',true); return; }
+  try{
+    await apiFetch('/admin/stock/edit',{method:'PUT',body:JSON.stringify({part_no,name,qty:newQty,user:currentUser})});
+    toast('数量を変更しました');
+    loadAdminStock();
+  }catch(e){ toast(e.message,true); }
+}
+
+async function deleteStockPart(part_no){
+  if(!confirm(`品番 ${part_no} を完全に削除しますか？\nこの操作は取り消せません。`)) return;
+  try{
+    await apiFetch(`/admin/stock/${encodeURIComponent(part_no)}`,{method:'DELETE'});
+    toast('削除しました');
+    loadAdminStock();
+  }catch(e){ toast(e.message,true); }
+}
+
+function exportCSV(type){
+  if(!API) return;
+  const url=`${API}/admin/export/${type}`;
+  fetch(url, { headers: { 'Authorization': `Bearer ${token}` } })
+    .then(res => {
+      if(!res.ok) throw new Error('エクスポートのエラーが発生しました');
+      return res.blob();
+    })
+    .then(blob => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${type}_export.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    })
+    .catch(e => toast(e.message, true));
+}
+
+async function loadUsers(){
+  const list=$('users-list');
+  try{
+    const users=await apiFetch('/admin/users');
+    if(!users?.length){ list.innerHTML=emptyMsg('ユーザーがいません'); return; }
+    list.innerHTML=users.map(u=>`
+      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:10px;display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <div>
+          <div style="font-size:14px;font-weight:600;color:#111827;">${esc(u.username)}</div>
+          <div style="font-size:11px;color:#6b7280;">${u.is_admin?'管理者':'一般ユーザー'}</div>
+        </div>
+        ${u.username==='admin' ? '' : `<button onclick="deleteUser('${escJS(u.username)}')" style="background:#fee2e2;color:#ef4444;border:none;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">削除</button>`}
+      </div>
+    `).join('');
+  }catch(e){ list.innerHTML=errMsg(e.message); }
+}
+
+async function createUser(){
+  const user=$('nu-name').value.trim();
+  const pass=$('nu-pass').value;
+  const adm=$('nu-admin').checked;
+  if(!user||!pass){ toast('ユーザー名とパスワードを入力してください',true); return; }
+  try{
+    await apiFetch('/admin/users',{method:'POST',body:JSON.stringify({username:user,password:pass,is_admin:adm})});
+    toast('ユーザーを作成しました');
+    $('nu-name').value=''; $('nu-pass').value=''; $('nu-admin').checked=false;
+    loadUsers();
+  }catch(e){ toast(e.message,true); }
+}
+
+async function deleteUser(username){
+  if(!confirm(`ユーザー ${username} を削除しますか？`)) return;
+  try{
+    await apiFetch(`/admin/users/${encodeURIComponent(username)}`,{method:'DELETE'});
+    toast('削除しました');
+    loadUsers();
+  }catch(e){ toast(e.message,true); }
+}
+
+// ════════════════════════════════════════════════
+// 初期ロード
+// ════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  updateUserUI();
+  if(token){
+    hide('login-overlay');
+    refreshCache(false).then(()=>go('home'));
+  } else {
+    show('login-overlay');
+  }
+});
+</script>
+</body>
+</html>
