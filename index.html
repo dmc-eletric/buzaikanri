@@ -398,7 +398,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
     <div style="font-size:18px;font-weight:700;color:#111827;margin-bottom:14px;">簿外使用 (Off-book Use)</div>
     <div class="search-wrap">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/></svg>
-      <input id="bu-search-inp" class="search-bar" type="text" placeholder="在庫品名で検索 (Search Item Name)" oninput="debounce('bogai',()=>searchBogaiUse())"/>
+      <input id="bu-search-inp" class="search-bar" type="text" placeholder="在庫品名、区分、場所、備考等で検索 (Search Any Field)" oninput="debounce('bogai',()=>searchBogaiUse())"/>
     </div>
     <div id="bu-list" style="display:flex;flex-direction:column;gap:8px;"></div>
   </div>
@@ -451,6 +451,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
     <div id="admin-panel" style="display:none;">
       <div style="display:flex;border-bottom:1px solid #e5e7eb;margin-bottom:14px;gap:0;overflow-x:auto;">
         <button class="atab active" id="atab-stock"  onclick="switchAtab('stock')">在庫編集</button>
+        <button class="atab"        id="atab-bogai"  onclick="switchAtab('bogai')">簿外在庫編集</button>
         <button class="atab"        id="atab-export" onclick="switchAtab('export')">CSV出力</button>
         <button class="atab"        id="atab-users"  onclick="switchAtab('users')">ユーザー</button>
         <button class="atab"        id="atab-cache"  onclick="switchAtab('cache')">キャッシュ</button>
@@ -461,6 +462,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
           <input id="admin-q" class="search-bar" type="text" placeholder="品番または品名で検索" oninput="debounce('admin',()=>filterAdminStock())"/>
         </div>
         <div id="admin-stock-list" style="display:flex;flex-direction:column;gap:7px;"></div>
+      </div>
+      <!-- Admin 簿外在庫編集セクション -->
+      <div id="asec-bogai" style="display:none;">
+        <div class="search-wrap">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/></svg>
+          <input id="admin-bogai-q" class="search-bar" type="text" placeholder="在庫品名や区分、場所等で検索" oninput="debounce('admin-bogai',()=>filterAdminBogai())"/>
+        </div>
+        <div id="admin-bogai-list" style="display:flex;flex-direction:column;gap:7px;"></div>
       </div>
       <div id="asec-export" style="display:none;">
         <div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:10px;">
@@ -628,6 +637,7 @@ let _allHistory = [];
 let _stockFiltered = [];
 let _stockRenderOffset = 0;
 let _allAdminStock = [];
+let _allAdminBogai = [];
 let activeBogaiInline = null;
 
 const _dbt = {};
@@ -716,6 +726,40 @@ function guestLogin(){
   finalizeLogin();
 }
 
+// ════════════════════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════════════════════
+function go(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));
+  const target=$('page-'+page);
+  if(!target) return;
+  target.classList.remove('hidden');
+
+  document.querySelectorAll('.sl').forEach(l=>l.classList.remove('active'));
+  const sl=$('sl-'+page); if(sl) sl.classList.add('active');
+
+  document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.remove('active'));
+  const bn=$('bnav-'+page); if(bn) bn.classList.add('active');
+  if(['history','admin'].includes(page)){ const bm=$('bnav-more'); if(bm) bm.classList.add('active'); }
+
+  if(page!=='add'){ cleanupCam('add-video',addStream); addStream=null; }
+  if(page!=='use'){ cleanupCam('use-video',useStream); useStream=null; }
+
+  try{
+    if(page==='home')    initHome();
+    if(page==='add')     initAdd();
+    if(page==='use')     initUse();
+    if(page==='stock')   initStock();
+    if(page==='history') initHistory();
+    if(page==='admin')   initAdmin();
+    if(page==='bogai-add') initBogaiAdd();
+    if(page==='bogai-use') initBogaiUse();
+  }catch(e){ console.error('page init error:',e); }
+}
+
+function toggleDrawer(){ $('more-drawer').classList.toggle('open'); $('drawer-overlay').classList.toggle('open'); }
+function closeDrawer()  { $('more-drawer').classList.remove('open'); $('drawer-overlay').classList.remove('open'); }
+
 function finalizeLogin(){
   hide('login-overlay');
   updateUserUI();
@@ -774,40 +818,6 @@ function updateCacheInfo(){
   const age=Math.round((Date.now()-_cache.ts)/1000);
   el.textContent=`${_cache.data.length}件 / ${age}秒前に取得 / 有効期限 ${Math.round(CACHE_TTL_MS/1000)}秒`;
 }
-
-// ════════════════════════════════════════════════
-// NAVIGATION
-// ════════════════════════════════════════════════
-function go(page){
-  document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));
-  const target=$('page-'+page);
-  if(!target) return;
-  target.classList.remove('hidden');
-
-  document.querySelectorAll('.sl').forEach(l=>l.classList.remove('active'));
-  const sl=$('sl-'+page); if(sl) sl.classList.add('active');
-
-  document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.remove('active'));
-  const bn=$('bnav-'+page); if(bn) bn.classList.add('active');
-  if(['history','admin'].includes(page)){ const bm=$('bnav-more'); if(bm) bm.classList.add('active'); }
-
-  if(page!=='add'){ cleanupCam('add-video',addStream); addStream=null; }
-  if(page!=='use'){ cleanupCam('use-video',useStream); useStream=null; }
-
-  try{
-    if(page==='home')    initHome();
-    if(page==='add')     initAdd();
-    if(page==='use')     initUse();
-    if(page==='stock')   initStock();
-    if(page==='history') initHistory();
-    if(page==='admin')   initAdmin();
-    if(page==='bogai-add') initBogaiAdd();
-    if(page==='bogai-use') initBogaiUse();
-  }catch(e){ console.error('page init error:',e); }
-}
-
-function toggleDrawer(){ $('more-drawer').classList.toggle('open'); $('drawer-overlay').classList.toggle('open'); }
-function closeDrawer()  { $('more-drawer').classList.remove('open'); $('drawer-overlay').classList.remove('open'); }
 
 // ════════════════════════════════════════════════
 // HOME
@@ -1155,12 +1165,12 @@ async function submitBogaiAdd(){
 // ════════════════════════════════════════════════
 function initBogaiUse(){
   $('bu-search-inp').value = '';
-  $('bu-list').innerHTML = emptyMsg('在庫品名で検索してください');
+  $('bu-list').innerHTML = emptyMsg('在庫品名、区分、場所、備考等で検索してください');
 }
 
 async function searchBogaiUse(){
   const q = $('bu-search-inp').value.trim();
-  if(!q) { $('bu-list').innerHTML = emptyMsg('在庫品名で検索してください'); return; }
+  if(!q) { $('bu-list').innerHTML = emptyMsg('検索ワードを入力してください'); return; }
   
   if(!API){ toast('APIが設定されていません',true); return; }
 
@@ -1185,7 +1195,6 @@ function renderBogaiList(items){
           <div style="font-size:11px;color:#6b7280;">${esc(it.category)} | ${esc(it.condition)}</div>
           <div style="font-size:14px;font-weight:600;color:#111827;">${esc(it.item_name)}</div>
           <div style="font-size:10px;color:#9ca3af;margin-top:2px;">保管場所: ${esc(it.location)}</div>
-          <!-- Hiển thị cột 備考 (Ghi chú) nếu có dữ liệu -->
           ${it.remarks ? `<div style="font-size:11px;color:#4b5563;margin-top:4px;background:#f3f4f6;padding:2px 6px;border-radius:4px;display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">備考: ${esc(it.remarks)}</div>` : ''}
         </div>
         <div style="text-align:right;flex-shrink:0;">
@@ -1339,13 +1348,14 @@ async function adminLogin(){
 }
 
 function switchAtab(tab){
-  ['stock','export','users','cache'].forEach(t=>{
+  ['stock','bogai','export','users','cache'].forEach(t=>{
     const tabEl = $(`atab-${t}`);
     const secEl = $(`asec-${t}`);
     if(tabEl) tabEl.classList.toggle('active', t===tab);
     if(secEl) secEl.style.display=t===tab?'':'none';
   });
   if(tab==='stock') { $('admin-q').value=''; loadAdminStock(); }
+  if(tab==='bogai') { $('admin-bogai-q').value=''; loadAdminBogai(); }
   if(tab==='users') { loadUsers(); }
   if(tab==='cache') { updateCacheInfo(); }
 }
@@ -1405,6 +1415,95 @@ async function deleteStockPart(part_no){
     toast('削除しました');
     loadAdminStock();
   }catch(e){ toast(e.message,true); }
+}
+
+// ── Admin 簿外管理ロジック ──
+async function loadAdminBogai(){
+  if(!API) return;
+  try{
+    _allAdminBogai = await apiFetch('/bogai/search');
+    renderAdminBogai(_allAdminBogai);
+  }catch(e){ toast(e.message,true); }
+}
+
+function filterAdminBogai(){
+  const q=$('admin-bogai-q').value.toLowerCase().trim();
+  const filtered=q?_allAdminBogai.filter(it=>{
+    const combined=`${it.item_name} ${it.category} ${it.condition} ${it.qty} ${it.location} ${it.remarks}`.toLowerCase();
+    return combined.includes(q);
+  }):_allAdminBogai;
+  renderAdminBogai(filtered);
+}
+
+function renderAdminBogai(items){
+  const list=$('admin-bogai-list');
+  if(!items?.length){ list.innerHTML=emptyMsg('簿外データなし'); return; }
+  list.innerHTML=items.slice(0,RENDER_PAGE).map(it=>{
+    const safeItemName=escJS(it.item_name);
+    const safeCategory=escJS(it.category||'');
+    const safeCondition=escJS(it.condition||'');
+    const safeLocation=escJS(it.location||'');
+    const safeRemarks=escJS(it.remarks||'');
+    return `<div class="item-card" style="display:block; margin-bottom: 6px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:11px;color:#6b7280;">${esc(it.category)} | ${esc(it.condition)} | ${esc(it.location)}</div>
+          <div style="font-size:14px;font-weight:600;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.item_name)}</div>
+          ${it.remarks ? `<div style="font-size:11px;color:#4b5563;margin-top:2px;">備考: ${esc(it.remarks)}</div>` : ''}
+        </div>
+        <div style="text-align:right;display:flex;align-items:center;gap:12px;">
+          <div style="font-size:16px;font-weight:700;color:${qtyColor(it.qty)}; margin-right:8px;">${it.qty}</div>
+          <button onclick="editBogaiFields('${safeItemName}','${safeCategory}','${safeCondition}',${it.qty},'${safeLocation}','${safeRemarks}')" style="background:#ede9fe;color:#5b21b6;border:none;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">編集</button>
+          <button onclick="deleteBogaiPart('${safeItemName}')" style="background:#fee2e2;color:#ef4444;border:none;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">削除</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function editBogaiFields(item_name, category, condition, qty, location, remarks){
+  const newCategory = prompt(`[簿外編集] ${item_name}\n区分(Category)を入力してください:`, category);
+  if(newCategory === null) return;
+
+  const newCondition = prompt(`[簿外編集] ${item_name}\n状態(Condition)を入力してください:`, condition);
+  if(newCondition === null) return;
+
+  const newQtyStr = prompt(`[簿外編集] ${item_name}\n数量を入力してください:`, qty);
+  if(newQtyStr === null) return;
+  const newQty = parseInt(newQtyStr);
+  if(isNaN(newQty) || newQty < 0) { toast('正しい数量（0以上）を入力してください', true); return; }
+
+  const newLocation = prompt(`[簿外編集] ${item_name}\n保管場所を入力してください:`, location);
+  if(newLocation === null) return;
+
+  const newRemarks = prompt(`[簿外編集] ${item_name}\n備考を入力してください:`, remarks);
+  if(newRemarks === null) return;
+
+  try {
+    await apiFetch('/admin/bogai/edit', {
+      method: 'PUT',
+      body: JSON.stringify({
+        item_name,
+        category: newCategory,
+        condition: newCondition,
+        qty: newQty,
+        location: newLocation,
+        remarks: newRemarks,
+        user: currentUser
+      })
+    });
+    toast('簿外在庫を編集しました');
+    loadAdminBogai();
+  } catch(e) { toast(e.message, true); }
+}
+
+async function deleteBogaiPart(item_name){
+  if(!confirm(`簿外アイテム "${item_name}" を完全に削除しますか？\nこの操作は取り消せません。`)) return;
+  try {
+    await apiFetch(`/admin/bogai/${encodeURIComponent(item_name)}`, { method: 'DELETE' });
+    toast('簿外アイテムを削除しました');
+    loadAdminBogai();
+  } catch(e) { toast(e.message, true); }
 }
 
 function exportCSV(type){

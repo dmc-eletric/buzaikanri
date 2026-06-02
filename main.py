@@ -261,6 +261,23 @@ def upsert_bogai(item_name: str, category: str, condition: str, delta: int, loca
     append_history(user, "[簿外]", item_name, abs(delta), action)
     return {"message": "Success"}
 
+def set_bogai_fields(item_name: str, category: str, condition: str, qty: int, location: str, remarks: str, user: str) -> Dict[str, Any]:
+    ws = open_sheet(WS_BOGAI)
+    row_no = find_bogai_row(ws, item_name)
+    now = jst_now()
+    if row_no:
+        ws.update(f"B{row_no}:G{row_no}", [[category, condition, str(qty), now, location, remarks]])
+    else:
+        ws.append_row([item_name, category, condition, str(qty), now, location, remarks])
+    append_history(user, "[簿外編集]", item_name, qty, "edit")
+    return {"item_name": item_name, "qty": qty}
+
+def delete_bogai_row(item_name: str) -> None:
+    ws = open_sheet(WS_BOGAI)
+    row_no = find_bogai_row(ws, item_name)
+    if row_no is None: raise HTTPException(status_code=404, detail="アイテムが見つかりません")
+    ws.delete_rows(row_no)
+
 # ──────────────────────────────────────────────────
 # ユーザー管理
 # ──────────────────────────────────────────────────
@@ -332,6 +349,15 @@ class BogaiUseRequest(BaseModel):
     qty: int
     user: str = "ゲスト"
 
+class AdminBogaiEditRequest(BaseModel):
+    item_name: str
+    category: str = ""
+    condition: str = ""
+    qty: int
+    location: str = ""
+    remarks: str = ""
+    user: str = "admin"
+
 # ══════════════════════════════════════════════════
 # FastAPI アプリ
 # ══════════════════════════════════════════════════
@@ -397,7 +423,22 @@ def search_bogai(query: str = ""):
     all_items = get_all_bogai()
     if not query: return all_items
     q = query.lower()
-    return [it for it in all_items if q in it["item_name"].lower()]
+    
+    # 登録されている全フィールドを対象に部分一致判定を実施（横断検索）
+    results = []
+    for it in all_items:
+        combined_text = " ".join([
+            it.get("item_name", ""),
+            it.get("category", ""),
+            it.get("condition", ""),
+            str(it.get("qty", "")),
+            it.get("updated_at", ""),
+            it.get("location", ""),
+            it.get("remarks", "")
+        ]).lower()
+        if q in combined_text:
+            results.append(it)
+    return results
 
 @app.post("/bogai/use")
 def use_bogai(body: BogaiUseRequest):
@@ -422,6 +463,15 @@ def admin_edit_stock(body: AdminEditRequest, _=Depends(get_admin_user)):
 @app.delete("/admin/stock/{part_no}")
 def admin_delete_stock(part_no: str, _=Depends(get_admin_user)):
     delete_stock_row(part_no); return {"message": "Deleted"}
+
+@app.put("/admin/bogai/edit")
+def admin_edit_bogai(body: AdminBogaiEditRequest, _=Depends(get_admin_user)):
+    if body.qty < 0: raise HTTPException(status_code=400, detail="数量は0以上を入力してください")
+    return set_bogai_fields(body.item_name, body.category, body.condition, body.qty, body.location, body.remarks, body.user)
+
+@app.delete("/admin/bogai/{item_name}")
+def admin_delete_bogai(item_name: str, _=Depends(get_admin_user)):
+    delete_bogai_row(item_name); return {"message": "Deleted"}
 
 @app.get("/admin/export/{data_type}")
 def admin_export(data_type: str, _=Depends(get_admin_user)):
