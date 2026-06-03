@@ -1,3 +1,4 @@
+--- START OF FILE index.html ---
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -357,6 +358,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
         <button onclick="closeUseConfirm()" class="btn-g">キャンセル</button>
       </div>
     </div>
+
+    <!-- ══════ SESSION CART PANEL (NEW) ══════ -->
+    <div id="use-cart-panel" class="cart-panel" style="display:none; margin-top:20px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <span style="font-size:14px; font-weight:700; color:#15803d;">今回使用した部材リスト (Used Cart)</span>
+        <button onclick="clearUseCart()" style="background:none; border:none; color:#dc2626; font-size:12px; font-weight:600; cursor:pointer;">リストクリア</button>
+      </div>
+      <div id="use-cart-list" style="display:flex; flex-direction:column; gap:6px; margin-bottom:12px;"></div>
+      <button onclick="downloadUseCartCSV()" class="btn-p" style="background:#16a34a; font-size:14px; display:flex; align-items:center; justify-content:center; gap:6px;">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:18px;height:18px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        Excel (CSV) ダウンロード
+      </button>
+    </div>
   </div>
 
   <!-- ══════ 簿外追加 (BOGAI ADD) ══════ -->
@@ -640,6 +654,9 @@ let _allAdminStock = [];
 let _allAdminBogai = [];
 let activeBogaiInline = null;
 
+// New: Danh sách vật phẩm đã sử dụng tạm thời trong phiên
+let sessionUsedItems = [];
+
 const _dbt = {};
 function debounce(key, fn, ms=300){
   clearTimeout(_dbt[key]);
@@ -772,6 +789,8 @@ function logout(){
   token=null; isAdmin=false; currentUser='';
   localStorage.removeItem('pm_token'); localStorage.removeItem('pm_admin'); localStorage.removeItem('pm_user');
   _cache={data:[],ts:0,map:{}};
+  sessionUsedItems = [];
+  updateUseCartUI();
   updateUserUI();
   show('login-overlay');
   $('li-user').value=''; $('li-pass').value=''; hide('li-err');
@@ -975,6 +994,7 @@ function initUse(){
   show('use-pno-area');
   ['name','scan','multi'].forEach(m=>hide('use-'+m+'-area'));
   hide('use-confirm'); useConfirmData=null;
+  updateUseCartUI();
 }
 
 function setUseMode(mode){
@@ -1032,6 +1052,16 @@ async function submitUse(){
   try{
     await apiFetch('/stock/use',{method:'POST',body:JSON.stringify({part_no:useConfirmData.part_no,qty,user:currentUser||'ゲスト'})});
     toast(`✓ ${useConfirmData.part_no} を ${qty} 使用しました`);
+    
+    // Thêm sản phẩm vừa sử dụng vào giỏ hàng tạm thời
+    sessionUsedItems.push({
+      part_no: useConfirmData.part_no,
+      name: useConfirmData.name,
+      qty: qty,
+      time: new Date().toLocaleTimeString('ja-JP')
+    });
+    updateUseCartUI();
+
     await refreshCache(true); closeUseConfirm();
     const mode=document.querySelector('#page-use .mode-tab.active')?.id?.replace('use-tab-','');
     if(mode==='pno') searchUsePno(); if(mode==='name') searchUseName();
@@ -1126,6 +1156,64 @@ function renderMultiResults(res){
         <div style="font-size:13px;font-weight:600;color:#9ca3af;">未登録</div></div>
         <span style="background:#fee2e2;color:#991b1b;font-size:11px;padding:3px 8px;border-radius:99px;flex-shrink:0;">未登録</span></div>`
   ).join('');
+}
+
+// ── Session Cart Management (NEW) ──
+function updateUseCartUI() {
+  const panel = $('use-cart-panel');
+  const list = $('use-cart-list');
+  if(!panel || !list) return;
+  if (!sessionUsedItems.length) {
+    panel.style.display = 'none';
+    return;
+  }
+  panel.style.display = 'block';
+  list.innerHTML = sessionUsedItems.map((it, idx) => `
+    <div style="display:flex; justify-content:space-between; align-items:center; background:#fff; border:1px solid #bbf7d0; padding:8px 10px; border-radius:8px; font-size:13px;">
+      <div style="min-width:0; flex:1; text-align:left;">
+        <div style="font-size:11px; color:#15803d; font-weight:600;">${esc(it.part_no)}</div>
+        <div style="font-weight:600; color:#1f2937; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(it.name)}</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:12px; margin-left:12px; flex-shrink:0;">
+        <span style="font-weight:700; color:#166534;">${it.qty}</span>
+        <button onclick="removeUseCartItem(${idx})" style="color:#ef4444; border:none; background:none; font-size:18px; cursor:pointer; padding:0 4px; line-height:1;">&times;</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function removeUseCartItem(idx) {
+  sessionUsedItems.splice(idx, 1);
+  updateUseCartUI();
+}
+
+function clearUseCart() {
+  if (confirm('今回使用した部材リストをクリアしますか？')) {
+    sessionUsedItems = [];
+    updateUseCartUI();
+  }
+}
+
+function downloadUseCartCSV() {
+  if (!sessionUsedItems.length) return;
+  // \uFEFF là UTF-8 BOM giúp Excel hiển thị đúng tiếng Nhật / tiếng Việt
+  let csvContent = "\uFEFF"; 
+  csvContent += "品番 (Part No),品名 (Part Name),数量 (Quantity),使用時間 (Time)\r\n";
+  sessionUsedItems.forEach(it => {
+    const pno = `"${it.part_no.replace(/"/g, '""')}"`;
+    const name = `"${it.name.replace(/"/g, '""')}"`;
+    csvContent += `${pno},${name},${it.qty},${it.time}\r\n`;
+  });
+  
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `used_parts_${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 // ════════════════════════════════════════════════
@@ -1579,3 +1667,4 @@ window.addEventListener('DOMContentLoaded', () => {
 </script>
 </body>
 </html>
+--- END OF FILE index.html ---
