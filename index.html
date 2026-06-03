@@ -1,4 +1,3 @@
---- START OF FILE index.html ---
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -342,33 +341,47 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
       <button onclick="searchMulti()" style="background:#7c3aed;color:#fff;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;border:none;cursor:pointer;margin-bottom:14px;">検索する</button>
       <div id="use-multi-list" style="display:flex;flex-direction:column;gap:8px;"></div>
     </div>
-    <!-- 使用確定パネル -->
+
+    <!-- カート追加用入力パネル -->
     <div id="use-confirm" style="display:none;background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-top:14px;">
-      <div style="font-size:13px;color:#7c3aed;font-weight:600;margin-bottom:4px;">使用対象</div>
+      <div style="font-size:13px;color:#7c3aed;font-weight:600;margin-bottom:4px;">カートに追加する対象</div>
       <div id="uc-pno"  style="font-size:15px;font-weight:700;color:#111827;word-break:break-all;"></div>
       <div id="uc-name" style="font-size:14px;color:#374151;margin-top:2px;"></div>
       <div style="font-size:13px;color:#6b7280;margin-top:4px;">在庫数: <span id="uc-stock" style="font-weight:700;color:#111827;"></span></div>
       <div style="margin-top:12px;">
-        <label style="font-size:13px;color:#4b5563;display:block;margin-bottom:4px;">使用数量 *</label>
+        <label style="font-size:13px;color:#4b5563;display:block;margin-bottom:4px;">数量 *</label>
         <input id="uc-qty" type="number" min="1" class="form-input" style="width:110px;" placeholder="0"/>
       </div>
       <div id="uc-err" style="display:none;color:#ef4444;font-size:12px;margin-top:6px;font-weight:600;"></div>
       <div style="display:flex;gap:8px;margin-top:12px;">
-        <button onclick="submitUse()" class="btn-p" style="flex:1;">使用する</button>
+        <button onclick="addToCart()" class="btn-p" style="flex:1;">カートに追加する</button>
         <button onclick="closeUseConfirm()" class="btn-g">キャンセル</button>
       </div>
     </div>
 
-    <!-- ══════ SESSION CART PANEL (NEW) ══════ -->
-    <div id="use-cart-panel" class="cart-panel" style="display:none; margin-top:20px;">
+    <!-- ══════ SHOPPING CART SECTION ══════ -->
+    <div id="use-cart-section" class="cart-panel" style="display:none; margin-top:20px;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-        <span style="font-size:14px; font-weight:700; color:#15803d;">今回使用した部材リスト (Used Cart)</span>
-        <button onclick="clearUseCart()" style="background:none; border:none; color:#dc2626; font-size:12px; font-weight:600; cursor:pointer;">リストクリア</button>
+        <span style="font-size:14px; font-weight:700; color:#15803d;">買い物かご (Cart)</span>
+        <button onclick="clearCart()" style="background:none; border:none; color:#dc2626; font-size:12px; font-weight:600; cursor:pointer;">カートを空にする</button>
       </div>
-      <div id="use-cart-list" style="display:flex; flex-direction:column; gap:6px; margin-bottom:12px;"></div>
-      <button onclick="downloadUseCartCSV()" class="btn-p" style="background:#16a34a; font-size:14px; display:flex; align-items:center; justify-content:center; gap:6px;">
+      <div id="use-cart-list" style="display:flex; flex-direction:column; gap:8px; margin-bottom:14px;"></div>
+      <button id="btn-submit-cart" onclick="submitCart()" class="btn-p" style="background:#7c3aed; font-size:15px;">
+        使用を確定する (一括使用)
+      </button>
+    </div>
+
+    <!-- ══════ SUCCESS SECTION ══════ -->
+    <div id="use-success-section" style="display:none; text-align:center; background:#f0fdf4; border:1.5px solid #bbf7d0; border-radius:14px; padding:24px 16px; margin-top:14px;">
+      <div style="width:56px; height:56px; background:#dcfce7; border-radius:50%; margin:0 auto 12px; display:flex; align-items:center; justify-content:center;">
+        <svg fill="none" stroke="#15803d" viewBox="0 0 24 24" style="width:30px; height:30px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+      </div>
+      <h3 style="font-size:17px; font-weight:700; color:#166534; margin-bottom:6px;">使用処理が完了しました</h3>
+      <p style="font-size:12px; color:#15803d; margin-bottom:18px;">以下のボタンを押してExcelファイルをダウンロードし、ホームに戻ります。</p>
+      
+      <button onclick="downloadAndGoHome()" class="btn-p" style="background:#16a34a; font-size:15px; display:flex; align-items:center; justify-content:center; gap:8px; margin:0 auto 10px; width:100%; max-width:280px;">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:18px;height:18px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-        Excel (CSV) ダウンロード
+        ダウンロードしてホームへ戻る
       </button>
     </div>
   </div>
@@ -654,8 +667,9 @@ let _allAdminStock = [];
 let _allAdminBogai = [];
 let activeBogaiInline = null;
 
-// New: Danh sách vật phẩm đã sử dụng tạm thời trong phiên
-let sessionUsedItems = [];
+// Cart Management States
+let cartItems = [];
+let lastUsedItems = [];
 
 const _dbt = {};
 function debounce(key, fn, ms=300){
@@ -789,8 +803,9 @@ function logout(){
   token=null; isAdmin=false; currentUser='';
   localStorage.removeItem('pm_token'); localStorage.removeItem('pm_admin'); localStorage.removeItem('pm_user');
   _cache={data:[],ts:0,map:{}};
-  sessionUsedItems = [];
-  updateUseCartUI();
+  cartItems = [];
+  lastUsedItems = [];
+  updateCartUI();
   updateUserUI();
   show('login-overlay');
   $('li-user').value=''; $('li-pass').value=''; hide('li-err');
@@ -994,17 +1009,22 @@ function initUse(){
   show('use-pno-area');
   ['name','scan','multi'].forEach(m=>hide('use-'+m+'-area'));
   hide('use-confirm'); useConfirmData=null;
-  updateUseCartUI();
+  hide('use-success-section');
+  updateCartUI();
 }
 
 function setUseMode(mode){
   ['pno','name','scan','multi'].forEach(m=>{
-    $('use-tab-'+m).classList.toggle('active',m===mode);
-    $('use-'+m+'-area').style.display=m===mode?'':'none';
+    const tab = $('use-tab-'+m);
+    const area = $('use-'+m+'-area');
+    if(tab) tab.classList.toggle('active',m===mode);
+    if(area) area.style.display=m===mode?'':'none';
   });
   if(mode!=='scan'){ cleanupCam('use-video',useStream); useStream=null; }
   hide('use-confirm'); useConfirmData=null;
+  hide('use-success-section');
   if(mode==='scan') startUseCamera();
+  updateCartUI();
 }
 
 function searchUsePno(){
@@ -1042,30 +1062,199 @@ function openUseConfirm(part_no,name,stock){
 }
 function closeUseConfirm(){ hide('use-confirm'); useConfirmData=null; }
 
-async function submitUse(){
-  if(!useConfirmData) return;
-  const qty=parseInt($('uc-qty').value);
-  if(isNaN(qty)||qty<1){ show('uc-err'); $('uc-err').textContent='数量を入力してください'; return; }
-  if(qty>useConfirmData.stock){ show('uc-err'); $('uc-err').textContent=`在庫数 (${useConfirmData.stock}) を超えています`; return; }
-  if(!API){ show('uc-err'); $('uc-err').textContent='APIが設定されていません'; return; }
+// ── CART CONTROLLER (NEW FLOW) ──
+function addToCart() {
+  if (!useConfirmData) return;
+  const qty = parseInt($('uc-qty').value);
+  if (isNaN(qty) || qty < 1) {
+    show('uc-err');
+    $('uc-err').textContent = '数量を入力してください';
+    return;
+  }
+  if (qty > useConfirmData.stock) {
+    show('uc-err');
+    $('uc-err').textContent = `在庫数 (${useConfirmData.stock}) を超えています`;
+    return;
+  }
   hide('uc-err');
-  try{
-    await apiFetch('/stock/use',{method:'POST',body:JSON.stringify({part_no:useConfirmData.part_no,qty,user:currentUser||'ゲスト'})});
-    toast(`✓ ${useConfirmData.part_no} を ${qty} 使用しました`);
-    
-    // Thêm sản phẩm vừa sử dụng vào giỏ hàng tạm thời
-    sessionUsedItems.push({
+
+  // カート内に同じ品番がある場合は合算
+  const existingIndex = cartItems.findIndex(it => it.part_no === useConfirmData.part_no);
+  if (existingIndex > -1) {
+    const newQty = cartItems[existingIndex].qty + qty;
+    if (newQty > useConfirmData.stock) {
+      show('uc-err');
+      $('uc-err').textContent = `カート内合計 (${newQty}) が在庫数 (${useConfirmData.stock}) を超えています`;
+      return;
+    }
+    cartItems[existingIndex].qty = newQty;
+  } else {
+    cartItems.push({
       part_no: useConfirmData.part_no,
       name: useConfirmData.name,
       qty: qty,
-      time: new Date().toLocaleTimeString('ja-JP')
+      stock: useConfirmData.stock
     });
-    updateUseCartUI();
+  }
 
-    await refreshCache(true); closeUseConfirm();
-    const mode=document.querySelector('#page-use .mode-tab.active')?.id?.replace('use-tab-','');
-    if(mode==='pno') searchUsePno(); if(mode==='name') searchUseName();
-  }catch(e){ show('uc-err'); $('uc-err').textContent=e.message; }
+  toast(`✓ ${useConfirmData.part_no} を ${qty} 件 カートに追加しました`);
+  closeUseConfirm();
+  updateCartUI();
+}
+
+function updateCartUI() {
+  const section = $('use-cart-section');
+  const list = $('use-cart-list');
+  if (!section || !list) return;
+
+  // 処理成功画面が表示されている時は非表示にする
+  if ($('use-success-section') && $('use-success-section').style.display !== 'none') {
+    section.style.display = 'none';
+    return;
+  }
+
+  if (!cartItems.length) {
+    section.style.display = 'none';
+    return;
+  }
+  section.style.display = 'block';
+
+  list.innerHTML = cartItems.map((it, idx) => `
+    <div style="background:#fff; border:1px solid #bbf7d0; padding:10px; border-radius:10px; display:flex; flex-direction:column; gap:6px;">
+      <div style="display:flex; justify-content:space-between; align-items:start;">
+        <div style="min-width:0; flex:1; text-align:left;">
+          <div style="font-size:11px; color:#15803d; font-weight:600;">${esc(it.part_no)}</div>
+          <div style="font-weight:600; color:#1f2937; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:13px;">${esc(it.name)}</div>
+          <div style="font-size:11px; color:#6b7280; margin-top:1px;">現在庫: ${it.stock}</div>
+        </div>
+        <button onclick="removeFromCart(${idx})" style="color:#ef4444; border:none; background:none; font-size:18px; cursor:pointer; padding:0 4px; line-height:1;">&times;</button>
+      </div>
+      <div style="display:flex; align-items:center; justify-content:flex-end; gap:8px;">
+        <span style="font-size:11px; color:#4b5563;">数量:</span>
+        <input type="number" min="1" max="${it.stock}" value="${it.qty}" 
+          onchange="updateCartItemQty(${idx}, this.value)" 
+          class="form-input" style="width:75px; padding:4px 8px; text-align:center; font-size:13px;"/>
+      </div>
+    </div>
+  `).join('');
+}
+
+function updateCartItemQty(idx, val) {
+  const qty = parseInt(val);
+  const item = cartItems[idx];
+  if (isNaN(qty) || qty < 1) {
+    toast('1以上の数量を入力してください', true);
+    updateCartUI();
+    return;
+  }
+  if (qty > item.stock) {
+    toast(`在庫数 (${item.stock}) を超えています`, true);
+    updateCartUI();
+    return;
+  }
+  cartItems[idx].qty = qty;
+}
+
+function removeFromCart(idx) {
+  cartItems.splice(idx, 1);
+  updateCartUI();
+}
+
+function clearCart() {
+  if (confirm('カートを空にしますか？')) {
+    cartItems = [];
+    updateCartUI();
+  }
+}
+
+// ── Submit Cart (Call API sequentially) ──
+async function submitCart() {
+  if (!cartItems.length) return;
+  if (!API) { toast('APIが設定されていません', true); return; }
+
+  if (!confirm(`カート内の ${cartItems.length} 件の使用を確定しますか？`)) return;
+
+  const btn = $('btn-submit-cart');
+  btn.disabled = true;
+  btn.textContent = '処理中...';
+
+  // Excelダウンロード用に最新の使用データを退避
+  lastUsedItems = cartItems.map(it => ({
+    part_no: it.part_no,
+    name: it.name,
+    qty: it.qty,
+    time: new Date().toLocaleTimeString('ja-JP')
+  }));
+
+  try {
+    // APIへ逐次送信
+    for (const item of cartItems) {
+      await apiFetch('/stock/use', {
+        method: 'POST',
+        body: JSON.stringify({
+          part_no: item.part_no,
+          qty: item.qty,
+          user: currentUser || 'ゲスト'
+        })
+      });
+    }
+
+    toast('✓ 使用処理が完了しました');
+
+    // 検索周りを一時非表示
+    hide('use-pno-area');
+    hide('use-name-area');
+    hide('use-scan-area');
+    hide('use-multi-area');
+    hide('use-confirm');
+    hide('use-cart-section');
+
+    // 完了画面の表示
+    show('use-success-section');
+
+  } catch (e) {
+    toast('処理中にエラーが発生しました: ' + e.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '使用を確定する (一括使用)';
+  }
+}
+
+// ── Download & Back Home ──
+function downloadAndGoHome() {
+  if (lastUsedItems.length) {
+    let csvContent = "\uFEFF"; // UTF-8 BOM
+    csvContent += "品番 (Part No),品名 (Part Name),数量 (Quantity),使用時間 (Time)\r\n";
+    lastUsedItems.forEach(it => {
+      const pno = `"${it.part_no.replace(/"/g, '""')}"`;
+      const name = `"${it.name.replace(/"/g, '""')}"`;
+      csvContent += `${pno},${name},${it.qty},${it.time}\r\n`;
+    });
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `used_parts_${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  // ステートを初期化
+  cartItems = [];
+  lastUsedItems = [];
+
+  // 画面の初期化
+  hide('use-success-section');
+  const mode = document.querySelector('#page-use .mode-tab.active')?.id?.replace('use-tab-', '') || 'pno';
+  setUseMode(mode);
+
+  // キャッシュ更新後にダッシュボードへ遷移
+  refreshCache(true).then(() => {
+    go('home');
+  });
 }
 
 // ── Camera (Use) ──
@@ -1156,64 +1345,6 @@ function renderMultiResults(res){
         <div style="font-size:13px;font-weight:600;color:#9ca3af;">未登録</div></div>
         <span style="background:#fee2e2;color:#991b1b;font-size:11px;padding:3px 8px;border-radius:99px;flex-shrink:0;">未登録</span></div>`
   ).join('');
-}
-
-// ── Session Cart Management (NEW) ──
-function updateUseCartUI() {
-  const panel = $('use-cart-panel');
-  const list = $('use-cart-list');
-  if(!panel || !list) return;
-  if (!sessionUsedItems.length) {
-    panel.style.display = 'none';
-    return;
-  }
-  panel.style.display = 'block';
-  list.innerHTML = sessionUsedItems.map((it, idx) => `
-    <div style="display:flex; justify-content:space-between; align-items:center; background:#fff; border:1px solid #bbf7d0; padding:8px 10px; border-radius:8px; font-size:13px;">
-      <div style="min-width:0; flex:1; text-align:left;">
-        <div style="font-size:11px; color:#15803d; font-weight:600;">${esc(it.part_no)}</div>
-        <div style="font-weight:600; color:#1f2937; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(it.name)}</div>
-      </div>
-      <div style="display:flex; align-items:center; gap:12px; margin-left:12px; flex-shrink:0;">
-        <span style="font-weight:700; color:#166534;">${it.qty}</span>
-        <button onclick="removeUseCartItem(${idx})" style="color:#ef4444; border:none; background:none; font-size:18px; cursor:pointer; padding:0 4px; line-height:1;">&times;</button>
-      </div>
-    </div>
-  `).join('');
-}
-
-function removeUseCartItem(idx) {
-  sessionUsedItems.splice(idx, 1);
-  updateUseCartUI();
-}
-
-function clearUseCart() {
-  if (confirm('今回使用した部材リストをクリアしますか？')) {
-    sessionUsedItems = [];
-    updateUseCartUI();
-  }
-}
-
-function downloadUseCartCSV() {
-  if (!sessionUsedItems.length) return;
-  // \uFEFF là UTF-8 BOM giúp Excel hiển thị đúng tiếng Nhật / tiếng Việt
-  let csvContent = "\uFEFF"; 
-  csvContent += "品番 (Part No),品名 (Part Name),数量 (Quantity),使用時間 (Time)\r\n";
-  sessionUsedItems.forEach(it => {
-    const pno = `"${it.part_no.replace(/"/g, '""')}"`;
-    const name = `"${it.name.replace(/"/g, '""')}"`;
-    csvContent += `${pno},${name},${it.qty},${it.time}\r\n`;
-  });
-  
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `used_parts_${new Date().toISOString().slice(0, 10)}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
 }
 
 // ════════════════════════════════════════════════
@@ -1667,4 +1798,3 @@ window.addEventListener('DOMContentLoaded', () => {
 </script>
 </body>
 </html>
---- END OF FILE index.html ---
