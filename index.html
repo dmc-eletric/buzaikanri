@@ -1088,19 +1088,43 @@ async function submitScanAdd(){
 }
 
 // ════════════════════════════════════════════════
-// 部材使用 (USE)
+// 部材使用 (USE) ロジック
 // ════════════════════════════════════════════════
+function initUse(){
+  const mode = document.querySelector('#page-use .mode-tab.active')?.id?.replace('use-tab-', '') || 'pno';
+  setUseMode(mode);
+  hide('use-success-section');
+  updateCartUI();
+}
+
+function setUseMode(mode){
+  ['pno','name','scan','multi'].forEach(m=>{
+    const tab = $('use-tab-'+m);
+    const area = $('use-'+m+'-area');
+    if(tab) tab.classList.toggle('active', m===mode);
+    if(area) area.style.display = m===mode ? '' : 'none';
+  });
+  if(mode !== 'scan'){ cleanupCam('use-video',useStream); useStream=null; }
+  hide('use-confirm'); useConfirmData=null;
+  hide('use-success-section');
+  if(mode === 'scan') startUseCamera();
+  updateCartUI();
+  
+  if(mode === 'pno') searchUsePno();
+  if(mode === 'name') searchUseName();
+  if(mode === 'multi') searchMulti();
+}
+
 function onUseBaseChange() {
   cartItems = [];
   updateCartUI();
+  hide('use-confirm');
+  useConfirmData = null;
   
-  const mode = document.querySelector('#page-use .mode-tab.active')?.id?.replace('use-tab-', '');
+  const mode = document.querySelector('#page-use .mode-tab.active')?.id?.replace('use-tab-', '') || 'pno';
   if (mode === 'pno') searchUsePno();
   if (mode === 'name') searchUseName();
   if (mode === 'multi') searchMulti();
-  
-  hide('use-confirm');
-  useConfirmData = null;
 }
 
 function searchUsePno(){
@@ -1238,18 +1262,6 @@ function updateCartItemQty(idx, val) {
   cartItems[idx].qty = qty;
 }
 
-function removeFromCart(idx) {
-  cartItems.splice(idx, 1);
-  updateCartUI();
-}
-
-function clearCart() {
-  if (confirm('カートを空にしますか？')) {
-    cartItems = [];
-    updateCartUI();
-  }
-}
-
 // ── Submit Cart ──
 async function submitCart() {
   if (!cartItems.length) return;
@@ -1338,7 +1350,32 @@ function downloadAndGoHome() {
   });
 }
 
+function removeFromCart(idx) {
+  cartItems.splice(idx, 1);
+  updateCartUI();
+}
+
+function clearCart() {
+  if (confirm('カートを空にしますか？')) {
+    cartItems = [];
+    updateCartUI();
+  }
+}
+
 // ── Camera capture for usage ──
+async function startUseCamera(){
+  resetUseScanUI();
+  try{
+    const s=await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment', width:{ideal:1920}, height:{ideal:1080}, focusMode:'continuous' } });
+    useStream=s; const v=$('use-video'); v.srcObject=s; await v.play().catch(()=>{}); show('use-cam-wrap');
+  }catch(e){ hide('use-cam-wrap'); toast('カメラを起動できません',true); }
+}
+function resetUseScanUI(){
+  hide('use-scan-result'); hide('use-fail-card'); hide('use-analyzing'); $('use-scan-item').innerHTML='';
+  show('use-cam-wrap'); $('use-file').value=''; hide('use-confirm'); useConfirmData=null;
+}
+function resetUseScan(){ resetUseScanUI(); if(!useStream) startUseCamera(); }
+
 async function captureUse(){
   const v=$('use-video'), c=$('use-canvas');
   if(!v.videoWidth){ toast('カメラ準備中です…',true); return; }
@@ -1421,6 +1458,131 @@ function renderMultiResults(res){
         <span style="background:#fee2e2;color:#991b1b;font-size:11px;padding:3px 8px;border-radius:99px;flex-shrink:0;">未登録</span>
       </div>`
   ).join('');
+}
+
+// ════════════════════════════════════════════════
+// 簿外追加 (BOGAI ADD)
+// ════════════════════════════════════════════════
+function initBogaiAdd(){
+  $('ba-name').value = ''; $('ba-category').value = ''; $('ba-condition').value = '';
+  $('ba-qty').value = ''; $('ba-location').value = ''; $('ba-remarks').value = '';
+}
+
+async function submitBogaiAdd(){
+  const name = $('ba-name').value.trim();
+  const category = $('ba-category').value.trim();
+  const condition = $('ba-condition').value.trim();
+  const qty = parseInt($('ba-qty').value);
+  const location = $('ba-location').value.trim();
+  const remarks = $('ba-remarks').value.trim();
+
+  if(!name) { toast('在庫品名を入力してください', true); return; }
+  if(isNaN(qty) || qty < 1) { toast('数量を正しく入力してください', true); return; }
+
+  const payload = { item_name: name, category, condition, qty, location, remarks, user: currentUser };
+
+  if(!API){ toast('APIが設定されていません',true); return; }
+  
+  try{ 
+    await apiFetch('/bogai/add', { method:'POST', body:JSON.stringify(payload) }); 
+    toast(`✓ 簿外アイテムを追加しました`); 
+    initBogaiAdd(); 
+  } catch(e) { 
+    toast(e.message, true); 
+  }
+}
+
+// ════════════════════════════════════════════════
+// 簿外使用 (BOGAI USE)
+// ════════════════════════════════════════════════
+function initBogaiUse(){
+  $('bu-search-inp').value = '';
+  $('bu-list').innerHTML = emptyMsg('在庫品名、区分、場所、備考等で検索してください');
+}
+
+async function searchBogaiUse(){
+  const q = $('bu-search-inp').value.trim();
+  if(!q) { $('bu-list').innerHTML = emptyMsg('検索ワードを入力してください'); return; }
+  
+  if(!API){ toast('APIが設定されていません',true); return; }
+
+  try {
+    const res = await apiFetch(`/bogai/search?query=${encodeURIComponent(q)}`);
+    renderBogaiList(res || []);
+  } catch(e) {
+    $('bu-list').innerHTML = errMsg(e.message);
+  }
+}
+
+function renderBogaiList(items){
+  if(!items?.length){ $('bu-list').innerHTML = emptyMsg('該当なし'); return; }
+  
+  $('bu-list').innerHTML = items.map(it => {
+    const safeId = it.item_name.replace(/[^a-zA-Z0-9]/g,'_');
+    const safeNameJS = escJS(it.item_name);
+    return `
+    <div>
+      <div class="item-card" id="bcard-${safeId}" onclick="toggleBogaiInline('${safeId}', '${safeNameJS}', ${it.qty})" style="cursor:pointer; z-index:2; position:relative;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:11px;color:#6b7280;">${esc(it.category)} | ${esc(it.condition)}</div>
+          <div style="font-size:14px;font-weight:600;color:#111827;">${esc(it.item_name)}</div>
+          <div style="font-size:10px;color:#9ca3af;margin-top:2px;">保管場所: ${esc(it.location)}</div>
+          ${it.remarks ? `<div style="font-size:11px;color:#4b5563;margin-top:4px;background:#f3f4f6;padding:2px 6px;border-radius:4px;display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">備考: ${esc(it.remarks)}</div>` : ''}
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:20px;font-weight:700;color:${qtyColor(it.qty)};">${it.qty}</div>
+          <div style="font-size:10px;color:#9ca3af;">在庫</div>
+        </div>
+      </div>
+      <div class="inline-panel" id="binline-${safeId}" style="display:none; padding: 10px; background: #faf5ff; border: 1px solid #e5e7eb; border-top:none; border-radius:0 0 10px 10px;">
+        <div style="display:flex;gap:8px;align-items:center;">
+          <div style="flex:1;">
+            <label style="font-size:11px;color:#6b7280;display:block;margin-bottom:4px;">使用数量を入力</label>
+            <input id="binline-qty-${safeId}" type="number" min="1" class="form-input" style="padding:8px 12px;font-size:15px;background:#fff;" placeholder="0"/>
+          </div>
+          <button onclick="submitBogaiUse('${safeId}', '${safeNameJS}', ${it.qty})" style="background:#059669;color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer;margin-top:16px;">簿外使用</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleBogaiInline(id, name, stock) {
+  if (activeBogaiInline && activeBogaiInline !== id) {
+    const oldPanel = $('binline-' + activeBogaiInline);
+    if(oldPanel) oldPanel.style.display = 'none';
+    const oldCard = $('bcard-' + activeBogaiInline);
+    if(oldCard) oldCard.classList.remove('has-inline');
+  }
+  const panel = $('binline-' + id);
+  const card = $('bcard-' + id);
+  if (panel.style.display === 'none' || panel.style.display === '') {
+    panel.style.display = 'block'; 
+    card.classList.add('has-inline'); 
+    activeBogaiInline = id;
+    setTimeout(() => { const inp = $('binline-qty-'+id); if(inp) inp.focus(); }, 100);
+  } else {
+    panel.style.display = 'none'; 
+    card.classList.remove('has-inline'); 
+    activeBogaiInline = null;
+  }
+}
+
+async function submitBogaiUse(id, name, stock){
+  const qtyInp = $('binline-qty-'+id); if(!qtyInp) return;
+  const qty = parseInt(qtyInp.value);
+  if(isNaN(qty)||qty<1){ toast('数量を入力してください', true); return; }
+  if(qty>stock){ toast(`在庫数 (${stock}) を超えています`, true); return; }
+  
+  qtyInp.disabled = true;
+  try{
+    await apiFetch('/bogai/use',{method:'POST',body:JSON.stringify({item_name: name, qty: qty, user: currentUser})});
+    toast(`✓ 簿外 ${name} を ${qty} 使用しました`);
+    searchBogaiUse(); 
+  }catch(e){ 
+    toast(e.message, true); 
+    qtyInp.disabled = false; 
+  }
 }
 
 // ════════════════════════════════════════════════
