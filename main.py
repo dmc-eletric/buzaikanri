@@ -126,13 +126,13 @@ def append_history(user: str, part_no: str, name: str, qty: int, action: str) ->
 
 # ══════════════════════════════════════════════════
 # 在庫 (STOCK) CRUD ヘルパー
-# 拠点（保管場所）を複合プライマリキーに含める処理へ書き換え
+# 拠点と品番を掛け合わせた判定処理
 # ══════════════════════════════════════════════════
 def find_stock_row(ws: gspread.Worksheet, part_no: str, base: str) -> Optional[int]:
     rows = ws.get_all_values()
-    # 2行目以降からスキャンし、品番（1列目）と拠点（4列目）が一致する行を探す
     for i, row in enumerate(rows[1:], start=2):
         if len(row) >= 4:
+            # 1番目の「品番」と4番目の「拠点」を両方突き合わせ
             if row[0].strip() == part_no.strip() and row[3].strip() == base.strip():
                 return i
     return None
@@ -156,14 +156,28 @@ def get_all_stock() -> List[Dict[str, Any]]:
     rows = ws.get_all_values()
     if len(rows) <= 1: return []
     result = []
+    
+    # 5大拠点の値チェック用定義
+    valid_bases = {"川口", "仙台", "郡山", "名古屋", "大阪"}
+    
     for row in rows[1:]:
         if not row or not row[0].strip(): continue
+        
+        # 旧データ形式で列がズレてしまっている場合のセーフティ保護ロジック
+        base_val = row[3].strip() if len(row) > 3 else "川口"
+        if base_val not in valid_bases:
+            # 4番目のカラムが拠点名でなければ、旧スプレッドシートのタイムスタンプ等の可能性があるため
+            # 自動的に「川口」拠点として引き当てを救済します
+            base_val = "川口"
+            
+        loc_val = row[4].strip() if len(row) > 4 else ""
+        
         result.append({
             "part_no": row[0].strip(), 
             "name": row[1].strip() if len(row)>1 else "",
             "qty": int(row[2]) if len(row)>2 and str(row[2]).lstrip("-").isdigit() else 0,
-            "base": row[3].strip() if len(row)>3 else "川口", # 新設。デフォルト値：川口
-            "location": row[4].strip() if len(row)>4 else "", # 保管場所
+            "base": base_val,
+            "location": loc_val,
             "updated_at": row[5] if len(row)>5 else "",
         })
     return result
@@ -181,8 +195,9 @@ def upsert_stock(part_no: str, name: str, delta: int, base: str, location: str, 
         ws.update(f"C{row_no}:F{row_no}", [[str(new_qty), base, location, now]])
         final_name = row[1] if len(row)>1 else name
     else:
-        if delta < 0: raise HTTPException(status_code=404, detail="該当する品番と保管場所の組み合わせが見つかりません")
+        if delta < 0: raise HTTPException(status_code=404, detail="該当する品番と拠点の組み合わせが見つかりません")
         new_qty = delta; final_name = name
+        # 6カラム構造で追加
         ws.append_row([part_no, final_name, str(new_qty), base, location, now])
 
     append_history(user, part_no, f"{final_name} ({base} - {location})", abs(delta), action)
@@ -529,4 +544,3 @@ def admin_delete_user(username: str, _=Depends(get_admin_user)):
 def health(): return {"status": "ok", "time": jst_now()}
 @app.get("/")
 def root(): return {"message": "API", "docs": "/docs"}
-```
