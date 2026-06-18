@@ -10,9 +10,11 @@ import csv
 import io
 import json
 import os
+import re
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
+import requests
 import gspread
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -31,6 +33,7 @@ GOOGLE_WORKSHEET = os.getenv("GOOGLE_WORKSHEET", "在庫")
 SECRET_KEY       = os.environ["SECRET_KEY"]
 ALGORITHM        = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7
+GOOGLE_VISION_API_KEY = os.environ["GOOGLE_VISION_API_KEY"]  # ← 追加
 
 CREDENTIALS_JSON = os.getenv("GOOGLE_CREDENTIALS_JSON")
 
@@ -544,3 +547,76 @@ def admin_delete_user(username: str, _=Depends(get_admin_user)):
 def health(): return {"status": "ok", "time": jst_now()}
 @app.get("/")
 def root(): return {"message": "API", "docs": "/docs"}
+
+# ── OCR API (Google Vision) ──
+class OcrRequest(BaseModel):
+    image: str  # base64 JPEG
+
+@app.post("/ocr/label")
+def ocr_label(body: OcrRequest, _=Depends(get_current_user)):
+    """Google Vision APIでラベル画像から品番・品名を抽出する"""
+    try:
+        # Google Vision API呼び出し
+        url = f"https://vision.googleapis.com/v1/images:annotate?key={GOOGLE_VISION_API_KEY}"
+        payload = {
+            "requests": [{
+                "image": {"content": body.image},
+                "features": [{"type": "TEXT_DETECTION", "maxResults": 1}]
+            }]
+        }
+        resp = requests.post(url, json=payload, timeout=10)
+        resp.raise_for_status()
+        data = resp.json()
+
+        # テキスト全体を取得
+        annotations = data.get("responses", [{}])[0].get("textAnnotations", [])
+        if not annotations:
+            raise HTTPException(status_code=422, detail="テキストが読み取れませんでした")
+
+        full_text = annotations[0].get("description", "")
+        lines = [l.strip() for l in full_text.splitlines() if l.strip()]
+        print(f"[Vision OCR] 読み取り結果:\n{full_text}")
+
+        # 品番を抽出: 「品番」の次の行、またはN/M/K始まりのパターン
+        part_no = None
+        name = None
+
+        for i, line in enumerate(lines):
+            # 「品番」ラベルの次の行を品番として取得
+            if re.search(r'品番|PART\s*No', line, re.IGNORECASE):
+                # 同じ行に品番がある場合
+                inline = re.search(r'([NMKnmk][A-Z0-9]{3,})', line, re.IGNORECASE)
+                if inline:
+                    part_no = inline.group(1).upper()
+                # 次の行に品番がある場合
+                elif i + 1 < len(lines):
+                    next_line = lines[i + 1]
+                    m = re.search(r'([NMKnmk][A-Z0-9]{3,})', next_line, re.IGNORECASE)
+                    if m:
+                        part_no = m.group(1).upper()
+
+            # 「品名」ラベルの次の行を品名として取得
+            if re.search(r'品名', line):
+                inline_name = re.sub(r'品名', '', line).strip()
+                if inline_name:
+                    name = inline_name
+                elif i + 1 < len(lines):
+                    name = lines[i + 1]
+
+        # 品番が見つからない場合: 全テキストからN/M/K始まりを探す
+        if not part_no:
+            for line in lines:
+                m = re.search(r'\b([NMKnmk][A-Z0-9]{5,})\b', line, re.IGNORECASE)
+                if m:
+                    part_no = m.group(1).upper()
+                    break
+
+        if not part_no:
+            raise HTTPException(status_code=422, detail="品番が読み取れませんでした")
+
+        return {"part_no": part_no, "name": name or ""}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"OCRエラー: {str(e)}")

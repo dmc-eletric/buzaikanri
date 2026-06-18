@@ -184,7 +184,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
     <!-- Quick actions -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px;">
       <button onclick="go('add')" style="background:#7c3aed;color:#fff;border:none;border-radius:12px;padding:14px;font-size:14px;font-weight:600;cursor:pointer;">＋ 部材追加</button>
-      <button onclick="go('use')" style="background:#1d4ed8;color:#fff;border:none;border-radius:12px;padding:14px;font-size:14px;font-weight:600;cursor:pointer;">⊖ 部材使用</button>
+      <button onclick="go('use')" style="background:#1d4ed8;color:#fff;border:none;border-radius:12px;padding:14px;font-size:14px;font-weight:600;cursor:pointer;">－ 部材使用</button>
     </div>
   </div>
 
@@ -575,7 +575,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
   <button class="bnav-btn" id="bnav-add"   onclick="go('add')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>追加</button>
   <button class="bnav-btn" id="bnav-use"   onclick="go('use')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/></svg>使用</button>
   <button class="bnav-btn" id="bnav-stock" onclick="go('stock')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>在庫</button>
-  <button class="bnav-btn" id="bnav-more"  onclick="toggleDrawer()"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>More</button>
+  <button class="bnav-btn" id="bnav-more"  onclick="toggleDrawer()"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>More</button>
 </nav>
 <div id="drawer-overlay" onclick="closeDrawer()"></div>
 <div id="more-drawer">
@@ -600,99 +600,33 @@ const CACHE_TTL_MS   = 3 * 60 * 1000;  // 在庫キャッシュ有効期限 3分
 const RENDER_PAGE    = 40;              // 一度にレンダリングする行数
 
 // ════════════════════════════════════════════════
-// Camera & Barcode Decoder (Native API + ZXing Fallback)
+// Camera & OCR — Google Vision API（バックエンド経由）
+// ラベル全体を撮影して品番・品名を抽出
 // ════════════════════════════════════════════════
-let _zxingReady = false;
-function loadZXing(){
-  return new Promise(res=>{
-    if(_zxingReady){ res(); return; }
-    const s=document.createElement('script');
-    s.src='https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js';
-    s.onload=()=>{ _zxingReady=true; res(); };
-    s.onerror=()=>res();
-    document.head.appendChild(s);
+
+// Canvas → Base64 JPEG
+function canvasToBase64(canvas, quality=0.85){
+  return canvas.toDataURL('image/jpeg', quality).split(',')[1];
+}
+
+// バックエンド /ocr/label を呼び出す
+async function extractPartsFromImage(canvas) {
+  const base64 = canvasToBase64(canvas);
+  const response = await fetch(`${API}/ocr/label`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { "Authorization": `Bearer ${token}` } : {})
+    },
+    body: JSON.stringify({ image: base64 })
   });
-}
-
-async function decodeBarcodeImage(canvas) {
-  if ('BarcodeDetector' in window) {
-    try {
-      const detector = new BarcodeDetector({ formats: ['data_matrix', 'qr_code', 'code_128', 'ean_13', 'code_39'] });
-      const barcodes = await detector.detect(canvas);
-      if (barcodes.length > 0) {
-        return extractPartNo(barcodes[0].rawValue);
-      }
-    } catch(e) { console.warn("Native Detector failed, falling back to ZXing...", e); }
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || 'OCRエラー');
   }
-
-  await loadZXing();
-  const hints = new Map();
-  hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
-    ZXing.BarcodeFormat.DATA_MATRIX, ZXing.BarcodeFormat.QR_CODE,
-    ZXing.BarcodeFormat.CODE_128, ZXing.BarcodeFormat.EAN_13
-  ]);
-  hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-
-  const reader = new ZXing.MultiFormatReader();
-  reader.setHints(hints);
-
-  const tries = [
-    ()=> _canvasToBinaryBitmap(canvas, false, false),
-    ()=> _canvasToBinaryBitmap(canvas, true,  false),
-    ()=> _canvasToBinaryBitmap(canvas, false, true),
-  ];
-  for(const fn of tries){
-    try{
-      const bmp = fn();
-      const result = reader.decode(bmp);
-      if(result) return extractPartNo(result.getText());
-    }catch(_){}
-  }
-  throw new Error('decode_failed');
-}
-
-function _canvasToBinaryBitmap(canvas, highContrast, flipH){
-  const w=canvas.width, h=canvas.height;
-  const ctx=canvas.getContext('2d');
-  let imgData = ctx.getImageData(0,0,w,h);
-  if(highContrast){
-    const d=imgData.data;
-    for(let i=0;i<d.length;i+=4){
-      const gray=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];
-      const v=gray<128?0:255;
-      d[i]=d[i+1]=d[i+2]=v;
-    }
-  }
-  if(flipH){
-    const tmp=document.createElement('canvas'); tmp.width=w; tmp.height=h;
-    const tc=tmp.getContext('2d');
-    tc.scale(-1,1); tc.drawImage(canvas,-w,0);
-    imgData=tc.getImageData(0,0,w,h);
-  }
-  const lumi = new ZXing.RGBLuminanceSource(imgData.data, w, h);
-  return new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(lumi));
-}
-
-// ── 品番抽出（正規表現） ──
-// N / M / K で始まる英数字を品番として抽出
-// 例: "N510026293AA 00003" → "N510026293AA"
-function extractPartNo(raw) {
-  if (!raw) throw new Error('empty');
-  // 改行・制御文字を除去
-  const cleaned = raw.replace(/[\x00-\x1F\x7F-\x9F]/g, ' ').replace(/\*/g, '').trim();
-  console.log('[scan] raw:', cleaned);
-
-  // N/M/K で始まる品番パターンを探す（英字・数字のみ、2文字以上）
-  const match = cleaned.match(/\b([NMKnmk][A-Z0-9]{2,}(?:[A-Z]{0,3})?)\b/i);
-  if (match) {
-    return match[1].toUpperCase(); // "N510026293AA"
-  }
-
-  // マッチしない場合：最初のトークン（スペース前）を使用
-  const firstToken = cleaned.split(/\s+/)[0];
-  if (firstToken && firstToken.length >= 3) return firstToken.toUpperCase();
-
-  throw new Error('no_part_no_found');
+  const result = await response.json();
+  if (!result.part_no) throw new Error('品番が読み取れませんでした');
+  return result; // { part_no: "N510026293AA", name: "ケーブル" }
 }
 
 // ════════════════════════════════════════════════
@@ -1053,30 +987,42 @@ function onAddFileChange(inp){
 
 async function analyzeAddCanvas(c){
   show('add-analyzing'); hide('add-fail-card'); hide('add-result-card');
-  let pn;
-  try{ pn = await decodeBarcodeImage(c); } catch(e){ hide('add-analyzing'); show('add-fail-card'); return; }
-  hide('add-analyzing'); $('add-res-pno').textContent=pn;
+  let ocr;
+  try{ ocr = await extractPartsFromImage(c); }
+  catch(e){
+    hide('add-analyzing');
+    $('add-fail-card').innerHTML=`
+      <div style="font-size:14px;font-weight:600;color:#ef4444;margin-bottom:6px;">読み取れませんでした</div>
+      <div style="font-size:12px;color:#6b7280;margin-bottom:10px;">${e.message || 'ラベル全体が映るように再撮影してください'}</div>
+      <button onclick="resetAddScan()" style="background:#ef4444;color:#fff;border:none;padding:8px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">再撮影する</button>`;
+    show('add-fail-card'); return;
+  }
+  hide('add-analyzing');
+
+  const pn = ocr.part_no;
+  const ocrName = ocr.name || '';
+  $('add-res-pno').textContent = pn;
 
   const base = $('add-base-select').value;
-  let r=cacheGet(pn, base);
+  let r = cacheGet(pn, base);
   if(!r && API){
     try{ r=await apiFetch(`/stock/search?part_no=${encodeURIComponent(pn)}&base=${encodeURIComponent(base)}`); }catch(e){ toast(e.message,true); resetAddScanUI(); return; }
   }
   if(r?.part_no){
-    $('add-res-label').textContent='既存品番 (この拠点に登録あり) — 在庫に加算されます'; 
-    $('add-res-name').textContent=r.name; 
+    $('add-res-label').textContent='既存品番 (この拠点に登録あり) — 在庫に加算されます';
+    $('add-res-name').textContent=r.name;
     $('add-res-qty').textContent=r.qty;
     $('add-res-location-inp').value=r.location || '';
-    hide('add-res-newname'); 
+    hide('add-res-newname');
     addScanData={part_no:pn,name:r.name,qty:r.qty,base:base,location:r.location,is_new:false};
   }else{
-    $('add-res-label').textContent='新規またはこの拠点で未登録の品番 — 新規追加されます'; 
-    $('add-res-name').textContent='（拠点内未登録）'; 
+    $('add-res-label').textContent='新規またはこの拠点で未登録の品番 — 新規追加されます';
+    $('add-res-name').textContent= ocrName ? `OCR取得: ${ocrName}` : '（拠点内未登録）';
     $('add-res-qty').textContent='0';
     $('add-res-location-inp').value='';
-    show('add-res-newname'); 
-    $('add-res-name-inp').value=''; 
-    addScanData={part_no:pn,name:'',qty:0,base:base,location:'',is_new:true};
+    show('add-res-newname');
+    $('add-res-name-inp').value = ocrName; // 品名を自動入力
+    addScanData={part_no:pn,name:ocrName,qty:0,base:base,location:'',is_new:true};
   }
   $('add-res-qty-inp').value=''; show('add-result-card'); $('add-result-card').scrollIntoView({behavior:'smooth',block:'nearest'});
 }
@@ -1396,12 +1342,18 @@ async function captureUse(){
 
 async function analyzeUseCanvas(c){
   show('use-analyzing'); hide('use-fail-card'); hide('use-scan-result');
-  let pn;
-  try{ pn=await decodeBarcodeImage(c); } catch(e){ hide('use-analyzing'); show('use-fail-card'); return; }
+  let ocr;
+  try{ ocr = await extractPartsFromImage(c); }
+  catch(e){
+    hide('use-analyzing');
+    $('use-fail-card').querySelector('div').textContent = e.message || 'ラベルを読み取れませんでした。再撮影してください。';
+    show('use-fail-card'); return;
+  }
   hide('use-analyzing');
 
+  const pn = ocr.part_no;
   const base = $('use-base-select').value;
-  let r=cacheGet(pn, base);
+  let r = cacheGet(pn, base);
   if(!r && API){
     try{ r=await apiFetch(`/stock/search?part_no=${encodeURIComponent(pn)}&base=${encodeURIComponent(base)}`); }catch(e){ toast(e.message,true); resetUseScanUI(); return; }
   }
@@ -1422,7 +1374,8 @@ async function analyzeUseCanvas(c){
     $('use-scan-result').scrollIntoView({behavior:'smooth',block:'nearest'});
     openUseConfirm(r.part_no,r.name,r.qty,r.location);
   }else{
-    show('use-fail-card'); $('use-fail-card').querySelector('div').textContent=`品番 "${pn}" は当拠点 [${base}] に未登録です`;
+    $('use-fail-card').querySelector('div').textContent=`品番 "${pn}" は当拠点 [${base}] に未登録です`;
+    show('use-fail-card');
   }
 }
 
