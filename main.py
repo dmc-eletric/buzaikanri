@@ -559,13 +559,21 @@ def ocr_label(body: OcrRequest):
             }]
         }
         resp = requests.post(url, json=payload, timeout=10)
+        
+        # Google Vision APIからのエラー（403 Forbidden等）を具体的にキャッチする
+        if resp.status_code == 403:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, 
+                detail="Google Cloud Vision APIが有効化されていないか、APIキーの権限が制限されています。GCP Consoleを確認してください。"
+            )
+            
         resp.raise_for_status()
         data = resp.json()
 
         # テキスト全体を取得
         annotations = data.get("responses", [{}])[0].get("textAnnotations", [])
         if not annotations:
-            raise HTTPException(status_code=422, detail="テキストが読み取れませんでした")
+            raise HTTPException(status_code=422, detail="画像からテキストが検出されませんでした")
 
         full_text = annotations[0].get("description", "")
         lines = [l.strip() for l in full_text.splitlines() if l.strip()]
@@ -612,5 +620,7 @@ def ocr_label(body: OcrRequest):
 
     except HTTPException:
         raise
+    except requests.exceptions.HTTPError as e:
+        raise HTTPException(status_code=400, detail=f"Google API Error: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"OCRエラー: {str(e)}")

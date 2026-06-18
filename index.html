@@ -150,7 +150,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
     <div class="sl" id="sl-bogai-use" onclick="go('bogai-use')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:16px;height:16px;flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>簿外使用</div>
 
     <div style="font-size:11px;font-weight:600;color:#9ca3af;padding:4px 8px;margin:8px 0 2px;">ADMIN</div>
-    <div class="sl" id="sl-admin"   onclick="go('admin')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:16px;height:16px;flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31-2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>管理（Admin）</div>
+    <div class="sl" id="sl-admin"   onclick="go('admin')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:16px;height:16px;flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>管理（Admin）</div>
   </nav>
   <div style="padding:12px 16px;border-top:1px solid #f3f4f6;display:flex;align-items:center;gap:8px;">
     <span id="user-desk" style="font-size:12px;color:#9ca3af;flex:1;">未ログイン</span>
@@ -472,4 +472,1417 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
   <div id="page-stock" class="page hidden">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
       <div style="font-size:18px;font-weight:700;color:#111827;">在庫確認</div>
-      <button onclick="refreshCache(true)" style="background:#f3f4f6;color:#374151;border:none;padding:6px 12px;border-radius:7px;font-size:12px;fon
+      <button onclick="refreshCache(true)" style="background:#f3f4f6;color:#374151;border:none;padding:6px 12px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;">更新</button>
+    </div>
+    <div class="search-wrap">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/></svg>
+      <input id="stock-q" class="search-bar" type="text" placeholder="品番、品名、拠点、保管場所で検索" oninput="debounce('stock',()=>filterStock())"/>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <span id="stock-count" style="font-size:12px;color:#9ca3af;"></span>
+      <span id="stock-cache-badge" class="cache-badge" style="display:none;">キャッシュ</span>
+    </div>
+    <div id="stock-list" style="display:flex;flex-direction:column;gap:7px;"></div>
+    <div id="stock-more-btn" style="display:none;text-align:center;margin-top:12px;">
+      <button onclick="renderMoreStock()" style="background:#f3f4f6;color:#374151;border:none;padding:9px 24px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">さらに表示</button>
+    </div>
+  </div>
+
+  <!-- 履歴確認 -->
+  <div id="page-history" class="page hidden">
+    <div style="font-size:18px;font-weight:700;color:#111827;margin-bottom:12px;">履歴確認</div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <select id="hist-filter" class="form-input" style="flex:1;" onchange="filterHistory()">
+        <option value="">全て</option>
+        <option value="add">追加のみ</option>
+        <option value="use">使用のみ</option>
+        <option value="edit">管理者編集</option>
+      </select>
+      <button onclick="loadHistory(true)" style="background:#f3f4f6;color:#374151;border:none;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">更新</button>
+    </div>
+    <div id="hist-list" style="display:flex;flex-direction:column;gap:7px;"></div>
+  </div>
+
+  <!-- 管理 -->
+  <div id="page-admin" class="page hidden">
+    <div style="font-size:18px;font-weight:700;color:#111827;margin-bottom:14px;">管理ページ</div>
+    <div id="admin-login-box" style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:20px;margin-bottom:16px;">
+      <div style="font-size:13px;color:#6b7280;margin-bottom:12px;">管理者としてログインしてください</div>
+      <input id="a-user" type="text"     class="form-input" placeholder="Username" style="margin-bottom:8px;"/>
+      <input id="a-pass" type="password" class="form-input" placeholder="Password" style="margin-bottom:12px;" onkeydown="if(event.key==='Enter')adminLogin()"/>
+      <button onclick="adminLogin()" class="btn-p">ログイン</button>
+      <div id="a-err" style="display:none;color:#ef4444;font-size:12px;margin-top:8px;font-weight:600;"></div>
+    </div>
+    <div id="admin-panel" style="display:none;">
+      <div style="display:flex;border-bottom:1px solid #e5e7eb;margin-bottom:14px;gap:0;overflow-x:auto;">
+        <button class="atab active" id="atab-stock"  onclick="switchAtab('stock')">在庫編集</button>
+        <button class="atab"        id="atab-bogai"  onclick="switchAtab('bogai')">簿外在庫編集</button>
+        <button class="atab"        id="atab-export" onclick="switchAtab('export')">CSV出力</button>
+        <button class="atab"        id="atab-users"  onclick="switchAtab('users')">ユーザー</button>
+        <button class="atab"        id="atab-cache"  onclick="switchAtab('cache')">キャッシュ</button>
+      </div>
+      <div id="asec-stock">
+        <div class="search-wrap">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/></svg>
+          <input id="admin-q" class="search-bar" type="text" placeholder="品番、品名、拠点、保管場所で検索" oninput="debounce('admin',()=>filterAdminStock())"/>
+        </div>
+        <div id="admin-stock-list" style="display:flex;flex-direction:column;gap:7px;"></div>
+      </div>
+      <!-- Admin 簿外在庫編集セクション -->
+      <div id="asec-bogai" style="display:none;">
+        <div class="search-wrap">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/></svg>
+          <input id="admin-bogai-q" class="search-bar" type="text" placeholder="在庫品名や区分、場所等で検索" oninput="debounce('admin-bogai',()=>filterAdminBogai())"/>
+        </div>
+        <div id="admin-bogai-list" style="display:flex;flex-direction:column;gap:7px;"></div>
+      </div>
+      <div id="asec-export" style="display:none;">
+        <div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:10px;">
+          <div style="font-size:14px;font-weight:600;color:#374151;">データのエクスポート</div>
+          <button onclick="exportCSV('stock')"   style="background:#059669;color:#fff;padding:11px;border-radius:10px;font-size:14px;font-weight:600;border:none;cursor:pointer;">在庫データをCSVでダウンロード</button>
+          <button onclick="exportCSV('history')" style="background:#1d4ed8;color:#fff;padding:11px;border-radius:10px;font-size:14px;font-weight:600;border:none;cursor:pointer;">履歴データをCSVでダウンロード</button>
+        </div>
+      </div>
+      <div id="asec-users" style="display:none;">
+        <div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-bottom:12px;">
+          <div style="font-size:14px;font-weight:600;color:#374151;margin-bottom:12px;">新しいユーザーを追加</div>
+          <input id="nu-name" type="text"     class="form-input" placeholder="ユーザー名" style="margin-bottom:8px;"/>
+          <input id="nu-pass" type="password" class="form-input" placeholder="パスワード" style="margin-bottom:8px;"/>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#374151;margin-bottom:12px;cursor:pointer;">
+            <input id="nu-admin" type="checkbox" style="width:16px;height:16px;accent-color:#7c3aed;"/>管理者権限
+          </label>
+          <button onclick="createUser()" style="background:#7c3aed;color:#fff;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;border:none;cursor:pointer;">追加</button>
+        </div>
+        <div id="users-list" style="display:flex;flex-direction:column;gap:7px;"></div>
+      </div>
+      <div id="asec-cache" style="display:none;">
+        <div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:12px;">
+          <div style="font-size:14px;font-weight:600;color:#374151;">フロントエンドキャッシュ管理</div>
+          <div id="cache-info" style="font-size:13px;color:#6b7280;"></div>
+          <button onclick="refreshCache(true)" style="background:#7c3aed;color:#fff;padding:11px;border-radius:10px;font-size:14px;font-weight:600;border:none;cursor:pointer;">在庫データを再取得</button>
+          <button onclick="clearCache()" style="background:#f3f4f6;color:#374151;padding:11px;border-radius:10px;font-size:14px;font-weight:600;border:none;cursor:pointer;">キャッシュをクリア</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main-content -->
+
+<!-- ══════ MOBILE BOTTOM NAV ══════ -->
+<nav id="mobile-bottom-nav">
+  <button class="bnav-btn" id="bnav-home"  onclick="go('home')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>ホーム</button>
+  <button class="bnav-btn" id="bnav-add"   onclick="go('add')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>追加</button>
+  <button class="bnav-btn" id="bnav-use"   onclick="go('use')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/></svg>使用</button>
+  <button class="bnav-btn" id="bnav-stock" onclick="go('stock')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>在庫</button>
+  <button class="bnav-btn" id="bnav-more"  onclick="toggleDrawer()"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>More</button>
+</nav>
+<div id="drawer-overlay" onclick="closeDrawer()"></div>
+<div id="more-drawer">
+  <div style="font-size:11px;font-weight:600;color:#9ca3af;padding:10px 20px 4px;">簿外管理 (Off-book)</div>
+  <div class="drawer-item" onclick="go('bogai-add');closeDrawer()"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>簿外追加</div>
+  <div class="drawer-item" onclick="go('bogai-use');closeDrawer()"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>簿外使用</div>
+  <div style="height:1px;background:#f3f4f6;margin:4px 20px;"></div>
+  <div class="drawer-item" onclick="go('history');closeDrawer()"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>履歴確認</div>
+  <div class="drawer-item" onclick="go('admin');closeDrawer()"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31-2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>管理（Admin）</div>
+  <div style="padding:8px 20px;border-top:1px solid #f3f4f6;margin-top:4px;display:flex;align-items:center;gap:8px;">
+    <span id="user-mob" style="font-size:13px;color:#9ca3af;flex:1;">未ログイン</span>
+    <button id="logout-mob" onclick="logout()" style="display:none;color:#ef4444;background:none;border:none;cursor:pointer;font-size:13px;">ログアウト</button>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════
+// CONFIG — RenderのURLを設定してください
+// ════════════════════════════════════════════════
+const API = "https://buzaikanri.onrender.com";  
+const CACHE_TTL_MS   = 3 * 60 * 1000;  // 在庫キャッシュ有効期限 3分
+const RENDER_PAGE    = 40;              // 一度にレンダリングする行数
+
+// ════════════════════════════════════════════════
+// Camera & OCR — Google Vision API（バックエンド経由）
+// ラベル全体を撮影して品番・品名を抽出
+// ════════════════════════════════════════════════
+
+// Canvas → Base64 JPEG
+function canvasToBase64(canvas, quality=0.85){
+  return canvas.toDataURL('image/jpeg', quality).split(',')[1];
+}
+
+// バックエンド /ocr/label を呼び出す
+async function extractPartsFromImage(canvas) {
+  const base64 = canvasToBase64(canvas);
+  const response = await fetch(`${API}/ocr/label`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { "Authorization": `Bearer ${token}` } : {})
+    },
+    body: JSON.stringify({ image: base64 })
+  });
+  if (response.status === 401) {
+    logout();
+    throw new Error('セッションが切れました。ログインしてください。');
+  }
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || 'OCRエラー');
+  }
+  const result = await response.json();
+  if (!result.part_no) throw new Error('品番が読み取れませんでした');
+  return result; // { part_no: "N510026293AA", name: "ケーブル" }
+}
+
+// ════════════════════════════════════════════════
+// 状態 (States)
+// ════════════════════════════════════════════════
+let token       = localStorage.getItem('pm_token') || null;
+let isAdmin     = localStorage.getItem('pm_admin') === 'true';
+let currentUser = localStorage.getItem('pm_user')  || '';
+
+let addStream   = null;
+let useStream   = null;
+let addScanData = null;
+let useConfirmData = null;
+let _manualData = null;
+
+let _cache = { data:[], ts:0, map:{} };  
+let _allHistory = [];
+let _stockFiltered = [];
+let _stockRenderOffset = 0;
+let _allAdminStock = [];
+let _allAdminBogai = [];
+let activeBogaiInline = null;
+
+// Cart Management States
+let cartItems = [];
+let lastUsedItems = [];
+
+const _dbt = {};
+function debounce(key, fn, ms=300){
+  clearTimeout(_dbt[key]);
+  _dbt[key]=setTimeout(fn, ms);
+}
+
+// ════════════════════════════════════════════════
+// Utilities
+// ════════════════════════════════════════════════
+const $   = id => document.getElementById(id);
+const show= id => { const e=$(id); if(e) e.style.display=''; };
+const hide= id => { const e=$(id); if(e) e.style.display='none'; };
+const setText=(id,v)=>{ const e=$(id); if(e) e.textContent=v??''; };
+function esc(s){ return s==null?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escJS(s){ return s==null?'':String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'\\"'); }
+function qtyColor(q){ return q<=0?'#ef4444':q<=5?'#f59e0b':'#059669'; }
+function emptyMsg(m){ return `<p style="color:#9ca3af;font-size:13px;text-align:center;padding:16px 0;">${esc(m)}</p>`; }
+function errMsg(m)  { return `<p style="color:#ef4444;font-size:12px;padding:8px;">${esc(m)}</p>`; }
+
+function toast(msg, err=false){
+  const t=$('toast');
+  t.textContent=msg;
+  t.style.background=err?'#ef4444':'#1f2937';
+  t.classList.add('show');
+  clearTimeout(t._tm);
+  t._tm=setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+async function apiFetch(path, opts={}){
+  if(!API) throw new Error('__NO_API__');
+  const h={'Content-Type':'application/json'};
+  if(token) h['Authorization']=`Bearer ${token}`;
+  const r=await fetch(API+path,{...opts,headers:{...h,...(opts.headers||{})}});
+  if(!r.ok){
+    if(r.status===401){ logout(); throw new Error('セッション切れです。再ログインしてください。'); }
+    let msg='エラーが発生しました';
+    try{ const j=await r.json(); msg=j.detail||j.message||msg; }catch(_){}
+    throw new Error(msg);
+  }
+  return r.json();
+}
+
+function stopStream(s){
+  if(!s) return;
+  try{ s.getTracks().forEach(t=>{ t.stop(); }); }catch(_){}
+}
+function cleanupCam(videoId, stream){
+  try{
+    const v=$(videoId);
+    if(v){ v.srcObject=null; }
+    stopStream(stream);
+  }catch(_){}
+}
+
+// ════════════════════════════════════════════════
+// LOGIN
+// ════════════════════════════════════════════════
+async function doLogin(){
+  const user=$('li-user').value.trim(), pass=$('li-pass').value;
+  if(!user||!pass){ $('li-err').style.display=''; $('li-err').textContent='ユーザー名とパスワードを入力してください'; return; }
+  hide('li-err');
+  const btn=$('li-btn'); btn.disabled=true; btn.textContent='ログイン中…';
+  if(!API){
+    token=null; isAdmin=false; currentUser=user;
+    localStorage.setItem('pm_user',user);
+    btn.disabled=false; btn.textContent='ログイン';
+    finalizeLogin();
+    return;
+  }
+  try{
+    const r=await apiFetch('/auth/login',{method:'POST',body:JSON.stringify({username:user,password:pass})});
+    token=r.access_token; isAdmin=r.is_admin; currentUser=user;
+    localStorage.setItem('pm_token',token);
+    localStorage.setItem('pm_admin',String(r.is_admin));
+    localStorage.setItem('pm_user',user);
+    finalizeLogin();
+  }catch(e){
+    $('li-err').style.display=''; $('li-err').textContent=e.message;
+  }finally{ btn.disabled=false; btn.textContent='ログイン'; }
+}
+
+function guestLogin(){
+  currentUser='ゲスト'; token=null; isAdmin=false;
+  finalizeLogin();
+}
+
+// ════════════════════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════════════════════
+function go(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));
+  const target=$('page-'+page);
+  if(!target) return;
+  target.classList.remove('hidden');
+
+  document.querySelectorAll('.sl').forEach(l=>l.classList.remove('active'));
+  const sl=$('sl-'+page); if(sl) sl.classList.add('active');
+
+  document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.remove('active'));
+  const bn=$('bnav-'+page); if(bn) bn.classList.add('active');
+  if(['history','admin'].includes(page)){ const bm=$('bnav-more'); if(bm) bm.classList.add('active'); }
+
+  if(page!=='add'){ cleanupCam('add-video',addStream); addStream=null; }
+  if(page!=='use'){ cleanupCam('use-video',useStream); useStream=null; }
+
+  try{
+    if(page==='home')    initHome();
+    if(page==='add')     initAdd();
+    if(page==='use')     initUse();
+    if(page==='stock')   initStock();
+    if(page==='history') initHistory();
+    if(page==='admin')   initAdmin();
+    if(page==='bogai-add') initBogaiAdd();
+    if(page==='bogai-use') initBogaiUse();
+  }catch(e){ console.error('page init error:',e); }
+}
+
+function toggleDrawer(){ $('more-drawer').classList.toggle('open'); $('drawer-overlay').classList.toggle('open'); }
+function closeDrawer()  { $('more-drawer').classList.remove('open'); $('drawer-overlay').classList.remove('open'); }
+
+function finalizeLogin(){
+  hide('login-overlay');
+  updateUserUI();
+  refreshCache(false).then(()=>go('home'));
+}
+
+function logout(){
+  cleanupCam('add-video',addStream); addStream=null;
+  cleanupCam('use-video',useStream); useStream=null;
+  token=null; isAdmin=false; currentUser='';
+  localStorage.removeItem('pm_token'); localStorage.removeItem('pm_admin'); localStorage.removeItem('pm_user');
+  _cache={data:[],ts:0,map:{}};
+  cartItems = [];
+  lastUsedItems = [];
+  updateCartUI();
+  updateUserUI();
+  show('login-overlay');
+  $('li-user').value=''; $('li-pass').value=''; hide('li-err');
+}
+
+function updateUserUI(){
+  const name=currentUser||'未ログイン';
+  setText('user-desk',name); setText('user-mob',name);
+  $('logout-desk').style.display=currentUser?'':'none';
+  $('logout-mob').style.display =currentUser?'':'none';
+}
+
+// ════════════════════════════════════════════════
+// INVENTORY CACHE
+// ════════════════════════════════════════════════
+function cacheIsValid(){ return _cache.data.length>0 && (Date.now()-_cache.ts)<CACHE_TTL_MS; }
+
+async function refreshCache(force=false){
+  if(!force && cacheIsValid()) return _cache.data;
+  if(!API) return [];
+  try{
+    const data = await apiFetch('/stock');
+    const map  = {};
+    data.forEach(it=>{ 
+      const key = `${it.part_no}_${it.base}`;
+      map[key]=it; 
+    });
+    _cache = { data, ts:Date.now(), map };
+    return data;
+  }catch(e){ console.warn('cache refresh failed',e); return _cache.data; }
+}
+
+// 拠点 ＋ 品番のキーでキャッシュを検索
+function cacheGet(part_no, base){ 
+  const key = `${part_no}_${base}`;
+  return _cache.map[key]||null; 
+}
+
+// 指定した拠点に属する部材を検索
+function cacheSearch(query, byName=false){
+  const q=query.toLowerCase().trim();
+  if(!q) return [];
+  
+  // 選択中の拠点
+  const selBase = $('use-base-select').value;
+  
+  return _cache.data.filter(it=> {
+    const matchQuery = byName ? it.name.toLowerCase().includes(q) : it.part_no.toLowerCase().includes(q);
+    const matchBase = it.base === selBase;
+    return matchQuery && matchBase;
+  });
+}
+
+function clearCache(){
+  _cache={data:[],ts:0,map:{}};
+  toast('キャッシュをクリアしました');
+  updateCacheInfo();
+}
+function updateCacheInfo(){
+  const el=$('cache-info');
+  if(!el) return;
+  if(_cache.ts===0){ el.textContent='キャッシュなし'; return; }
+  const age=Math.round((Date.now()-_cache.ts)/1000);
+  el.textContent=`${_cache.data.length}件 / ${age}秒前に取得 / 有効期限 ${Math.round(CACHE_TTL_MS/1000)}秒`;
+}
+
+// ════════════════════════════════════════════════
+// HOME
+// ════════════════════════════════════════════════
+function initHome(){
+  const data = _cache.data;
+  const total = data.length;
+  const low   = data.filter(it=>it.qty>0&&it.qty<=5).length;
+  const zero  = data.filter(it=>it.qty<=0).length;
+
+  setText('stat-total', total||'—'); setText('stat-low',   low||'—');
+  setText('stat-zero',  zero||'—');  setText('stat-today', '…');
+
+  if(_cache.ts){ setText('home-updated','キャッシュ: '+new Date(_cache.ts).toLocaleTimeString('ja-JP')); }
+  else          { setText('home-updated',''); }
+
+  const critical = [...data].filter(it=>it.qty<=5).sort((a,b)=>a.qty-b.qty).slice(0,3);
+  $('home-top3').innerHTML = critical.length
+    ? critical.map(it=>`<div class="top3-item">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:11px;color:#6b7280;">${esc(it.part_no)} [拠点: ${esc(it.base)}] [保管: ${esc(it.location || '未登録')}]</div>
+          <div style="font-size:14px;font-weight:600;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.name)}</div>
+        </div>
+        <div style="font-size:22px;font-weight:800;color:${qtyColor(it.qty)};min-width:36px;text-align:right;">${it.qty}</div>
+      </div>`).join('')
+    : emptyMsg('在庫少のアイテムはありません ✓');
+
+  if(API){
+    apiFetch('/stats').then(s=>{
+      setText('stat-total', s.total); setText('stat-low',   s.low_stock);
+      setText('stat-zero',  s.zero_stock); setText('stat-today', s.today_ops??'—');
+    }).catch(()=>{});
+  }
+}
+
+// ════════════════════════════════════════════════
+// 部材追加 (ADD)
+// ════════════════════════════════════════════════
+function initAdd(){
+  $('add-tab-manual').classList.add('active'); $('add-tab-scan').classList.remove('active');
+  show('add-manual'); hide('add-scan');
+  $('add-pno').value=''; hide('add-info'); hide('add-new-name-wrap'); $('add-qty').value='';
+  $('add-location-inp').value='';
+  _manualData=null;
+}
+function setAddMode(mode){
+  $('add-tab-manual').classList.toggle('active',mode==='manual');
+  $('add-tab-scan').classList.toggle('active',  mode==='scan');
+  $('add-manual').style.display=mode==='manual'?'':'none';
+  $('add-scan').style.display  =mode==='scan'  ?'':'none';
+  if(mode!=='scan'){ cleanupCam('add-video',addStream); addStream=null; }
+  if(mode==='scan') startAddCamera();
+}
+function onAddPnoInput(){ hide('add-info'); hide('add-new-name-wrap'); _manualData=null; }
+function onAddBaseChange(){ hide('add-info'); hide('add-new-name-wrap'); _manualData=null; }
+
+async function searchAddPno(){
+  const pn=$('add-pno').value.trim();
+  const base=$('add-base-select').value;
+  if(!pn){ toast('品番を入力してください',true); return; }
+  
+  let r=cacheGet(pn, base);
+  if(!r && API){
+    try{ r=await apiFetch(`/stock/search?part_no=${encodeURIComponent(pn)}&base=${encodeURIComponent(base)}`); }catch(e){ if(e.message!=='__NO_API__') toast(e.message,true); return; }
+  }
+  show('add-info');
+  if(r?.part_no){
+    $('add-info-label').textContent='既存品番 (この拠点に登録あり) — 在庫に加算されます'; 
+    $('add-info-name').textContent=r.name; 
+    $('add-info-qty').textContent=r.qty;
+    $('add-info-loc').textContent=r.location || '未指定';
+    $('add-location-inp').value=r.location || '';
+    hide('add-new-name-wrap'); 
+    _manualData={part_no:r.part_no,name:r.name,qty:r.qty,base:base,location:r.location,is_new:false};
+  }else{
+    $('add-info-label').textContent='新規またはこの拠点で未登録の品番 — 新規追加されます'; 
+    $('add-info-name').textContent='（拠点内未登録）'; 
+    $('add-info-qty').textContent='0';
+    $('add-info-loc').textContent='未設定';
+    $('add-location-inp').value='';
+    show('add-new-name-wrap'); 
+    $('add-new-name').value=''; 
+    _manualData={part_no:pn,name:'',qty:0,base:base,location:'',is_new:true};
+  }
+}
+
+async function submitManualAdd(){
+  if(!_manualData){ toast('品番を検索してください',true); return; }
+  const qty=parseInt($('add-qty').value);
+  if(isNaN(qty)||qty<1){ toast('数量を入力してください',true); return; }
+  
+  const finalLoc = $('add-location-inp').value.trim();
+  let name=_manualData.name;
+  if(_manualData.is_new){ name=$('add-new-name').value.trim(); if(!name){toast('品名を入力してください',true);return;} }
+  if(!API){ toast('APIが設定されていません',true); return; }
+  try{
+    await apiFetch('/stock/add',{method:'POST',body:JSON.stringify({part_no:_manualData.part_no,name,qty,base:_manualData.base,location:finalLoc,user:currentUser||'ゲスト'})});
+    toast(`✓ ${_manualData.base} 拠点 [保管場所: ${finalLoc || '未指定'}] に品番「${_manualData.part_no}」数量 ${qty} 件を追加しました`);
+    await refreshCache(true); initAdd();
+  }catch(e){ toast(e.message,true); }
+}
+
+async function startAddCamera(){
+  resetAddScanUI();
+  try{
+    const s=await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment', width:{ideal:1920}, height:{ideal:1080}, focusMode:'continuous' } });
+    addStream=s; const v=$('add-video'); v.srcObject=s; await v.play().catch(()=>{}); show('add-cam-wrap');
+  }catch(e){ hide('add-cam-wrap'); toast('カメラを起動できません',true); }
+}
+function resetAddScanUI(){
+  hide('add-result-card'); hide('add-fail-card'); hide('add-analyzing');
+  show('add-cam-wrap'); $('add-file').value=''; addScanData=null;
+}
+function resetAddScan(){ resetAddScanUI(); if(!addStream) startAddCamera(); }
+
+async function captureAdd(){
+  const v=$('add-video'), c=$('add-canvas');
+  if(!v.videoWidth){ toast('カメラ準備中です…',true); return; }
+  c.width=v.videoWidth; c.height=v.videoHeight; c.getContext('2d').drawImage(v,0,0);
+  cleanupCam('add-video',addStream); addStream=null; hide('add-cam-wrap');
+  await analyzeAddCanvas(c);
+}
+function onAddFileChange(inp){
+  if(!inp.files?.[0]) return;
+  const img=new Image(), url=URL.createObjectURL(inp.files[0]);
+  img.onload=async()=>{
+    const c=$('add-canvas'); c.width=img.naturalWidth; c.height=img.naturalHeight; c.getContext('2d').drawImage(img,0,0);
+    URL.revokeObjectURL(url); hide('add-cam-wrap'); await analyzeAddCanvas(c);
+  }; img.src=url;
+}
+
+async function analyzeAddCanvas(c){
+  show('add-analyzing'); hide('add-fail-card'); hide('add-result-card');
+  let ocr;
+  try{ ocr = await extractPartsFromImage(c); }
+  catch(e){
+    hide('add-analyzing');
+    $('add-fail-card').innerHTML=`
+      <div style="font-size:14px;font-weight:600;color:#ef4444;margin-bottom:6px;">読み取れませんでした</div>
+      <div style="font-size:12px;color:#6b7280;margin-bottom:10px;">${e.message || 'ラベル全体が映るように再撮影してください'}</div>
+      <button onclick="resetAddScan()" style="background:#ef4444;color:#fff;border:none;padding:8px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">再撮影する</button>`;
+    show('add-fail-card'); return;
+  }
+  hide('add-analyzing');
+
+  const pn = ocr.part_no;
+  const ocrName = ocr.name || '';
+  $('add-res-pno').textContent = pn;
+
+  const base = $('add-base-select').value;
+  let r = cacheGet(pn, base);
+  if(!r && API){
+    try{ r=await apiFetch(`/stock/search?part_no=${encodeURIComponent(pn)}&base=${encodeURIComponent(base)}`); }catch(e){ toast(e.message,true); resetAddScanUI(); return; }
+  }
+  if(r?.part_no){
+    $('add-res-label').textContent='既存品番 (この拠点に登録あり) — 在庫に加算されます';
+    $('add-res-name').textContent=r.name;
+    $('add-res-qty').textContent=r.qty;
+    $('add-res-location-inp').value=r.location || '';
+    hide('add-res-newname');
+    addScanData={part_no:pn,name:r.name,qty:r.qty,base:base,location:r.location,is_new:false};
+  }else{
+    $('add-res-label').textContent='新規またはこの拠点で未登録の品番 — 新規追加されます';
+    $('add-res-name').textContent= ocrName ? `OCR取得: ${ocrName}` : '（拠点内未登録）';
+    $('add-res-qty').textContent='0';
+    $('add-res-location-inp').value='';
+    show('add-res-newname');
+    $('add-res-name-inp').value = ocrName; // 品名を自動入力
+    addScanData={part_no:pn,name:ocrName,qty:0,base:base,location:'',is_new:true};
+  }
+  $('add-res-qty-inp').value=''; show('add-result-card'); $('add-result-card').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+async function submitScanAdd(){
+  if(!addScanData) return;
+  const qty=parseInt($('add-res-qty-inp').value);
+  if(isNaN(qty)||qty<1){ toast('数量を入力してください',true); return; }
+  
+  const finalLoc = $('add-res-location-inp').value.trim();
+  let name=addScanData.name;
+  if(addScanData.is_new){ name=$('add-res-name-inp').value.trim(); if(!name){toast('品名を入力してください',true);return;} }
+  if(!API){ toast('APIが設定保存されていません',true); return; }
+  try{
+    await apiFetch('/stock/add',{method:'POST',body:JSON.stringify({part_no:addScanData.part_no,name,qty,base:addScanData.base,location:finalLoc,user:currentUser||'ゲスト'})});
+    toast(`✓ ${addScanData.base} 拠点 [保管場所: ${finalLoc || '未指定'}] に品番「${addScanData.part_no}」数量 ${qty} 件を追加しました`);
+    await refreshCache(true); resetAddScan();
+  }catch(e){ toast(e.message,true); }
+}
+
+// ════════════════════════════════════════════════
+// 部材使用 (USE) ロジック
+// ════════════════════════════════════════════════
+function initUse(){
+  const mode = document.querySelector('#page-use .mode-tab.active')?.id?.replace('use-tab-', '') || 'pno';
+  setUseMode(mode);
+  hide('use-success-section');
+  updateCartUI();
+}
+
+function setUseMode(mode){
+  ['pno','name','scan','multi'].forEach(m=>{
+    const tab = $('use-tab-'+m);
+    const area = $('use-'+m+'-area');
+    if(tab) tab.classList.toggle('active', m===mode);
+    if(area) area.style.display = m===mode ? '' : 'none';
+  });
+  if(mode !== 'scan'){ cleanupCam('use-video',useStream); useStream=null; }
+  hide('use-confirm'); useConfirmData=null;
+  hide('use-success-section');
+  if(mode === 'scan') startUseCamera();
+  updateCartUI();
+  
+  if(mode === 'pno') searchUsePno();
+  if(mode === 'name') searchUseName();
+  if(mode === 'multi') searchMulti();
+}
+
+function onUseBaseChange() {
+  cartItems = [];
+  updateCartUI();
+  hide('use-confirm');
+  useConfirmData = null;
+  
+  const mode = document.querySelector('#page-use .mode-tab.active')?.id?.replace('use-tab-', '') || 'pno';
+  if (mode === 'pno') searchUsePno();
+  if (mode === 'name') searchUseName();
+  if (mode === 'multi') searchMulti();
+}
+
+function searchUsePno(){
+  const pn=($('use-pno-inp').value||'').trim();
+  if(!pn){ $('use-pno-list').innerHTML=''; return; }
+  renderUseList('use-pno-list', cacheSearch(pn,false));
+}
+function searchUseName(){
+  const q=($('use-name-inp').value||'').trim();
+  if(!q){ $('use-name-list').innerHTML=''; return; }
+  renderUseList('use-name-list', cacheSearch(q,true));
+}
+function renderUseList(cid, items){
+  const c=$(cid);
+  if(!items?.length){ c.innerHTML=emptyMsg(cacheIsValid()?'該当なし':'キャッシュが空です'); return; }
+  const show50=items.slice(0,RENDER_PAGE);
+  c.innerHTML=show50.map(it=>`
+    <div class="item-card" onclick="openUseConfirm('${esc(it.part_no)}','${escJS(it.name)}',${it.qty},'${escJS(it.location)}')" style="cursor:pointer;">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:11px;color:#7c3aed;font-weight:700;">拠点: ${esc(it.base)} | 保管場所: ${esc(it.location || '未設定')}</div>
+        <div style="font-size:14px;font-weight:700;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px;">${esc(it.part_no)}</div>
+        <div style="font-size:13px;color:#4b5563;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.name)}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;min-width:60px;">
+        <div style="font-size:20px;font-weight:700;color:${qtyColor(it.qty)};">${it.qty}</div>
+        <div style="font-size:10px;color:#9ca3af;">在庫数</div>
+      </div>
+    </div>`).join('');
+  if(items.length>RENDER_PAGE) c.innerHTML+=`<p style="font-size:12px;color:#9ca3af;text-align:center;padding:8px;">… 他 ${items.length-RENDER_PAGE} 件</p>`;
+}
+
+function openUseConfirm(part_no,name,stock,location){
+  const base = $('use-base-select').value;
+  useConfirmData={part_no,name,stock,base,location};
+  setText('uc-pno',`${part_no} [拠点: ${base}]`); 
+  setText('uc-name',name); 
+  setText('uc-stock',stock);
+  setText('uc-loc',location || '未設定');
+  $('uc-qty').value=''; hide('uc-err'); show('use-confirm'); $('use-confirm').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function closeUseConfirm(){ hide('use-confirm'); useConfirmData=null; }
+
+// ── CART CONTROLLER ──
+function addToCart() {
+  if (!useConfirmData) return;
+  const qty = parseInt($('uc-qty').value);
+  if (isNaN(qty) || qty < 1) {
+    show('uc-err');
+    $('uc-err').textContent = '数量を入力してください';
+    return;
+  }
+  if (qty > useConfirmData.stock) {
+    show('uc-err');
+    $('uc-err').textContent = `在庫数 (${useConfirmData.stock}) を超えています`;
+    return;
+  }
+  hide('uc-err');
+
+  const key = `${useConfirmData.part_no}_${useConfirmData.base}`;
+  const existingIndex = cartItems.findIndex(it => `${it.part_no}_${it.base}` === key);
+  if (existingIndex > -1) {
+    const newQty = cartItems[existingIndex].qty + qty;
+    if (newQty > useConfirmData.stock) {
+      show('uc-err');
+      $('uc-err').textContent = `カート内合計 (${newQty}) が在庫数 (${useConfirmData.stock}) を超えています`;
+      return;
+    }
+    cartItems[existingIndex].qty = newQty;
+  } else {
+    cartItems.push({
+      part_no: useConfirmData.part_no,
+      name: useConfirmData.name,
+      qty: qty,
+      stock: useConfirmData.stock,
+      base: useConfirmData.base,
+      location: useConfirmData.location
+    });
+  }
+
+  toast(`✓ ${useConfirmData.base}拠点の「${useConfirmData.part_no}」を ${qty} 件カートに追加しました`);
+  closeUseConfirm();
+  updateCartUI();
+}
+
+function updateCartUI() {
+  const section = $('use-cart-section');
+  const list = $('use-cart-list');
+  if (!section || !list) return;
+
+  if ($('use-success-section') && $('use-success-section').style.display !== 'none') {
+    section.style.display = 'none';
+    return;
+  }
+
+  if (!cartItems.length) {
+    section.style.display = 'none';
+    return;
+  }
+  section.style.display = 'block';
+
+  list.innerHTML = cartItems.map((it, idx) => `
+    <div style="background:#fff; border:1px solid #bbf7d0; padding:10px; border-radius:10px; display:flex; flex-direction:column; gap:6px;">
+      <div style="display:flex; justify-content:space-between; align-items:start;">
+        <div style="min-width:0; flex:1; text-align:left;">
+          <div style="font-size:11px; color:#15803d; font-weight:700;">拠点: ${esc(it.base)} | 保管場所: ${esc(it.location || '未設定')}</div>
+          <div style="font-weight:700; color:#111827; font-size:14px; margin-top:2px;">${esc(it.part_no)}</div>
+          <div style="color:#4b5563; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:12px;">${esc(it.name)}</div>
+          <div style="font-size:11px; color:#6b7280; margin-top:1px;">拠点在庫数: ${it.stock}</div>
+        </div>
+        <button onclick="removeFromCart(${idx})" style="color:#ef4444; border:none; background:none; font-size:18px; cursor:pointer; padding:0 4px; line-height:1;">&times;</button>
+      </div>
+      <div style="display:flex; align-items:center; justify-content:flex-end; gap:8px;">
+        <span style="font-size:11px; color:#4b5563;">使用数量:</span>
+        <input type="number" min="1" max="${it.stock}" value="${it.qty}" 
+          onchange="updateCartItemQty(${idx}, this.value)" 
+          class="form-input" style="width:75px; padding:4px 8px; text-align:center; font-size:13px;"/>
+      </div>
+    </div>
+  `).join('');
+}
+
+function updateCartItemQty(idx, val) {
+  const qty = parseInt(val);
+  const item = cartItems[idx];
+  if (isNaN(qty) || qty < 1) {
+    toast('1以上の数量を入力してください', true);
+    updateCartUI();
+    return;
+  }
+  if (qty > item.stock) {
+    toast(`在庫数 (${item.stock}) を超えています`, true);
+    updateCartUI();
+    return;
+  }
+  cartItems[idx].qty = qty;
+}
+
+// ── Submit Cart ──
+async function submitCart() {
+  if (!cartItems.length) return;
+  if (!API) { toast('APIが設定されていません', true); return; }
+
+  if (!confirm(`カート内の ${cartItems.length} 件の使用を確定しますか？`)) return;
+
+  const btn = $('btn-submit-cart');
+  btn.disabled = true;
+  btn.textContent = '処理中...';
+
+  lastUsedItems = cartItems.map(it => ({
+    part_no: it.part_no,
+    name: it.name,
+    qty: it.qty,
+    base: it.base,
+    location: it.location,
+    time: new Date().toLocaleTimeString('ja-JP')
+  }));
+
+  try {
+    for (const item of cartItems) {
+      await apiFetch('/stock/use', {
+        method: 'POST',
+        body: JSON.stringify({
+          part_no: item.part_no,
+          qty: item.qty,
+          base: item.base,
+          user: currentUser || 'ゲスト'
+        })
+      });
+    }
+
+    toast('✓ 使用処理が完了しました');
+
+    hide('use-pno-area');
+    hide('use-name-area');
+    hide('use-scan-area');
+    hide('use-multi-area');
+    hide('use-confirm');
+    hide('use-cart-section');
+
+    show('use-success-section');
+
+  } catch (e) {
+    toast('処理中にエラーが発生しました: ' + e.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '使用を確定する (一括使用)';
+  }
+}
+
+// ── Download CSV & Back Home ──
+function downloadAndGoHome() {
+  if (lastUsedItems.length) {
+    let csvContent = "\uFEFF"; // UTF-8 BOM
+    csvContent += "品番 (Part No),品名 (Part Name),数量 (Quantity),拠点 (Base),保管場所 (Storage Location),使用時間 (Time)\r\n";
+    lastUsedItems.forEach(it => {
+      const pno = `"${it.part_no.replace(/"/g, '""')}"`;
+      const name = `"${it.name.replace(/"/g, '""')}"`;
+      const base = `"${it.base.replace(/"/g, '""')}"`;
+      const loc = `"${(it.location || '').replace(/"/g, '""')}"`;
+      csvContent += `${pno},${name},${it.qty},${base},${loc},${it.time}\r\n`;
+    });
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `used_parts_${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  cartItems = [];
+  lastUsedItems = [];
+
+  hide('use-success-section');
+  const mode = document.querySelector('#page-use .mode-tab.active')?.id?.replace('use-tab-', '') || 'pno';
+  setUseMode(mode);
+
+  refreshCache(true).then(() => {
+    go('home');
+  });
+}
+
+function removeFromCart(idx) {
+  cartItems.splice(idx, 1);
+  updateCartUI();
+}
+
+function clearCart() {
+  if (confirm('カートを空にしますか？')) {
+    cartItems = [];
+    updateCartUI();
+  }
+}
+
+// ── Camera capture for usage ──
+async function startUseCamera(){
+  resetUseScanUI();
+  try{
+    const s=await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment', width:{ideal:1920}, height:{ideal:1080}, focusMode:'continuous' } });
+    useStream=s; const v=$('use-video'); v.srcObject=s; await v.play().catch(()=>{}); show('use-cam-wrap');
+  }catch(e){ hide('use-cam-wrap'); toast('カメラを起動できません',true); }
+}
+function resetUseScanUI(){
+  hide('use-scan-result'); hide('use-fail-card'); hide('use-analyzing'); $('use-scan-item').innerHTML='';
+  show('use-cam-wrap'); $('use-file').value=''; hide('use-confirm'); useConfirmData=null;
+}
+function resetUseScan(){ resetUseScanUI(); if(!useStream) startUseCamera(); }
+
+async function captureUse(){
+  const v=$('use-video'), c=$('use-canvas');
+  if(!v.videoWidth){ toast('カメラ準備中です…',true); return; }
+  c.width=v.videoWidth; c.height=v.videoHeight; c.getContext('2d').drawImage(v,0,0);
+  cleanupCam('use-video',useStream); useStream=null; hide('use-cam-wrap');
+  await analyzeUseCanvas(c);
+}
+
+async function analyzeUseCanvas(c){
+  show('use-analyzing'); hide('use-fail-card'); hide('use-scan-result');
+  let ocr;
+  try{ ocr = await extractPartsFromImage(c); }
+  catch(e){
+    hide('use-analyzing');
+    $('use-fail-card').querySelector('div').textContent = e.message || 'ラベルを読み取れませんでした。再撮影してください。';
+    show('use-fail-card'); return;
+  }
+  hide('use-analyzing');
+
+  const pn = ocr.part_no;
+  const base = $('use-base-select').value;
+  let r = cacheGet(pn, base);
+  if(!r && API){
+    try{ r=await apiFetch(`/stock/search?part_no=${encodeURIComponent(pn)}&base=${encodeURIComponent(base)}`); }catch(e){ toast(e.message,true); resetUseScanUI(); return; }
+  }
+  if(r?.part_no){
+    show('use-scan-result');
+    $('use-scan-item').innerHTML=`
+      <div class="item-card" onclick="openUseConfirm('${esc(r.part_no)}','${escJS(r.name)}',${r.qty},'${escJS(r.location)}')" style="cursor:pointer;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:11px;color:#7c3aed;font-weight:700;">拠点: ${esc(r.base)} | 保管場所: ${esc(it.location || '未設定')}</div>
+          <div style="font-size:14px;font-weight:700;color:#111827;margin-top:2px;">${esc(r.part_no)}</div>
+          <div style="font-size:13px;color:#4b5563;">${esc(r.name)}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;min-width:60px;">
+          <div style="font-size:20px;font-weight:700;color:${qtyColor(r.qty)};">${r.qty}</div>
+          <div style="font-size:10px;color:#9ca3af;">在庫</div>
+        </div>
+      </div>`;
+    $('use-scan-result').scrollIntoView({behavior:'smooth',block:'nearest'});
+    openUseConfirm(r.part_no,r.name,r.qty,r.location);
+  }else{
+    $('use-fail-card').querySelector('div').textContent=`品番 "${pn}" は当拠点 [${base}] に未登録です`;
+    show('use-fail-card');
+  }
+}
+
+async function searchMulti(){
+  const pnos=[...new Set($('use-multi-inp').value.split('\n').map(s=>s.trim()).filter(Boolean))];
+  const base=$('use-base-select').value;
+  if(!pnos.length){ toast('品番を入力してください',true); return; }
+  if(cacheIsValid()){
+    const results=pnos.map(pn=>{ 
+      const it=cacheGet(pn, base); 
+      return it?{...it,found:true}:{part_no:pn,found:false,base:base,location:''}; 
+    });
+    renderMultiResults(results); 
+    return;
+  }
+  if(!API){ $('use-multi-list').innerHTML=emptyMsg('APIが設定されていません'); return; }
+  try{
+    const res=await apiFetch('/stock/multi-search',{method:'POST',body:JSON.stringify({part_nos:pnos,base:base})});
+    renderMultiResults(res||[]);
+  }catch(e){ toast(e.message,true); }
+}
+
+function renderMultiResults(res){
+  if(!res.length){ $('use-multi-list').innerHTML=emptyMsg('該当なし'); return; }
+  $('use-multi-list').innerHTML=res.map(it=>it.found
+    ?`<div class="item-card multi-reg" onclick="openUseConfirm('${esc(it.part_no)}','${escJS(it.name)}',${it.qty},'${escJS(it.location)}')" style="cursor:pointer;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:11px;color:#7c3aed;font-weight:700;">拠点: ${esc(it.base)} | 保管場所: ${esc(it.location || '未設定')}</div>
+          <div style="font-size:14px;font-weight:700;color:#111827;margin-top:2px;">${esc(it.part_no)}</div>
+          <div style="font-size:13px;color:#4b5563;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.name)}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;min-width:60px;">
+          <div style="font-size:18px;font-weight:700;color:${qtyColor(it.qty)};">${it.qty}</div>
+          <div style="font-size:10px;color:#9ca3af;">在庫</div>
+        </div>
+      </div>`
+    :`<div class="item-card multi-unreg">
+        <div style="flex:1;">
+          <div style="font-size:11px;color:#ef4444;font-weight:700;">拠点: ${esc(it.base)}</div>
+          <div style="font-size:14px;font-weight:600;color:#9ca3af;margin-top:2px;">${esc(it.part_no)}</div>
+          <div style="font-size:12px;color:#9ca3af;">未登録</div>
+        </div>
+        <span style="background:#fee2e2;color:#991b1b;font-size:11px;padding:3px 8px;border-radius:99px;flex-shrink:0;">未登録</span>
+      </div>`
+  ).join('');
+}
+
+// ════════════════════════════════════════════════
+// 簿外追加 (BOGAI ADD)
+// ════════════════════════════════════════════════
+function initBogaiAdd(){
+  $('ba-name').value = ''; $('ba-category').value = ''; $('ba-condition').value = '';
+  $('ba-qty').value = ''; $('ba-location').value = ''; $('ba-remarks').value = '';
+}
+
+async function submitBogaiAdd(){
+  const name = $('ba-name').value.trim();
+  const category = $('ba-category').value.trim();
+  const condition = $('ba-condition').value.trim();
+  const qty = parseInt($('ba-qty').value);
+  const location = $('ba-location').value.trim();
+  const remarks = $('ba-remarks').value.trim();
+
+  if(!name) { toast('在庫品名を入力してください', true); return; }
+  if(isNaN(qty) || qty < 1) { toast('数量を正しく入力してください', true); return; }
+
+  const payload = { item_name: name, category, condition, qty, location, remarks, user: currentUser };
+
+  if(!API){ toast('APIが設定されていません',true); return; }
+  
+  try{ 
+    await apiFetch('/bogai/add', { method:'POST', body:JSON.stringify(payload) }); 
+    toast(`✓ 簿外アイテムを追加しました`); 
+    initBogaiAdd(); 
+  } catch(e) { 
+    toast(e.message, true); 
+  }
+}
+
+// ════════════════════════════════════════════════
+// 簿外使用 (BOGAI USE)
+// ════════════════════════════════════════════════
+function initBogaiUse(){
+  $('bu-search-inp').value = '';
+  $('bu-list').innerHTML = emptyMsg('在庫品名、区分、場所、備考等で検索してください');
+}
+
+async function searchBogaiUse(){
+  const q = $('bu-search-inp').value.trim();
+  if(!q) { $('bu-list').innerHTML = emptyMsg('検索ワードを入力してください'); return; }
+  
+  if(!API){ toast('APIが設定されていません',true); return; }
+
+  try {
+    const res = await apiFetch(`/bogai/search?query=${encodeURIComponent(q)}`);
+    renderBogaiList(res || []);
+  } catch(e) {
+    $('bu-list').innerHTML = errMsg(e.message);
+  }
+}
+
+function renderBogaiList(items){
+  if(!items?.length){ $('bu-list').innerHTML = emptyMsg('該当なし'); return; }
+  
+  $('bu-list').innerHTML = items.map(it => {
+    const safeId = it.item_name.replace(/[^a-zA-Z0-9]/g,'_');
+    const safeNameJS = escJS(it.item_name);
+    return `
+    <div>
+      <div class="item-card" id="bcard-${safeId}" onclick="toggleBogaiInline('${safeId}', '${safeNameJS}', ${it.qty})" style="cursor:pointer; z-index:2; position:relative;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:11px;color:#6b7280;">${esc(it.category)} | ${esc(it.condition)}</div>
+          <div style="font-size:14px;font-weight:600;color:#111827;">${esc(it.item_name)}</div>
+          <div style="font-size:10px;color:#9ca3af;margin-top:2px;">保管場所: ${esc(it.location)}</div>
+          ${it.remarks ? `<div style="font-size:11px;color:#4b5563;margin-top:4px;background:#f3f4f6;padding:2px 6px;border-radius:4px;display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">備考: ${esc(it.remarks)}</div>` : ''}
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:20px;font-weight:700;color:${qtyColor(it.qty)};">${it.qty}</div>
+          <div style="font-size:10px;color:#9ca3af;">在庫</div>
+        </div>
+      </div>
+      <div class="inline-panel" id="binline-${safeId}" style="display:none; padding: 10px; background: #faf5ff; border: 1px solid #e5e7eb; border-top:none; border-radius:0 0 10px 10px;">
+        <div style="display:flex;gap:8px;align-items:center;">
+          <div style="flex:1;">
+            <label style="font-size:11px;color:#6b7280;display:block;margin-bottom:4px;">使用数量を入力</label>
+            <input id="binline-qty-${safeId}" type="number" min="1" class="form-input" style="padding:8px 12px;font-size:15px;background:#fff;" placeholder="0"/>
+          </div>
+          <button onclick="submitBogaiUse('${safeId}', '${safeNameJS}', ${it.qty})" style="background:#059669;color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer;margin-top:16px;">簿外使用</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleBogaiInline(id, name, stock) {
+  if (activeBogaiInline && activeBogaiInline !== id) {
+    const oldPanel = $('binline-' + activeBogaiInline);
+    if(oldPanel) oldPanel.style.display = 'none';
+    const oldCard = $('bcard-' + activeBogaiInline);
+    if(oldCard) oldCard.classList.remove('has-inline');
+  }
+  const panel = $('binline-' + id);
+  const card = $('bcard-' + id);
+  if (panel.style.display === 'none' || panel.style.display === '') {
+    panel.style.display = 'block'; 
+    card.classList.add('has-inline'); 
+    activeBogaiInline = id;
+    setTimeout(() => { const inp = $('binline-qty-'+id); if(inp) inp.focus(); }, 100);
+  } else {
+    panel.style.display = 'none'; 
+    card.classList.remove('has-inline'); 
+    activeBogaiInline = null;
+  }
+}
+
+async function submitBogaiUse(id, name, stock){
+  const qtyInp = $('binline-qty-'+id); if(!qtyInp) return;
+  const qty = parseInt(qtyInp.value);
+  if(isNaN(qty)||qty<1){ toast('数量を入力してください', true); return; }
+  if(qty>stock){ toast(`在庫数 (${stock}) を超えています`, true); return; }
+  
+  qtyInp.disabled = true;
+  try{
+    await apiFetch('/bogai/use',{method:'POST',body:JSON.stringify({item_name: name, qty: qty, user: currentUser})});
+    toast(`✓ 簿外 ${name} を ${qty} 使用しました`);
+    searchBogaiUse(); 
+  }catch(e){ 
+    toast(e.message, true); 
+    qtyInp.disabled = false; 
+  }
+}
+
+// ════════════════════════════════════════════════
+// 在庫確認
+// ════════════════════════════════════════════════
+async function initStock(){
+  $('stock-q').value='';
+  if(!cacheIsValid()) await refreshCache(false);
+  _stockFiltered=_cache.data; _stockRenderOffset=0; updateStockHeader(); renderStockPage(); show('stock-cache-badge');
+}
+function filterStock(){
+  const q=($('stock-q').value||'').toLowerCase().trim();
+  _stockFiltered=q?_cache.data.filter(it=>(it.part_no+it.name+it.base+(it.location||'')).toLowerCase().includes(q)):_cache.data;
+  _stockRenderOffset=0; updateStockHeader(); renderStockPage();
+}
+function updateStockHeader(){ 
+  $('stock-count').textContent=`${_stockFiltered.length} / ${_cache.data.length} 件`; 
+}
+function renderStockPage(){
+  const slice=_stockFiltered.slice(0,_stockRenderOffset+RENDER_PAGE);
+  $('stock-list').innerHTML=slice.length ? slice.map(it=>`
+    <div class="item-card">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:11px;color:#7c3aed;font-weight:700;">拠点: ${esc(it.base)} | 保管場所: ${esc(it.location || '未設定')}</div>
+        <div style="font-size:14px;font-weight:700;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px;">${esc(it.part_no)}</div>
+        <div style="font-size:13px;color:#4b5563;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.name)}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;min-width:60px;">
+        <div style="font-size:20px;font-weight:700;color:${qtyColor(it.qty)};">${it.qty}</div>
+        <div style="font-size:10px;color:#9ca3af;">在庫数</div>
+      </div>
+    </div>`).join('') : emptyMsg('データなし');
+  _stockRenderOffset+=RENDER_PAGE;
+  if(_stockFiltered.length>_stockRenderOffset) show('stock-more-btn'); else hide('stock-more-btn');
+}
+function renderMoreStock(){ renderStockPage(); }
+
+// ════════════════════════════════════════════════
+// 履歴確認
+// ════════════════════════════════════════════════
+function initHistory(){ if(!_allHistory.length) loadHistory(false); else filterHistory(); }
+async function loadHistory(force=false){
+  if(!force && _allHistory.length){ filterHistory(); return; }
+  if(!API){ $('hist-list').innerHTML=emptyMsg('APIが設定されていません'); return; }
+  try{ _allHistory=await apiFetch('/history'); filterHistory(); }catch(e){ $('hist-list').innerHTML=errMsg(e.message); }
+}
+function filterHistory(){
+  const f=$('hist-filter').value; const data=(f?_allHistory.filter(h=>h.action===f):_allHistory).slice(0,100);
+  $('hist-list').innerHTML=data.map(h=>{
+    const bc=h.action==='add'?'b-add':h.action==='use'?'b-use':'b-edit';
+    const lb=h.action==='add'?'追加':h.action==='use'?'使用':'編集';
+    const sg=h.action==='add'?'+':h.action==='use'?'-':'±';
+    return `<div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:10px;display:flex;align-items:flex-start;gap:8px;">
+      <span class="${bc}" style="margin-top:2px;flex-shrink:0;">${lb}</span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:600;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(h.part_no)} ${esc(h.name)}</div>
+        <div style="font-size:11px;color:#6b7280;margin-top:2px;">ユーザー: ${esc(h.user)} | 数量: ${sg}${h.qty} | 日時: ${esc(h.timestamp)}</div>
+      </div>
+    </div>`;
+  }).join('') || emptyMsg('履歴はありません');
+}
+
+// ════════════════════════════════════════════════
+// 管理（ADMIN）
+// ════════════════════════════════════════════════
+function initAdmin(){
+  if(token && isAdmin){
+    hide('admin-login-box');
+    show('admin-panel');
+    switchAtab('stock');
+  } else {
+    show('admin-login-box');
+    hide('admin-panel');
+  }
+}
+
+async function adminLogin(){
+  const user=$('a-user').value.trim(), pass=$('a-pass').value;
+  if(!user||!pass){ $('a-err').style.display=''; $('a-err').textContent='ユーザー名とパスワードを入力してください'; return; }
+  hide('a-err');
+  try{
+    const r=await apiFetch('/auth/login',{method:'POST',body:JSON.stringify({username:user,password:pass})});
+    if(!r.is_admin){ throw new Error('管理者権限が必要です'); }
+    token=r.access_token; isAdmin=true; currentUser=user;
+    localStorage.setItem('pm_token',token);
+    localStorage.setItem('pm_admin','true');
+    localStorage.setItem('pm_user',user);
+    updateUserUI();
+    hide('admin-login-box');
+    show('admin-panel');
+    switchAtab('stock');
+    toast('管理者としてログインしました');
+  }catch(e){
+    $('a-err').style.display=''; $('a-err').textContent=e.message;
+  }
+}
+
+function switchAtab(tab){
+  ['stock','bogai','export','users','cache'].forEach(t=>{
+    const tabEl = $(`atab-${t}`);
+    const secEl = $(`asec-${t}`);
+    if(tabEl) tabEl.classList.toggle('active', t===tab);
+    if(secEl) secEl.style.display=t===tab?'':'none';
+  });
+  if(tab==='stock') { $('admin-q').value=''; loadAdminStock(); }
+  if(tab==='bogai') { $('admin-bogai-q').value=''; loadAdminBogai(); }
+  if(tab==='users') { loadUsers(); }
+  if(tab==='cache') { updateCacheInfo(); }
+}
+
+async function loadAdminStock(){
+  if(!API) return;
+  try{
+    _allAdminStock = await refreshCache(true);
+    renderAdminStock(_allAdminStock);
+  }catch(e){ toast(e.message,true); }
+}
+
+function filterAdminStock(){
+  const q=$('admin-q').value.toLowerCase().trim();
+  const filtered=q?_allAdminStock.filter(it=>(it.part_no+it.name+it.base+(it.location||'')).toLowerCase().includes(q)):_allAdminStock;
+  renderAdminStock(filtered);
+}
+
+function renderAdminStock(items){
+  const list=$('admin-stock-list');
+  if(!items?.length){ list.innerHTML=emptyMsg('データなし'); return; }
+  list.innerHTML=items.slice(0,RENDER_PAGE).map(it=>{
+    const safePno=escJS(it.part_no);
+    const safeName=escJS(it.name);
+    const safeBase=escJS(it.base);
+    const safeLoc=escJS(it.location || '');
+    return `<div class="item-card" style="display:block; margin-bottom: 6px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:11px;color:#7c3aed;font-weight:700;">拠点: ${esc(it.base)} | 保管場所: ${esc(it.location || '未設定')}</div>
+          <div style="font-size:14px;font-weight:700;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px;">${esc(it.part_no)}</div>
+          <div style="font-size:13px;color:#4b5563;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.name)}</div>
+        </div>
+        <div style="text-align:right;display:flex;align-items:center;gap:12px;">
+          <div style="font-size:16px;font-weight:700;color:${qtyColor(it.qty)}; margin-right:8px;">${it.qty}</div>
+          <button onclick="editStockQty('${safePno}','${safeName}',${it.qty},'${safeBase}','${safeLoc}')" style="background:#ede9fe;color:#5b21b6;border:none;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">編集</button>
+          <button onclick="deleteStockPart('${safePno}','${safeBase}')" style="background:#fee2e2;color:#ef4444;border:none;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">削除</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function editStockQty(part_no, name, currentQty, base, location){
+  const newQtyStr=prompt(`品番: ${part_no}\n品名: ${name}\n拠点: ${base}\n新しい数量を入力してください:`, currentQty);
+  if(newQtyStr===null) return;
+  const newQty=parseInt(newQtyStr);
+  if(isNaN(newQty)||newQty<0){ toast('正しい数量（0以上）を入力してください',true); return; }
+
+  const newLoc = prompt(`[${base}] の保管場所 (Shelf Location) を入力してください:`, location);
+  if(newLoc === null) return;
+
+  try{
+    await apiFetch('/admin/stock/edit',{method:'PUT',body:JSON.stringify({part_no,name,qty:newQty,base,location:newLoc,user:currentUser})});
+    toast('部材情報を編集しました');
+    loadAdminStock();
+  }catch(e){ toast(e.message,true); }
+}
+
+async function deleteStockPart(part_no, base){
+  if(!confirm(`拠点 [${base}] の品番 [${part_no}] を完全に削除しますか？\nこの操作は取り消せません。`)) return;
+  try{
+    await apiFetch(`/admin/stock/${encodeURIComponent(part_no)}?base=${encodeURIComponent(base)}`,{method:'DELETE'});
+    toast('削除しました');
+    loadAdminStock();
+  }catch(e){ toast(e.message,true); }
+}
+
+// ── Admin 簿外管理ロジック ──
+async function loadAdminBogai(){
+  if(!API) return;
+  try{
+    _allAdminBogai = await apiFetch('/bogai/search');
+    renderAdminBogai(_allAdminBogai);
+  }catch(e){ toast(e.message,true); }
+}
+
+// ── Admin 簿外管理フィルター ──
+function filterAdminBogai(){
+  const q=$('admin-bogai-q').value.toLowerCase().trim();
+  const filtered=q?_allAdminBogai.filter(it=>{
+    const combined=`${it.item_name} ${it.category} ${it.condition} ${it.qty} ${it.location} ${it.remarks}`.toLowerCase();
+    return combined.includes(q);
+  }):_allAdminBogai;
+  renderAdminBogai(filtered);
+}
+
+function renderAdminBogai(items){
+  const list=$('admin-bogai-list');
+  if(!items?.length){ list.innerHTML=emptyMsg('簿外データなし'); return; }
+  list.innerHTML=items.slice(0,RENDER_PAGE).map(it=>{
+    const safeItemName=escJS(it.item_name);
+    const safeCategory=escJS(it.category||'');
+    const safeCondition=escJS(it.condition||'');
+    const safeLocation=escJS(it.location||'');
+    const safeRemarks=escJS(it.remarks||'');
+    return `<div class="item-card" style="display:block; margin-bottom: 6px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:11px;color:#6b7280;">${esc(it.category)} | ${esc(it.condition)} | ${esc(it.location)}</div>
+          <div style="font-size:14px;font-weight:600;color:#111827;">${esc(it.item_name)}</div>
+          ${it.remarks ? `<div style="font-size:11px;color:#4b5563;margin-top:2px;">備考: ${esc(it.remarks)}</div>` : ''}
+        </div>
+        <div style="text-align:right;display:flex;align-items:center;gap:12px;">
+          <div style="font-size:16px;font-weight:700;color:${qtyColor(it.qty)}; margin-right:8px;">${it.qty}</div>
+          <button onclick="editBogaiFields('${safeItemName}','${safeCategory}','${safeCondition}',${it.qty},'${safeLocation}','${safeRemarks}')" style="background:#ede9fe;color:#5b21b6;border:none;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">編集</button>
+          <button onclick="deleteBogaiPart('${safeItemName}')" style="background:#fee2e2;color:#ef4444;border:none;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">削除</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function editBogaiFields(item_name, category, condition, qty, location, remarks){
+  const newCategory = prompt(`[簿外編集] ${item_name}\n区分(Category)を入力してください:`, category);
+  if(newCategory === null) return;
+
+  const newCondition = prompt(`[簿外編集] ${item_name}\n状態(Condition)を入力してください:`, condition);
+  if(newCondition === null) return;
+
+  const newQtyStr = prompt(`[簿外編集] ${item_name}\n数量を入力してください:`, qty);
+  if(newQtyStr === null) return;
+  const newQty = parseInt(newQtyStr);
+  if(isNaN(newQty) || newQty < 0) { toast('正しい数量（0以上）を入力してください', true); return; }
+
+  const newLocation = prompt(`[簿外編集] ${item_name}\n保管場所を入力してください:`, location);
+  if(newLocation === null) return;
+
+  const newRemarks = prompt(`[簿外編集] ${item_name}\n備考を入力してください:`, remarks);
+  if(newRemarks === null) return;
+
+  try {
+    await apiFetch('/admin/bogai/edit', {
+      method: 'PUT',
+      body: JSON.stringify({
+        item_name,
+        category: newCategory,
+        condition: newCondition,
+        qty: newQty,
+        location: newLocation,
+        remarks: newRemarks,
+        user: currentUser
+      })
+    });
+    toast('簿外在庫を編集しました');
+    loadAdminBogai();
+  } catch(e) { toast(e.message, true); }
+}
+
+async function deleteBogaiPart(item_name){
+  if(!confirm(`簿外アイテム "${item_name}" を完全に削除しますか？\nこの操作は取り消せません。`)) return;
+  try {
+    await apiFetch(`/admin/bogai/${encodeURIComponent(item_name)}`, { method: 'DELETE' });
+    toast('簿外アイテムを削除しました');
+    loadAdminBogai();
+  } catch(e) { toast(e.message, true); }
+}
+
+function exportCSV(type){
+  if(!API) return;
+  const url=`${API}/admin/export/${type}`;
+  fetch(url, { headers: { 'Authorization': `Bearer ${token}` } })
+    .then(res => {
+      if(!res.ok) throw new Error('エクスポートのエラーが発生しました');
+      return res.blob();
+    })
+    .then(blob => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${type}_export.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    })
+    .catch(e => toast(e.message, true));
+}
+
+async function loadUsers(){
+  const list=$('users-list');
+  try{
+    const users=await apiFetch('/admin/users');
+    if(!users?.length){ list.innerHTML=emptyMsg('ユーザーがいません'); return; }
+    list.innerHTML=users.map(u=>`
+      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:10px;display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <div>
+          <div style="font-size:14px;font-weight:600;color:#111827;">${esc(u.username)}</div>
+          <div style="font-size:11px;color:#6b7280;">${u.is_admin?'管理者':'一般ユーザー'}</div>
+        </div>
+        ${u.username==='admin' ? '' : `<button onclick="deleteUser('${escJS(u.username)}')" style="background:#fee2e2;color:#ef4444;border:none;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">削除</button>`}
+      </div>
+    `).join('');
+  }catch(e){ list.innerHTML=errMsg(e.message); }
+}
+
+async function createUser(){
+  const user=$('nu-name').value.trim();
+  const pass=$('nu-pass').value;
+  const adm=$('nu-admin').checked;
+  if(!user||!pass){ toast('ユーザー名とパスワードを入力してください',true); return; }
+  try{
+    await apiFetch('/admin/users',{method:'POST',body:JSON.stringify({username:user,password:pass,is_admin:adm})});
+    toast('ユーザーを作成しました');
+    $('nu-name').value=''; $('nu-pass').value=''; $('nu-admin').checked=false;
+    loadUsers();
+  }catch(e){ toast(e.message,true); }
+}
+
+async function deleteUser(username){
+  if(!confirm(`ユーザー ${username} を削除しますか？`)) return;
+  try{
+    await apiFetch(`/admin/users/${encodeURIComponent(username)}`,{method:'DELETE'});
+    toast('削除しました');
+    loadUsers();
+  }catch(e){ toast(e.message,true); }
+}
+
+// ════════════════════════════════════════════════
+// 初期ロード
+// ════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  updateUserUI();
+  if(token){
+    hide('login-overlay');
+    refreshCache(false).then(()=>go('home'));
+  } else {
+    show('login-overlay');
+  }
+});
+</script>
+</body>
+</html>
