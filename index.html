@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -83,25 +82,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .shutter svg{width:24px;height:24px;}
 .photo-canvas{display:none;}
 .result-card{background:#f5f3ff;border:1.5px solid #c4b5fd;border-radius:14px;padding:16px;margin-top:12px;animation:fsu .22s ease;}
-@keyframes fsu{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-.analyzing{display:flex;align-items:center;justify-content:center;gap:10px;padding:16px;background:#f5f3ff;border-radius:12px;font-size:13px;color:#7c3aed;font-weight:600;margin-top:8px;}
-.spin{animation:sp .75s linear infinite;width:20px;height:20px;}
-@keyframes sp{to{transform:rotate(360deg)}}
-.upload-zone{border:2px dashed #c4b5fd;border-radius:12px;padding:20px 16px;text-align:center;cursor:pointer;background:#faf8ff;transition:background .15s;margin-top:10px;}
-.upload-zone:hover,.upload-zone:active{background:#ede9fe;}
-.fail-card{background:#fff7f7;border:1.5px solid #fca5a5;border-radius:12px;padding:14px;text-align:center;margin-top:8px;}
-.qty-inp{width:76px;border:1px solid #d1d5db;border-radius:8px;padding:8px 8px;font-size:15px;text-align:center;outline:none;}
-.qty-inp:focus{border-color:#a78bfa;}
-/* Dashboard compact */
-.dash-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;}
-.dash-card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:10px 6px;text-align:center;}
-.dash-num{font-size:22px;font-weight:800;line-height:1.1;}
-.dash-lbl{font-size:10px;color:#6b7280;margin-top:3px;}
-.top3-item{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px;margin-bottom:6px;}
-/* Cache badge */
-.cache-badge{display:inline-block;background:#ede9fe;color:#5b21b6;font-size:10px;padding:2px 7px;border-radius:99px;margin-left:6px;vertical-align:middle;}
-/* Session Cart Panel */
-.cart-panel{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:14px;margin-top:20px;}
+@media(max-width:640px){ .shutter{ display:none !important; } } /* スマホでは自動スキャンを促すため非表示推奨 */
 </style>
 </head>
 <body>
@@ -250,7 +231,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
             <svg fill="none" stroke="#7c3aed" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812-1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
           </button>
         </div>
-        <div style="font-size:11px;color:#9ca3af;text-align:center;margin-top:5px;">バーコードを枠内に合わせてシャッターを押してください</div>
+        <div style="font-size:11px;color:#9ca3af;text-align:center;margin-top:5px;">バーコードを枠内に合わせて自動検知されます（またはシャッター）</div>
       </div>
       <div class="upload-zone" onclick="document.getElementById('add-file').click()">
         <svg fill="none" stroke="#a78bfa" viewBox="0 0 24 24" style="width:28px;height:28px;margin:0 auto 5px;display:block;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
@@ -301,7 +282,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
   <div id="page-use" class="page hidden">
     <div style="font-size:18px;font-weight:700;color:#111827;margin-bottom:14px;">部材使用</div>
     
-    <!-- ★ 拠点選択を最上部へ配置 ★ -->
+    <!-- ★ 拠点選択を最上部へ配置（必須ロジック） ★ -->
     <div style="margin-bottom:16px; background:#f5f3ff; padding:12px; border-radius:12px; border:1px solid #ddd6fe;">
       <label style="font-size:13px;color:#5b21b6;font-weight:700;display:block;margin-bottom:6px;">① まず拠点 (Base) を選択してください *</label>
       <select id="use-base-select" class="form-input" style="font-size:15px; font-weight:700; border-color:#c4b5fd; color:#5b21b6;" onchange="onUseBaseChange()">
@@ -346,7 +327,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
             <svg fill="none" stroke="#7c3aed" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812-1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
           </button>
         </div>
-        <div style="font-size:11px;color:#9ca3af;text-align:center;margin-top:5px;">バーコードを枠内に合わせてシャッターを押してください</div>
+        <div style="font-size:11px;color:#9ca3af;text-align:center;margin-top:5px;">バーコードを枠内に合わせると自動認識します</div>
       </div>
       <div class="upload-zone" onclick="document.getElementById('use-file').click()">
         <svg fill="none" stroke="#a78bfa" viewBox="0 0 24 24" style="width:28px;height:28px;margin:0 auto 5px;display:block;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
@@ -574,7 +555,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 <nav id="mobile-bottom-nav">
   <button class="bnav-btn" id="bnav-home"  onclick="go('home')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>ホーム</button>
   <button class="bnav-btn" id="bnav-add"   onclick="go('add')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>追加</button>
-  <button class="bnav-btn" id="bnav-use"   onclick="go('use')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/></svg>使用</button>
+  <button class="bnav-btn" id="bnav-use"   onclick="go('use')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20(12H4"/></svg>使用</button>
   <button class="bnav-btn" id="bnav-stock" onclick="go('stock')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>在庫</button>
   <button class="bnav-btn" id="bnav-more"  onclick="toggleDrawer()"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>More</button>
 </nav>
@@ -638,26 +619,79 @@ async function decodeBarcodeImage(canvas) {
     ZXing.BarcodeFormat.QR_CODE, 
     ZXing.BarcodeFormat.CODE_128, 
     ZXing.BarcodeFormat.CODE_39,
-    ZXing.BarcodeFormat.EAN_13
+    ZXing.BarcodeFormat.EAN_13,
+    ZXing.BarcodeFormat.ITF
   ]);
   hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
 
   const reader = new ZXing.MultiFormatReader();
   reader.setHints(hints);
 
-  const tries = [
-    ()=> _canvasToBinaryBitmap(canvas, false, false), 
-    ()=> _canvasToBinaryBitmap(canvas, true,  false), 
-    ()=> _canvasToBinaryBitmap(canvas, false, true),  
+  // 解析成功率を最大化するため、切り出し画像に複数のパターンで解析を掛けます (iOS対策)
+  const variations = [
+    // 1. 生キャンバスデータのまま解析
+    () => {
+      const imgData = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+      return new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(new ZXing.RGBLuminanceSource(imgData.data, canvas.width, canvas.height)));
+    },
+    // 2. コントラスト二値化フィルターを適用して解析
+    () => {
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = canvas.width; tempCanvas.height = canvas.height;
+      const tempCtx = tempCanvas.getContext('2d');
+      tempCtx.drawImage(canvas, 0, 0);
+      applyHighContrastFilter(tempCanvas);
+      const imgData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+      return new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(new ZXing.RGBLuminanceSource(imgData.data, tempCanvas.width, tempCanvas.height)));
+    },
+    // 3. 横長スライス (バーコード両端のスタート・ストップコードを確実に捉えるため、全幅で高さのみを中央40%にトリミング)
+    () => {
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = canvas.width; tempCanvas.height = Math.round(canvas.height * 0.4);
+      const tempCtx = tempCanvas.getContext('2d');
+      tempCtx.drawImage(canvas, 0, Math.round(canvas.height * 0.3), canvas.width, tempCanvas.height, 0, 0, tempCanvas.width, tempCanvas.height);
+      const imgData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+      return new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(new ZXing.RGBLuminanceSource(imgData.data, tempCanvas.width, tempCanvas.height)));
+    }
   ];
-  for(const fn of tries){
-    try{
-      const bmp = fn();
+
+  for (const getBmp of variations) {
+    try {
+      const bmp = getBmp();
       const result = reader.decode(bmp);
-      if(result) return normalizeBarcode(result.getText());
-    }catch(_){}
+      if (result) return normalizeBarcode(result.getText());
+    } catch (e) {}
   }
   throw new Error('decode_failed');
+}
+
+function applyHighContrastFilter(canvas) {
+  const ctx = canvas.getContext('2d');
+  const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const d = imgData.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const r = d[i], g = d[i+1], b = d[i+2];
+    const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+    const val = gray < 120 ? 0 : 255;
+    d[i] = d[i+1] = d[i+2] = val;
+  }
+  ctx.putImageData(imgData, 0, 0);
+}
+
+// カメラプレビュー中央部をデジタルズーム的に切り出し
+function cropAndEnhanceCenterFrame(video, canvas) {
+  const ctx = canvas.getContext('2d');
+  const vw = video.videoWidth;
+  const vh = video.videoHeight;
+  
+  // スマホ接写時にも左右切れ・ボケを防ぐ最適なアスペクト比で中央切り抜き
+  const cropSize = Math.min(vw, vh) * 0.55;
+  const sx = (vw - cropSize) / 2;
+  const sy = (vh - cropSize) / 2;
+  
+  canvas.width = 600;
+  canvas.height = 600;
+  ctx.drawImage(video, sx, sy, cropSize, cropSize, 0, 0, 600, 600);
 }
 
 function _canvasToBinaryBitmap(canvas, highContrast, flipH){
@@ -680,49 +714,6 @@ function _canvasToBinaryBitmap(canvas, highContrast, flipH){
   }
   const lumi = new ZXing.RGBLuminanceSource(imgData.data, w, h);
   return new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(lumi));
-}
-
-function normalizeBarcode(raw){
-  let text = raw.replace(/[\x00-\x1F\x7F-\x9F]/g, ""); 
-  text = text.replace(/\*/g,'').trim();
-  if (text.includes('\n') || text.includes('\r')) {
-    let parts = text.split(/[\n\r]+/);
-    text = parts[0]; 
-  }
-  return text.replace(/\s+/g,' ').trim();
-}
-
-// 工業用の微細な二次元コード（Data Matrix等）および密集1Dバーコードを読み取るための前処理
-function cropAndEnhanceCenterFrame(video, canvas) {
-  const ctx = canvas.getContext('2d');
-  const vw = video.videoWidth;
-  const vh = video.videoHeight;
-  
-  // カメラプレビュー中央の正方形をピンポイントで切り抜く（拡大率を高めるためのデジタルズームシミュレート）
-  const cropSize = Math.min(vw, vh) * 0.45;
-  const sx = (vw - cropSize) / 2;
-  const sy = (vh - cropSize) / 2;
-  
-  // 解像度を高めて拡大転写 (600px x 600pxに引き伸ばして細い線を認識させやすくする)
-  canvas.width = 600;
-  canvas.height = 600;
-  ctx.drawImage(video, sx, sy, cropSize, cropSize, 0, 0, 600, 600);
-  
-  // 画像データの二値化コントラスト強調（影のノイズを除去してピントが甘くても白黒を際立たせる）
-  const imgData = ctx.getImageData(0, 0, 600, 600);
-  const d = imgData.data;
-  for (let i = 0; i < d.length; i += 4) {
-    const r = d[i], g = d[i+1], b = d[i+2];
-    const gray = 0.299 * r + 0.587 * g + 0.114 * b;
-    let v = gray;
-    if (gray < 120) {
-      v = Math.max(0, gray - 50); // 暗部をさらに黒く引き締める
-    } else {
-      v = Math.min(255, gray + 50); // 明部をクリアに白く飛ばす
-    }
-    d[i] = d[i+1] = d[i+2] = v;
-  }
-  ctx.putImageData(imgData, 0, 0);
 }
 
 // ════════════════════════════════════════════════
@@ -749,6 +740,8 @@ let activeBogaiInline = null;
 // Cart Management States
 let cartItems = [];
 let lastUsedItems = [];
+
+let scanInterval = null;
 
 const _dbt = {};
 function debounce(key, fn, ms=300){
@@ -802,6 +795,7 @@ function cleanupCam(videoId, stream){
     if(v){ v.srcObject=null; }
     stopStream(stream);
   }catch(_){}
+  stopAutoScanning();
 }
 
 // ════════════════════════════════════════════════
@@ -1052,6 +1046,44 @@ async function submitManualAdd(){
   }catch(e){ toast(e.message,true); }
 }
 
+// ── Auto Scanning Loop Controller (ゼロタップ高速検出システム) ──
+function startAutoScanning(videoElement, canvasElement, isAddMode) {
+  stopAutoScanning();
+  scanInterval = setInterval(async () => {
+    if (!videoElement.videoWidth) return;
+    
+    // ビデオフレームから中央部を正確に切り出し
+    cropAndEnhanceCenterFrame(videoElement, canvasElement);
+    
+    try {
+      const code = await decodeBarcodeImage(canvasElement);
+      if (code) {
+        stopAutoScanning();
+        // 成功音をエミュレートし通知
+        toast(`✓ コード検出成功: ${code}`);
+        if (isAddMode) {
+          cleanupCam('add-video', addStream); addStream = null;
+          hide('add-cam-wrap');
+          handleAddScanResult(code);
+        } else {
+          cleanupCam('use-video', useStream); useStream = null;
+          hide('use-cam-wrap');
+          handleUseScanResult(code);
+        }
+      }
+    } catch (e) {
+      // 読み取り失敗時はそのまま次のフレーム処理へ継続
+    }
+  }, 350);
+}
+
+function stopAutoScanning() {
+  if (scanInterval) {
+    clearInterval(scanInterval);
+    scanInterval = null;
+  }
+}
+
 async function startAddCamera(){
   resetAddScanUI();
   try{
@@ -1068,7 +1100,7 @@ async function startAddCamera(){
     v.srcObject=s; 
     await v.play().catch(()=>{}); 
     
-    // ピント合わせを継続する命令をカメラへ直接アプライする
+    // ピント合わせを継続する命令をカメラへ直接適用
     const track = s.getVideoTracks()[0];
     if (track && typeof track.getCapabilities === 'function') {
       const capabilities = track.getCapabilities();
@@ -1077,6 +1109,8 @@ async function startAddCamera(){
       }
     }
     show('add-cam-wrap');
+    // オートスキャンのループを開始
+    startAutoScanning(v, $('add-canvas'), true);
   }catch(e){ hide('add-cam-wrap'); toast('カメラを起動できません',true); }
 }
 function resetAddScanUI(){
@@ -1088,30 +1122,21 @@ function resetAddScan(){ resetAddScanUI(); if(!addStream) startAddCamera(); }
 async function captureAdd(){
   const v=$('add-video'), c=$('add-canvas');
   if(!v.videoWidth){ toast('カメラ準備中です…',true); return; }
-  
-  // 工業用バーコード・データマトリクス読み取り用中央ズーム＆二値化前処理を実行
   cropAndEnhanceCenterFrame(v, c);
-  
   cleanupCam('add-video',addStream); addStream=null; hide('add-cam-wrap');
-  await analyzeAddCanvas(c);
-}
-function onAddFileChange(inp){
-  if(!inp.files?.[0]) return;
-  const img=new Image(), url=URL.createObjectURL(inp.files[0]);
-  img.onload=async()=>{
-    const c=$('add-canvas'); 
-    c.width=img.naturalWidth; 
-    c.height=img.naturalHeight; 
-    c.getContext('2d').drawImage(img,0,0);
-    URL.revokeObjectURL(url); hide('add-cam-wrap'); await analyzeAddCanvas(c);
-  }; img.src=url;
+  
+  show('add-analyzing');
+  try {
+    const code = await decodeBarcodeImage(c);
+    handleAddScanResult(code);
+  } catch(e) {
+    hide('add-analyzing'); show('add-fail-card');
+  }
 }
 
-async function analyzeAddCanvas(c){
-  show('add-analyzing'); hide('add-fail-card'); hide('add-result-card');
-  let pn;
-  try{ pn = await decodeBarcodeImage(c); } catch(e){ hide('add-analyzing'); show('add-fail-card'); return; }
-  hide('add-analyzing'); $('add-res-pno').textContent=pn;
+async function handleAddScanResult(pn) {
+  hide('add-analyzing');
+  $('add-res-pno').textContent=pn;
 
   const base = $('add-base-select').value;
   let r=cacheGet(pn, base);
@@ -1135,6 +1160,28 @@ async function analyzeAddCanvas(c){
     addScanData={part_no:pn,name:'',qty:0,base:base,location:'',is_new:true};
   }
   $('add-res-qty-inp').value=''; show('add-result-card'); $('add-result-card').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function onAddFileChange(inp){
+  if(!inp.files?.[0]) return;
+  const img=new Image(), url=URL.createObjectURL(inp.files[0]);
+  img.onload=async()=>{
+    const c=$('add-canvas'); 
+    c.width=img.naturalWidth; 
+    c.height=img.naturalHeight; 
+    c.getContext('2d').drawImage(img,0,0);
+    URL.revokeObjectURL(url); hide('add-cam-wrap'); await analyzeAddCanvas(c);
+  }; img.src=url;
+}
+
+async function analyzeAddCanvas(c){
+  show('add-analyzing'); hide('add-fail-card'); hide('add-result-card');
+  try{ 
+    const pn = await decodeBarcodeImage(c); 
+    handleAddScanResult(pn);
+  } catch(e){ 
+    hide('add-analyzing'); show('add-fail-card'); 
+  }
 }
 
 async function submitScanAdd(){
@@ -1454,26 +1501,28 @@ async function startUseCamera(){
       }
     }
     show('use-cam-wrap');
+    // オートスキャンのループを開始
+    startAutoScanning(v, $('use-canvas'), false);
   }catch(e){ hide('use-cam-wrap'); toast('カメラを起動できません',true); }
 }
 
 async function captureUse(){
   const v=$('use-video'), c=$('use-canvas');
   if(!v.videoWidth){ toast('カメラ準備中です…',true); return; }
-  
-  // 工業用バーコード・データマトリクス読み取り用中央ズーム＆二値化前処理を実行
   cropAndEnhanceCenterFrame(v, c);
-  
   cleanupCam('use-video',useStream); useStream=null; hide('use-cam-wrap');
-  await analyzeUseCanvas(c);
+  
+  show('use-analyzing');
+  try {
+    const code = await decodeBarcodeImage(c);
+    handleUseScanResult(code);
+  } catch(e) {
+    hide('use-analyzing'); show('use-fail-card');
+  }
 }
 
-async function analyzeUseCanvas(c){
-  show('use-analyzing'); hide('use-fail-card'); hide('use-scan-result');
-  let pn;
-  try{ pn=await decodeBarcodeImage(c); } catch(e){ hide('use-analyzing'); show('use-fail-card'); return; }
+async function handleUseScanResult(pn) {
   hide('use-analyzing');
-
   const base = $('use-base-select').value;
   let r=cacheGet(pn, base);
   if(!r && API){
@@ -1497,6 +1546,25 @@ async function analyzeUseCanvas(c){
     openUseConfirm(r.part_no,r.name,r.qty,r.location);
   }else{
     show('use-fail-card'); $('use-fail-card').querySelector('div').textContent=`品番 "${pn}" は当拠点 [${base}] に未登録です`;
+  }
+}
+
+function onUseFileChange(inp){
+  if(!inp.files?.[0]) return;
+  const img=new Image(), url=URL.createObjectURL(inp.files[0]);
+  img.onload=async()=>{
+    const c=$('use-canvas'); c.width=img.naturalWidth; c.height=img.naturalHeight; c.getContext('2d').drawImage(img,0,0);
+    URL.revokeObjectURL(url); hide('use-cam-wrap'); await analyzeUseCanvas(c);
+  }; img.src=url;
+}
+
+async function analyzeUseCanvas(c){
+  show('use-analyzing'); hide('use-fail-card'); hide('use-scan-result');
+  try{ 
+    const pn=await decodeBarcodeImage(c); 
+    handleUseScanResult(pn);
+  } catch(e){ 
+    hide('use-analyzing'); show('use-fail-card'); 
   }
 }
 
@@ -1850,7 +1918,6 @@ async function loadAdminBogai(){
   }catch(e){ toast(e.message,true); }
 }
 
-// (以下、管理用の既存ロジック...)
 function filterAdminBogai(){
   const q=$('admin-bogai-q').value.toLowerCase().trim();
   const filtered=q?_allAdminBogai.filter(it=>{
