@@ -1,9 +1,3 @@
-"""
-部材・補材管理システム — FastAPI バックエンド
-Google Sheets をリアルタイムDBとして使用
-Render Web Service にデプロイする構成
-"""
-
 from __future__ import annotations
 
 import csv
@@ -33,7 +27,7 @@ GOOGLE_WORKSHEET = os.getenv("GOOGLE_WORKSHEET", "在庫")
 SECRET_KEY       = os.environ["SECRET_KEY"]
 ALGORITHM        = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7
-GOOGLE_VISION_API_KEY = os.environ["GOOGLE_VISION_API_KEY"]  # ← 追加
+GOOGLE_VISION_API_KEY = os.environ["GOOGLE_VISION_API_KEY"]
 
 CREDENTIALS_JSON = os.getenv("GOOGLE_CREDENTIALS_JSON")
 
@@ -553,7 +547,7 @@ class OcrRequest(BaseModel):
     image: str  # base64 JPEG
 
 @app.post("/ocr/label")
-def ocr_label(body: OcrRequest, _=Depends(get_current_user)):
+def ocr_label(body: OcrRequest):
     """Google Vision APIでラベル画像から品番・品名を抽出する"""
     try:
         # Google Vision API呼び出し
