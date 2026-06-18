@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -600,7 +601,8 @@ const CACHE_TTL_MS   = 3 * 60 * 1000;  // 在庫キャッシュ有効期限 3分
 const RENDER_PAGE    = 40;              // 一度にレンダリングする行数
 
 // ════════════════════════════════════════════════
-// Camera & Barcode Decoder (Native API + ZXing Fallback)
+// Camera & Barcode Decoder 
+// (中心クロップ ＋ 画像二値化フィルターによる高解像度工業用読み取りサポート)
 // ════════════════════════════════════════════════
 let _zxingReady = false;
 function loadZXing(){
@@ -618,6 +620,7 @@ function loadZXing(){
 async function decodeBarcodeImage(canvas) {
   if ('BarcodeDetector' in window) {
     try {
+      // 産業用途で一般的な 'data_matrix' を最優先検出フォーマットに指定
       const detector = new BarcodeDetector({ formats: ['data_matrix', 'qr_code', 'code_128', 'ean_13', 'code_39'] });
       const barcodes = await detector.detect(canvas);
       if (barcodes.length > 0) {
@@ -629,9 +632,13 @@ async function decodeBarcodeImage(canvas) {
 
   await loadZXing();
   const hints = new Map();
+  // ZXing側でもDATA_MATRIXを明示的に認識対象リストに追加
   hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
-    ZXing.BarcodeFormat.DATA_MATRIX, ZXing.BarcodeFormat.QR_CODE, 
-    ZXing.BarcodeFormat.CODE_128, ZXing.BarcodeFormat.EAN_13
+    ZXing.BarcodeFormat.DATA_MATRIX, 
+    ZXing.BarcodeFormat.QR_CODE, 
+    ZXing.BarcodeFormat.CODE_128, 
+    ZXing.BarcodeFormat.CODE_39,
+    ZXing.BarcodeFormat.EAN_13
   ]);
   hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
 
@@ -683,6 +690,39 @@ function normalizeBarcode(raw){
     text = parts[0]; 
   }
   return text.replace(/\s+/g,' ').trim();
+}
+
+// 工業用の微細な二次元コード（Data Matrix等）および密集1Dバーコードを読み取るための前処理
+function cropAndEnhanceCenterFrame(video, canvas) {
+  const ctx = canvas.getContext('2d');
+  const vw = video.videoWidth;
+  const vh = video.videoHeight;
+  
+  // カメラプレビュー中央の正方形をピンポイントで切り抜く（拡大率を高めるためのデジタルズームシミュレート）
+  const cropSize = Math.min(vw, vh) * 0.45;
+  const sx = (vw - cropSize) / 2;
+  const sy = (vh - cropSize) / 2;
+  
+  // 解像度を高めて拡大転写 (600px x 600pxに引き伸ばして細い線を認識させやすくする)
+  canvas.width = 600;
+  canvas.height = 600;
+  ctx.drawImage(video, sx, sy, cropSize, cropSize, 0, 0, 600, 600);
+  
+  // 画像データの二値化コントラスト強調（影のノイズを除去してピントが甘くても白黒を際立たせる）
+  const imgData = ctx.getImageData(0, 0, 600, 600);
+  const d = imgData.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const r = d[i], g = d[i+1], b = d[i+2];
+    const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+    let v = gray;
+    if (gray < 120) {
+      v = Math.max(0, gray - 50); // 暗部をさらに黒く引き締める
+    } else {
+      v = Math.min(255, gray + 50); // 明部をクリアに白く飛ばす
+    }
+    d[i] = d[i+1] = d[i+2] = v;
+  }
+  ctx.putImageData(imgData, 0, 0);
 }
 
 // ════════════════════════════════════════════════
@@ -1015,8 +1055,28 @@ async function submitManualAdd(){
 async function startAddCamera(){
   resetAddScanUI();
   try{
-    const s=await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment', width:{ideal:1920}, height:{ideal:1080}, focusMode:'continuous' } });
-    addStream=s; const v=$('add-video'); v.srcObject=s; await v.play().catch(()=>{}); show('add-cam-wrap');
+    const s=await navigator.mediaDevices.getUserMedia({ 
+      video:{ 
+        facingMode:'environment', 
+        width:{ideal:1920}, 
+        height:{ideal:1080}, 
+        focusMode:'continuous' 
+      } 
+    });
+    addStream=s; 
+    const v=$('add-video'); 
+    v.srcObject=s; 
+    await v.play().catch(()=>{}); 
+    
+    // ピント合わせを継続する命令をカメラへ直接アプライする
+    const track = s.getVideoTracks()[0];
+    if (track && typeof track.getCapabilities === 'function') {
+      const capabilities = track.getCapabilities();
+      if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
+        await track.applyConstraints({ focusMode: 'continuous' }).catch(()=>{});
+      }
+    }
+    show('add-cam-wrap');
   }catch(e){ hide('add-cam-wrap'); toast('カメラを起動できません',true); }
 }
 function resetAddScanUI(){
@@ -1028,7 +1088,10 @@ function resetAddScan(){ resetAddScanUI(); if(!addStream) startAddCamera(); }
 async function captureAdd(){
   const v=$('add-video'), c=$('add-canvas');
   if(!v.videoWidth){ toast('カメラ準備中です…',true); return; }
-  c.width=v.videoWidth; c.height=v.videoHeight; c.getContext('2d').drawImage(v,0,0);
+  
+  // 工業用バーコード・データマトリクス読み取り用中央ズーム＆二値化前処理を実行
+  cropAndEnhanceCenterFrame(v, c);
+  
   cleanupCam('add-video',addStream); addStream=null; hide('add-cam-wrap');
   await analyzeAddCanvas(c);
 }
@@ -1036,7 +1099,10 @@ function onAddFileChange(inp){
   if(!inp.files?.[0]) return;
   const img=new Image(), url=URL.createObjectURL(inp.files[0]);
   img.onload=async()=>{
-    const c=$('add-canvas'); c.width=img.naturalWidth; c.height=img.naturalHeight; c.getContext('2d').drawImage(img,0,0);
+    const c=$('add-canvas'); 
+    c.width=img.naturalWidth; 
+    c.height=img.naturalHeight; 
+    c.getContext('2d').drawImage(img,0,0);
     URL.revokeObjectURL(url); hide('add-cam-wrap'); await analyzeAddCanvas(c);
   }; img.src=url;
 }
@@ -1366,20 +1432,38 @@ function clearCart() {
 async function startUseCamera(){
   resetUseScanUI();
   try{
-    const s=await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment', width:{ideal:1920}, height:{ideal:1080}, focusMode:'continuous' } });
-    useStream=s; const v=$('use-video'); v.srcObject=s; await v.play().catch(()=>{}); show('use-cam-wrap');
+    const s=await navigator.mediaDevices.getUserMedia({ 
+      video:{ 
+        facingMode:'environment', 
+        width:{ideal:1920}, 
+        height:{ideal:1080}, 
+        focusMode:'continuous' 
+      } 
+    });
+    useStream=s; 
+    const v=$('use-video'); 
+    v.srcObject=s; 
+    await v.play().catch(()=>{}); 
+    
+    // ピント合わせを継続する命令をカメラへ直接アプライする
+    const track = s.getVideoTracks()[0];
+    if (track && typeof track.getCapabilities === 'function') {
+      const capabilities = track.getCapabilities();
+      if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
+        await track.applyConstraints({ focusMode: 'continuous' }).catch(()=>{});
+      }
+    }
+    show('use-cam-wrap');
   }catch(e){ hide('use-cam-wrap'); toast('カメラを起動できません',true); }
 }
-function resetUseScanUI(){
-  hide('use-scan-result'); hide('use-fail-card'); hide('use-analyzing'); $('use-scan-item').innerHTML='';
-  show('use-cam-wrap'); $('use-file').value=''; hide('use-confirm'); useConfirmData=null;
-}
-function resetUseScan(){ resetUseScanUI(); if(!useStream) startUseCamera(); }
 
 async function captureUse(){
   const v=$('use-video'), c=$('use-canvas');
   if(!v.videoWidth){ toast('カメラ準備中です…',true); return; }
-  c.width=v.videoWidth; c.height=v.videoHeight; c.getContext('2d').drawImage(v,0,0);
+  
+  // 工業用バーコード・データマトリクス読み取り用中央ズーム＆二値化前処理を実行
+  cropAndEnhanceCenterFrame(v, c);
+  
   cleanupCam('use-video',useStream); useStream=null; hide('use-cam-wrap');
   await analyzeUseCanvas(c);
 }
@@ -1766,6 +1850,7 @@ async function loadAdminBogai(){
   }catch(e){ toast(e.message,true); }
 }
 
+// (以下、管理用の既存ロジック...)
 function filterAdminBogai(){
   const q=$('admin-bogai-q').value.toLowerCase().trim();
   const filtered=q?_allAdminBogai.filter(it=>{
@@ -1811,7 +1896,7 @@ async function editBogaiFields(item_name, category, condition, qty, location, re
   const newQtyStr = prompt(`[簿外編集] ${item_name}\n数量を入力してください:`, qty);
   if(newQtyStr === null) return;
   const newQty = parseInt(newQtyStr);
-  if(isNaN(newQty) || newQty < 0) { toast('正しい数量（0以上）を入力してください', true); return; }
+  if(isNaN(newQty) || newQty < 0) { toast('Correct quantity error', true); return; }
 
   const newLocation = prompt(`[簿外編集] ${item_name}\n保管場所を入力してください:`, location);
   if(newLocation === null) return;
@@ -1832,16 +1917,16 @@ async function editBogaiFields(item_name, category, condition, qty, location, re
         user: currentUser
       })
     });
-    toast('簿外在庫を編集しました');
+    toast('簿外情報を編集しました');
     loadAdminBogai();
   } catch(e) { toast(e.message, true); }
 }
 
 async function deleteBogaiPart(item_name){
-  if(!confirm(`簿外アイテム "${item_name}" を完全に削除しますか？\nこの操作は取り消せません。`)) return;
+  if(!confirm(`簿外アイテム "${item_name}" を完全に削除しますか？`)) return;
   try {
     await apiFetch(`/admin/bogai/${encodeURIComponent(item_name)}`, { method: 'DELETE' });
-    toast('簿外アイテムを削除しました');
+    toast('削除しました');
     loadAdminBogai();
   } catch(e) { toast(e.message, true); }
 }
@@ -1851,7 +1936,7 @@ function exportCSV(type){
   const url=`${API}/admin/export/${type}`;
   fetch(url, { headers: { 'Authorization': `Bearer ${token}` } })
     .then(res => {
-      if(!res.ok) throw new Error('エクスポートのエラーが発生しました');
+      if(!res.ok) throw new Error('Export error');
       return res.blob();
     })
     .then(blob => {
