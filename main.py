@@ -8,7 +8,6 @@ import re
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
-import requests
 import gspread
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -27,7 +26,6 @@ GOOGLE_WORKSHEET = os.getenv("GOOGLE_WORKSHEET", "在庫")
 SECRET_KEY       = os.environ["SECRET_KEY"]
 ALGORITHM        = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7
-GOOGLE_VISION_API_KEY = os.environ["GOOGLE_VISION_API_KEY"]
 
 CREDENTIALS_JSON = os.getenv("GOOGLE_CREDENTIALS_JSON")
 
@@ -62,10 +60,10 @@ def open_sheet(sheet_name: str) -> gspread.Worksheet:
 WS_STOCK   = os.getenv("GOOGLE_WORKSHEET", "在庫")
 WS_HISTORY = "history"
 WS_USERS   = "ユーザー"
-WS_BOGAI   = "簿外"  # シート名: 簿外
+WS_BOGAI   = "簿外"
 
 # ══════════════════════════════════════════════════
-# シートヘッダー初期化（「拠点」「保管場所」を含めた新ヘッダー構成）
+# シートヘッダー初期化
 # ══════════════════════════════════════════════════
 STOCK_HEADERS   = ["品番", "品名", "数量", "拠点", "保管場所", "更新日時"]
 HISTORY_HEADERS = ["操作日時", "操作ユーザー", "品番", "品名", "数量", "区分"]
@@ -122,14 +120,12 @@ def append_history(user: str, part_no: str, name: str, qty: int, action: str) ->
     ws.append_row([jst_now(), user, part_no, name, str(qty), action])
 
 # ══════════════════════════════════════════════════
-# 在庫 (STOCK) CRUD ヘルパー
-# 拠点と品番を掛け合わせた判定処理
+# 在庫 (STOCK) CRUD
 # ══════════════════════════════════════════════════
 def find_stock_row(ws: gspread.Worksheet, part_no: str, base: str) -> Optional[int]:
     rows = ws.get_all_values()
     for i, row in enumerate(rows[1:], start=2):
         if len(row) >= 4:
-            # 1番目の「品番」と4番目の「拠点」を両方突き合わせ
             if row[0].strip() == part_no.strip() and row[3].strip() == base.strip():
                 return i
     return None
@@ -154,17 +150,12 @@ def get_all_stock() -> List[Dict[str, Any]]:
     if len(rows) <= 1: return []
     result = []
     
-    # 5大拠点の値チェック用定義
     valid_bases = {"川口", "仙台", "郡山", "名古屋", "大阪"}
     
     for row in rows[1:]:
         if not row or not row[0].strip(): continue
-        
-        # 旧データ形式で列がズレてしまっている場合のセーフティ保護ロジック
         base_val = row[3].strip() if len(row) > 3 else "川口"
         if base_val not in valid_bases:
-            # 4番目のカラムが拠点名でなければ、旧スプレッドシートのタイムスタンプ等の可能性があるため
-            # 自動的に「川口」拠点として引き当てを救済します
             base_val = "川口"
             
         loc_val = row[4].strip() if len(row) > 4 else ""
@@ -188,13 +179,11 @@ def upsert_stock(part_no: str, name: str, delta: int, base: str, location: str, 
         current_qty = int(row[2]) if len(row)>2 and str(row[2]).lstrip("-").isdigit() else 0
         new_qty = current_qty + delta
         if new_qty < 0: raise HTTPException(status_code=400, detail=f"在庫不足: 現在 {current_qty}, 使用 {abs(delta)}")
-        # C（数量）, D（拠点）, E（保管場所）, F（更新日時）を範囲更新
         ws.update(f"C{row_no}:F{row_no}", [[str(new_qty), base, location, now]])
         final_name = row[1] if len(row)>1 else name
     else:
         if delta < 0: raise HTTPException(status_code=404, detail="該当する品番と拠点の組み合わせが見つかりません")
         new_qty = delta; final_name = name
-        # 6カラム構造で追加
         ws.append_row([part_no, final_name, str(new_qty), base, location, now])
 
     append_history(user, part_no, f"{final_name} ({base} - {location})", abs(delta), action)
@@ -236,7 +225,7 @@ def get_all_history() -> List[Dict[str, Any]]:
 
 
 # ══════════════════════════════════════════════════
-# 簿外 (BOGAI) CRUD ヘルパー 
+# 簿外 (BOGAI) CRUD
 # ══════════════════════════════════════════════════
 def find_bogai_row(ws: gspread.Worksheet, item_name: str) -> Optional[int]:
     col_a = ws.col_values(1)
@@ -458,7 +447,6 @@ def search_bogai(query: str = ""):
     if not query: return all_items
     q = query.lower()
     
-    # 全フィールドの文字列結合（あいまい検索）
     results = []
     for it in all_items:
         combined_text = " ".join([
@@ -541,86 +529,3 @@ def admin_delete_user(username: str, _=Depends(get_admin_user)):
 def health(): return {"status": "ok", "time": jst_now()}
 @app.get("/")
 def root(): return {"message": "API", "docs": "/docs"}
-
-# ── OCR API (Google Vision) ──
-class OcrRequest(BaseModel):
-    image: str  # base64 JPEG
-
-@app.post("/ocr/label")
-def ocr_label(body: OcrRequest):
-    """Google Vision APIでラベル画像から品番・品名を抽出する"""
-    try:
-        # Google Vision API呼び出し
-        url = f"https://vision.googleapis.com/v1/images:annotate?key={GOOGLE_VISION_API_KEY}"
-        payload = {
-            "requests": [{
-                "image": {"content": body.image},
-                "features": [{"type": "TEXT_DETECTION", "maxResults": 1}]
-            }]
-        }
-        resp = requests.post(url, json=payload, timeout=10)
-        
-        # Google Vision APIからのエラー（403 Forbidden等）を具体的にキャッチする
-        if resp.status_code == 403:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, 
-                detail="Google Cloud Vision APIが有効化されていないか、APIキーの権限が制限されています。GCP Consoleを確認してください。"
-            )
-            
-        resp.raise_for_status()
-        data = resp.json()
-
-        # テキスト全体を取得
-        annotations = data.get("responses", [{}])[0].get("textAnnotations", [])
-        if not annotations:
-            raise HTTPException(status_code=422, detail="画像からテキストが検出されませんでした")
-
-        full_text = annotations[0].get("description", "")
-        lines = [l.strip() for l in full_text.splitlines() if l.strip()]
-        print(f"[Vision OCR] 読み取り結果:\n{full_text}")
-
-        # 品番を抽出: 「品番」の次の行、またはN/M/K始まりのパターン
-        part_no = None
-        name = None
-
-        for i, line in enumerate(lines):
-            # 「品番」ラベルの次の行を品番として取得
-            if re.search(r'品番|PART\s*No', line, re.IGNORECASE):
-                # 同じ行に品番がある場合
-                inline = re.search(r'([NMKnmk][A-Z0-9]{3,})', line, re.IGNORECASE)
-                if inline:
-                    part_no = inline.group(1).upper()
-                # 次の行に品番がある場合
-                elif i + 1 < len(lines):
-                    next_line = lines[i + 1]
-                    m = re.search(r'([NMKnmk][A-Z0-9]{3,})', next_line, re.IGNORECASE)
-                    if m:
-                        part_no = m.group(1).upper()
-
-            # 「品名」ラベルの次の行を品名として取得
-            if re.search(r'品名', line):
-                inline_name = re.sub(r'品名', '', line).strip()
-                if inline_name:
-                    name = inline_name
-                elif i + 1 < len(lines):
-                    name = lines[i + 1]
-
-        # 品番が見つからない場合: 全テキストからN/M/K始まりを探す
-        if not part_no:
-            for line in lines:
-                m = re.search(r'\b([NMKnmk][A-Z0-9]{5,})\b', line, re.IGNORECASE)
-                if m:
-                    part_no = m.group(1).upper()
-                    break
-
-        if not part_no:
-            raise HTTPException(status_code=422, detail="品番が読み取れませんでした")
-
-        return {"part_no": part_no, "name": name or ""}
-
-    except HTTPException:
-        raise
-    except requests.exceptions.HTTPError as e:
-        raise HTTPException(status_code=400, detail=f"Google API Error: {str(e)}")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"OCRエラー: {str(e)}")
